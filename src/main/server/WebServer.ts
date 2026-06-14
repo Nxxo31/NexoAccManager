@@ -5,7 +5,7 @@
  * de forma segura a travÃ©s de endpoints HTTP.
  */
 import Fastify from 'fastify';
-import fastifyCors from 'fastify-cors';
+import fastifyCors from '@fastify/cors';
 import { AccountManager } from './AccountManager';
 
 export class WebServer {
