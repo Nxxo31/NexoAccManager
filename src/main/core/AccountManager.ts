@@ -4,9 +4,10 @@
  * Encapsula las operaciones relacionadas con cuentas, cifrado,
  * lanzamiento de Roblox y gestiÃ³n de grupos.
  */
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import crypto from 'crypto';
-import { Account } from '../types/Account';
+import { shell } from 'electron';
+import { Account } from '../../types/Account';
 import { DatabaseManager } from '../storage/DatabaseManager';
 import { CryptoService } from './CryptoService';
 
@@ -127,109 +128,175 @@ export class AccountManager {
   }
 
   /**
-   * Lanza Roblox con una cuenta específica
+   * Lanza Roblox con una cuenta especÃ­fica a travÃ©s del protocolo roblox-player://
    *
-   * Roblox Player se lanza a través del protocolo roblox:// con la cookie
-   * inyectada en el entorno. Para Multi-Roblox, se crea un directorio de
-   * perfil temporal y se lanza la instancia con el flag -event.
+   * Flujo:
+   * 1. Valida que la cuenta exista
+   * 2. Descifra la cookie
+   * 3. Verifica la cookie contra auth.roblox.com (con retry 1 vez)
+   * 4. Obtiene auth ticket de Roblox
+   * 5. Construye URL del protocolo roblox-player://
+   * 6. Lanza la URL con shell.openExternal
+   * 7. Actualiza lastUsed en la base de datos
    */
   async launchRoblox(accountId: string, placeId?: string, jobId?: string): Promise<boolean> {
-    const os = require('os');
-    const fs = require('fs');
-    const path = require('path');
-    const crypto = require('crypto');
-
+    // 1. Buscar la cuenta en SQLite por accountId
     const account = this.db.getAccount(accountId);
-    if (!account) throw new Error('Cuenta no encontrada');
-
-    // Descifrar cookie
-    const cookie = this.crypto.decrypt(account.encrypted_cookie);
-
-    // Obtener el ejecutable de Roblox según el sistema operativo
-    const robloxPath = this.getRobloxExecutable();
-
-    // Para Multi-Roblox, crear un directorio de perfil temporal
-    let profileArg: string | undefined;
-    if (this.multiRobloxEnabled) {
-      const tempDir = path.join(os.tmpdir(), 'nexoaccmanager', crypto.randomUUID());
-      fs.mkdirSync(tempDir, { recursive: true });
-
-      // Crear archivo de cookie temporal para que Roblox la use
-      const tempCookiePath = path.join(tempDir, 'Cookies');
-      fs.writeFileSync(tempCookiePath, `.ROBLOSECURITY=${cookie}`, 'utf8');
-
-      profileArg = tempDir;
+    if (!account) {
+      throw new Error('Cuenta no encontrada');
     }
 
-    // Preparar argumentos para Roblox
-    const args: string[] = [];
-
-    if (placeId || jobId) {
-      // Usar protocolo roblox:// para unirse a un juego específico
-      const protocolUrl = this.buildRobloxProtocol(placeId, jobId);
-      // En Windows, lanzar el protocolo directamente
-      const { exec } = require('child_process');
-      exec(`start "" "${protocolUrl}"`);
-      return true;
+    if (!placeId) {
+      throw new Error('Se requiere placeId para lanzar Roblox');
     }
 
-    if (profileArg) {
-      args.push('--user-data-dir', profileArg);
+    // 2. Descifrar la cookie usando CryptoService
+    let cookie: string;
+    try {
+      cookie = this.crypto.decrypt(account.encrypted_cookie);
+    } catch {
+      throw new Error('Error al descifrar la cookie de la cuenta');
     }
 
-    // Lanzar Roblox con la cookie configurada
-    const { spawn } = require('child_process');
+    // 3. Verificar que la cookie sigue siendo vÃ¡lida contra auth.roblox.com (con retry 1 vez)
+    const isValid = await this.verifyCookieWithRetry(cookie, 1);
+    if (!isValid) {
+      throw new Error('Cookie invÃ¡lida o expirada');
+    }
 
-    const env = { ...process.env } as NodeJS.ProcessEnv;
-    env.ROBLOX_SECURITY_TOKEN = cookie;
+    // 4. Obtener auth ticket para construir la URL del protocolo
+    let authTicket: string;
+    try {
+      authTicket = await this.getAuthTicket(cookie);
+    } catch (error) {
+      throw new Error(
+        `No se pudo obtener el auth ticket de Roblox: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
 
-    const proc = spawn(robloxPath, args, {
-      detached: true,
-      stdio: 'ignore',
-      env,
-    });
+    // 5. Construir la URL del protocolo roblox-player:// con los parÃ¡metros correctos
+    const encodedPlaceId = encodeURIComponent(placeId);
+    let launchUrl = `roblox-player:1+launchmode:play+gameinfo:${authTicket}+placelauncherurl:https://assetgame.roblox.com/game/placelauncher.ashx?request=RequestGame&placeId=${encodedPlaceId}&isPlayTogetherGame=false`;
 
-    return proc.pid !== undefined;
+    // 6. Si jobId existe, agregar &gameId=[jobId] a la URL
+    if (jobId) {
+      launchUrl += `&gameId=${encodeURIComponent(jobId)}`;
+    }
+
+    // 7. Lanzar la URL con el shell del sistema operativo (shell.openExternal en Electron)
+    try {
+      await shell.openExternal(launchUrl);
+    } catch (error) {
+      // 9. Roblox no instalado â†' detectar y lanzar error descriptivo
+      throw new Error('Roblox no estÃ¡ instalado o el protocolo roblox-player no estÃ¡ registrado en el sistema');
+    }
+
+    // 8. Actualizar el campo lastUsed de la cuenta en SQLite
+    this.db.updateLastUsed(accountId);
+
+    // 10. Retornar true si el lanzamiento fue exitoso
+    return true;
   }
 
   /**
-   * Obtiene la ruta al ejecutable de Roblox en el sistema
+   * Verifica la cookie contra auth.roblox.com con soporte de retry
    */
-  private getRobloxExecutable(): string {
-    const os = require('os');
-    const path = require('path');
-    const fs = require('fs');
-
-    const platform = os.platform();
-
-    if (platform === 'win32') {
-      const paths = [
-        path.join(os.homedir(), 'AppData', 'Local', 'Roblox', 'Versions', 'RobloxPlayerLauncher.exe'),
-        path.join(os.homedir(), 'AppData', 'Local', 'Roblox', 'Versions', 'RobloxPlayerBeta.exe'),
-        'start roblox://',
-      ];
-
-      for (const p of paths) {
-        if (fs.existsSync(p)) return p;
+  private async verifyCookieWithRetry(cookie: string, maxRetries: number): Promise<boolean> {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await this.verifyCookie(cookie);
+      } catch (error) {
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        // 9. Error de red â†' retry 1 vez antes de fallar
+        if (this.isNetworkError(error)) {
+          continue;
+        }
+        throw error;
       }
-      return 'start roblox://';
-    } else if (platform === 'darwin') {
-      return '/Applications/Roblox.app/Contents/MacOS/Roblox';
-    } else {
-      return 'robloxapp';
+    }
+    return false;
+  }
+
+  /**
+   * Verifica que la cookie sea vÃ¡lida haciendo una peticiÃ³n a Roblox
+   */
+  private async verifyCookie(cookie: string): Promise<boolean> {
+    const headers = { Cookie: `.ROBLOSECURITY=${cookie.trim()}` };
+    try {
+      const response = await axios.get('https://users.roblox.com/v1/users/authenticated', {
+        headers,
+        validateStatus: (status) => status === 200,
+      });
+      return response.status === 200;
+    } catch (error: any) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        throw new Error('Cookie invÃ¡lida o expirada');
+      }
+      throw error;
     }
   }
 
   /**
-   * Construye una URL de protocolo roblox://
+   * Obtiene el auth ticket de Roblox para usar en el protocolo roblox-player://
    */
-  private buildRobloxProtocol(placeId?: string, jobId?: string): string {
-    if (placeId && jobId) {
-      return `roblox://placeId=${placeId}&gameInstanceId=${jobId}`;
-    } else if (placeId) {
-      return `roblox://placeId=${placeId}`;
+  private async getAuthTicket(cookie: string): Promise<string> {
+    // Paso 1: Obtener X-CSRF-Token
+    const csrfToken = await this.getCsrfToken(cookie);
+
+    // Paso 2: Obtener auth ticket
+    const headers = {
+      Cookie: `.ROBLOSECURITY=${cookie.trim()}`,
+      'x-csrf-token': csrfToken,
+      referer: 'https://www.roblox.com',
+    };
+
+    try {
+      const response = await axios.post(
+        'https://auth.roblox.com/v1/authentication-ticket',
+        {},
+        { headers, validateStatus: (status) => status === 200 }
+      );
+
+      const ticket = response.headers['rbx-authentication-ticket'];
+      if (!ticket) {
+        throw new Error('No se decibiÃ³ auth ticket en la respuesta de Roblox');
+      }
+      return ticket as string;
+    } catch (error: any) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        throw new Error('Cookie invÃ¡lida o expirada al obtener auth ticket');
+      }
+      throw new Error(`Error al obtener auth ticket: ${error instanceof Error ? error.message : String(error)}`);
     }
-    return 'roblox://';
+  }
+
+  /**
+   * Obtiene el X-CSRF-Token haciendo POST a auth.roblox.com/v2/logout
+   */
+  private async getCsrfToken(cookie: string): Promise<string> {
+    const headers = { Cookie: `.ROBLOSECURITY=${cookie.trim()}` };
+    try {
+      await axios.post('https://auth.roblox.com/v2/logout', {}, { headers });
+      return '';
+    } catch (error: any) {
+      if (error.response && error.response.headers && error.response.headers['x-csrf-token']) {
+        return error.response.headers['x-csrf-token'] as string;
+      }
+      throw new Error('No se pudo obtener el X-CSRF-Token de Roblox');
+    }
+  }
+
+  /**
+   * Determina si un error es de red para aplicar retry
+   */
+  private isNetworkError(error: unknown): boolean {
+    if (error && typeof error === 'object' && 'code' in error) {
+      const code = (error as any).code;
+      return code === 'ECONNREFUSED' || code === 'ETIMEDOUT' || code === 'ECONNRESET' || code === 'ENOTFOUND';
+    }
+    return false;
   }
 
   /**

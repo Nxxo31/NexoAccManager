@@ -1,0 +1,86 @@
+# NexoAccManager
+
+## Descripción
+Clon moderno de Roblox Account Manager (RAM) — gestor de cuentas Roblox con cifrado local, 
+Multi-Roblox, API REST interna y UI en Electron + React. Inspirado en:
+https://github.com/ic3w0lf22/Roblox-Account-Manager
+
+## Stack
+- Framework: Electron 30
+- Frontend: React 18 + TypeScript + Vite + Tailwind CSS
+- Backend: Node.js + TypeScript
+- Base de datos: SQLite (better-sqlite3)
+- Cifrado: AES-256-GCM derivado del hardware
+- API interna: Fastify + @fastify/cors
+- Build: Vite + electron-builder
+
+## Funcionalidades objetivo (basadas en RAM original)
+
+### Core — MVP v1.0
+- [ ] Agregar cuentas por cookie .ROBLOSECURITY
+- [ ] Verificación de cookie contra auth.roblox.com
+- [ ] Cifrado AES-256-GCM local (no portable entre PCs)
+- [ ] Lista de cuentas con grupos drag & drop
+- [ ] Lanzar cuenta a un PlaceId específico
+- [ ] Multi-Roblox (múltiples instancias simultáneas)
+- [ ] Import/Export JSON de cuentas
+- [ ] API REST local en puerto 8080
+
+### API REST endpoints a implementar (basados en documentación oficial)
+- GET /LaunchAccount — lanzar cuenta a un juego
+- GET /GetAccounts — lista de cuentas
+- GET /GetCookie — obtener cookie (requiere password)
+- GET /ImportCookie — importar cuenta por cookie
+- GET /SetServer — unirse a servidor específico por JobId
+- GET /FollowUser — seguir a un usuario a su juego
+- GET /GetField / SetField — campos personalizados por cuenta
+- GET /GetCSRFToken — token CSRF de la cuenta
+
+### Avanzado — v2.0
+- [ ] Server List con ping y player count
+- [ ] Account Control (WebSocket para control en-game)
+- [ ] Auto Cookie Refresh (evitar logout por inactividad)
+- [ ] Player Finder (buscar jugador en servidores)
+- [ ] Themes/skins personalizables
+- [ ] FPS Unlocker integrado
+- [ ] BrowserTrackerID para prevenir instancias duplicadas
+- [ ] Quick Log In
+
+## Estado actual del cÃ³digo
+- **Build**: âœ… corregido (ruta relativa en index.html)
+- **Backend Electron**: âœ… completo
+- **Preload**: âœ… corregido (ipcRenderer importado)
+- **Dependencias**: âœ… corregidas (better-sqlite3, @fastify/cors)
+- **Renderer React**: âœ… estructura base con 4 componentes
+- **launchRoblox()**: âœ… implementado (ver formato de URL abajo)
+- **Import/Export**: âŒ mÃ©todos vacÃ­os en main.ts
+- **Multi-Roblox**: âŒ no implementado
+- **API endpoints**: âŒ parcialmente implementados
+
+### Formato de URL usado para launchRoblox()
+`roblox-player:1+launchmode:play+gameinfo:<authTicket>+placelauncherurl:https://assetgame.roblox.com/game/placelauncher.ashx?request=RequestGame&placeId=<placeId>&isPlayTogetherGame=false[&gameId=<jobId>]`
+
+## Commits realizados
+- 9a1138b — Estructura inicial: backend Electron + crypto + DB + API REST
+- 1695243 — fix: importar ipcRenderer y contextBridge desde electron en preload
+- 7d2ae79 — deps: agregar better-sqlite3 y @fastify/cors, eliminar sqlite3 obsoleto
+- b95b247 — feat: crear renderer React con estructura base y componentes UI
+- ac4c3b8 — fix: usar @fastify/cors en lugar de fastify-cors (deprecado)
+
+## Decisiones técnicas importantes
+- Cifrado NO portable entre PCs — intencional por seguridad (igual que RAM original)
+- API REST en puerto 8080 con auth Bearer token
+- cookie en Account.ts es opcional — nunca se expone públicamente
+- Multi-Roblox requiere modificar mutex de Roblox en Windows
+
+## Lo que NO cambiar sin aprobación de Sebastián
+- Algoritmo de cifrado en CryptoService.ts
+- Estructura de tablas SQLite
+- Puerto de la API REST (8080)
+
+## Repositorio
+https://github.com/Nxxo31/NexoAccManager
+
+## Referencia
+https://github.com/ic3w0lf22/Roblox-Account-Manager
+https://ic3w0lf22.gitbook.io/roblox-account-manager/
