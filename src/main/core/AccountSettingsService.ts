@@ -6,6 +6,9 @@ import axios from 'axios';
  * =====================================================
  * Hace peticiones a Roblox usando cookies locales.
  * Nunca almacena datos sensibles.
+ *
+ * LRUCache: 60s para friends.roblox.com y presence.roblox.com
+ * (respeta rate limits de Roblox)
  */
 
 export interface UserProfile {
@@ -36,11 +39,93 @@ export interface SecurityStatus {
   emailVerified: boolean;
 }
 
+export interface PrivacySettings {
+  privateMessages: 'none' | 'friends' | 'all';
+  chatInGame: 'none' | 'friends' | 'all';
+  inventoryPrivacy: 'private' | 'public';
+  groupPrivacy: 'private' | 'public';
+  lastSeenPrivacy: 'none' | 'friends' | 'all';
+  followPrivacy: 'none' | 'friends' | 'all';
+}
+
+export interface Friend {
+  id: number;
+  username: string;
+  displayName: string;
+  isOnline: boolean;
+  isInGame: boolean;
+  isInStudio: boolean;
+  lastOnline: string;
+  avatarUrl: string | null;
+  friendshipStatus: string;
+}
+
+export interface FriendRequest {
+  id: number;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  sentAt: string;
+}
+
+export interface BlockedUser {
+  id: number;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface NotificationSettings {
+  friendRequestNotifications: boolean;
+  messageNotifications: boolean;
+}
+
+// =============================================================================
+// LRU Cache — 60s para friends/presence (respeta rate limits de Roblox)
+// =============================================================================
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+class LRUCache<T> {
+  private cache = new Map<string, CacheEntry<T>>();
+  private readonly ttl: number;
+
+  constructor(ttlMs = 60_000) {
+    this.ttl = ttlMs;
+  }
+
+  get(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    if (Date.now() - entry.timestamp > this.ttl) {
+      this.cache.delete(key);
+      return null;
+    }
+    return entry.data;
+  }
+
+  set(key: string, data: T): void {
+    this.cache.set(key, { data, timestamp: Date.now() });
+  }
+
+  invalidate(key: string): void {
+    this.cache.delete(key);
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+}
+
 class AccountSettingsService {
   private baseURL: string;
+  private friendsCache: LRUCache<any>;
 
   constructor() {
     this.baseURL = 'https://accountinformation.roblox.com';
+    this.friendsCache = new LRUCache(60_000);
   }
 
   // =====================================================
@@ -438,6 +523,456 @@ class AccountSettingsService {
       }
       if (error.response?.data?.errors) {
         const msg = error.response.data.errors[0]?.message || 'Error al cambiar 2FA';
+        throw new Error(msg);
+      }
+      throw error;
+    }
+  }
+
+  // =====================================================
+  // PRIVACIDAD
+  // =====================================================
+
+  /**
+   * Obtiene la configuración de privacidad actual
+   * accountsettings.roblox.com
+   */
+  async getPrivacySettings(cookie: string): Promise<PrivacySettings> {
+    try {
+      const response = await axios.get(
+        'https://accountsettings.roblox.com/v1/privacy',
+        { headers: this.getCookieHeader(cookie) }
+      );
+      const data = response.data || {};
+      return {
+        privateMessages: data.privateMessages || 'all',
+        chatInGame: data.chatInGame || 'all',
+        inventoryPrivacy: data.inventoryPrivacy || 'private',
+        groupPrivacy: data.groupPrivacy || 'private',
+        lastSeenPrivacy: data.lastSeenPrivacy || 'friends',
+        followPrivacy: data.followPrivacy || 'friends',
+      };
+    } catch (error: any) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new Error('Cookie inválida o expirada');
+      }
+      // Valores por defecto seguros si falla la llamada
+      return {
+        privateMessages: 'friends',
+        chatInGame: 'friends',
+        inventoryPrivacy: 'private',
+        groupPrivacy: 'private',
+        lastSeenPrivacy: 'friends',
+        followPrivacy: 'friends',
+      };
+    }
+  }
+
+  /**
+   * Actualiza un setting de privacidad individual
+   * POST /v1/privacy/{settingKey}
+   */
+  async updatePrivacySetting(
+    cookie: string,
+    settingKey: string,
+    value: string
+  ): Promise<boolean> {
+    const validKeys = [
+      'privateMessages',
+      'chatInGame',
+      'lastSeenPrivacy',
+      'followPrivacy',
+      'inventoryPrivacy',
+      'groupPrivacy',
+    ];
+    if (!validKeys.includes(settingKey)) {
+      throw new Error(`Setting de privacidad inválido: ${settingKey}`);
+    }
+
+    try {
+      const csrfToken = await this.getCsrfToken(cookie);
+      if (!csrfToken) {
+        throw new Error('No se pudo obtener el X-CSRF-Token');
+      }
+
+      await axios.post(
+        `https://accountsettings.roblox.com/v1/privacy/${settingKey}`,
+        { value },
+        { headers: this.getPostHeaders(cookie, csrfToken) }
+      );
+
+      return true;
+    } catch (error: any) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new Error('Cookie inválida o expirada');
+      }
+      if (error.response?.data?.errors) {
+        const msg = error.response.data.errors[0]?.message || 'Error actualizando privacidad';
+        throw new Error(msg);
+      }
+      throw error;
+    }
+  }
+
+  // =====================================================
+  // AMIGOS
+  // =====================================================
+
+  /**
+   * Obtiene la lista de amigos con presencia — usa cache LRU de 60s
+   * friends.roblox.com + presence.roblox.com
+   */
+  async getFriendsList(cookie: string): Promise<Friend[]> {
+    const cacheKey = `friends_${cookie.slice(0, 20)}`;
+    const cached = this.friendsCache.get(cacheKey);
+    if (cached) return cached;
+
+    try {
+      // Obtener IDs de amigos
+      const friendsResponse = await axios.get(
+        'https://friends.roblox.com/v1/my/friendships/friends',
+        { headers: this.getCookieHeader(cookie) }
+      );
+
+      const friendArray: any[] = friendsResponse.data?.data || [];
+
+      if (friendArray.length === 0) {
+        const empty: Friend[] = [];
+        this.friendsCache.set(cacheKey, empty);
+        return empty;
+      }
+
+      // Obtener presencias en paralelo en chunks de 20
+      const userIds = friendArray.map((f: any) => f.id).filter(Boolean);
+      const presences = await this.fetchPresencesInChunks(userIds);
+
+      const friends: Friend[] = friendArray.map((f: any) => {
+        const presence = presences.get(f.id);
+        return {
+          id: f.id,
+          username: f.username || '',
+          displayName: f.displayName || f.username || '',
+          isOnline: presence?.userPresence?.userPresenceType === 1 || presence?.userPresence?.userPresenceType === 2,
+          isInGame: presence?.userPresence?.userPresenceType === 2,
+          isInStudio: presence?.userPresence?.userPresenceType === 3,
+          lastOnline: presence?.userPresence?.lastLocation || '',
+          avatarUrl: f.avatar?.avatarUrl || null,
+          friendshipStatus: f.friendshipStatus || 'Friend',
+        };
+      });
+
+      this.friendsCache.set(cacheKey, friends);
+      return friends;
+    } catch (error: any) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new Error('Cookie inválida o expirada');
+      }
+      throw new Error(`Error obteniendo amigos: ${error.message}`);
+    }
+  }
+
+  /**
+   * Obtiene presencias en chunks de 20 (límite de presence.roblox.com)
+   */
+  private async fetchPresencesInChunks(
+    userIds: number[]
+  ): Promise<Map<number, any>> {
+    const result = new Map<number, any>();
+    const chunkSize = 20;
+    for (let i = 0; i < userIds.length; i += chunkSize) {
+      const chunk = userIds.slice(i, i + chunkSize);
+      try {
+        const resp = await axios.post(
+          'https://presence.roblox.com/v1/presence/users',
+          { userIds: chunk },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            },
+          }
+        );
+        const presences = resp.data?.userPresences || [];
+        for (const p of presences) {
+          result.set(p.userId, p);
+        }
+      } catch {
+        // Si falla el chunk, continuar con los demás
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Obtiene las solicitudes de amistad pendientes
+   */
+  async getFriendRequests(cookie: string): Promise<FriendRequest[]> {
+    try {
+      const response = await axios.get(
+        'https://friends.roblox.com/v1/friend-requests',
+        { headers: this.getCookieHeader(cookie) }
+      );
+
+      const requests: FriendRequest[] = (response.data?.data || []).map((r: any) => ({
+        id: r.id || r.requester?.id || 0,
+        username: r.requester?.name || r.requester?.username || '',
+        displayName: r.requester?.displayName || r.requester?.name || '',
+        avatarUrl: r.requester?.avatar?.avatarUrl || null,
+        sentAt: r.created || r.sentAt || '',
+      }));
+
+      return requests;
+    } catch (error: any) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new Error('Cookie inválida o expirada');
+      }
+      return [];
+    }
+  }
+
+  /**
+   * Responde a una solicitud de amistad (aceptar o rechazar)
+   */
+  async respondFriendRequest(
+    cookie: string,
+    userId: number,
+    accept: boolean
+  ): Promise<boolean> {
+    try {
+      const csrfToken = await this.getCsrfToken(cookie);
+      if (!csrfToken) {
+        throw new Error('No se pudo obtener el X-CSRF-Token');
+      }
+
+      await axios.post(
+        `https://friends.roblox.com/v1/friend-requests/${userId}`,
+        { accept },
+        { headers: this.getPostHeaders(cookie, csrfToken) }
+      );
+
+      this.friendsCache.clear();
+      return true;
+    } catch (error: any) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new Error('Cookie inválida o expirada');
+      }
+      if (error.response?.data?.errors) {
+        const msg = error.response.data.errors[0]?.message || 'Error respondiendo solicitud';
+        throw new Error(msg);
+      }
+      throw error;
+    }
+  }
+
+  // =====================================================
+  // BLOQUEOS
+  // =====================================================
+
+  /**
+   * Obtiene la lista de usuarios bloqueados
+   */
+  async getBlockedUsers(cookie: string): Promise<BlockedUser[]> {
+    try {
+      const response = await axios.get(
+        'https://accountsettings.roblox.com/v1/users/blocked',
+        { headers: this.getCookieHeader(cookie) }
+      );
+
+      return (response.data?.blockedUsers || response.data?.data || []).map((u: any) => ({
+        id: u.id || u.userId || 0,
+        username: u.username || '',
+        displayName: u.displayName || u.username || '',
+        avatarUrl: u.avatar?.avatarUrl || null,
+      }));
+    } catch (error: any) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new Error('Cookie inválida o expirada');
+      }
+      return [];
+    }
+  }
+
+  /**
+   * Bloquea a un usuario por ID
+   */
+  async blockUser(cookie: string, userId: number): Promise<boolean> {
+    try {
+      const csrfToken = await this.getCsrfToken(cookie);
+      if (!csrfToken) {
+        throw new Error('No se pudo obtener el X-CSRF-Token');
+      }
+
+      await axios.post(
+        `https://accountsettings.roblox.com/v1/users/${userId}/block`,
+        {},
+        { headers: this.getPostHeaders(cookie, csrfToken) }
+      );
+
+      return true;
+    } catch (error: any) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new Error('Cookie inválida o expirada');
+      }
+      if (error.response?.data?.errors) {
+        const msg = error.response.data.errors[0]?.message || 'Error bloqueando usuario';
+        throw new Error(msg);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Desbloqueea a un usuario por ID
+   */
+  async unblockUser(cookie: string, userId: number): Promise<boolean> {
+    try {
+      const csrfToken = await this.getCsrfToken(cookie);
+      if (!csrfToken) {
+        throw new Error('No se pudo obtener el X-CSRF-Token');
+      }
+
+      await axios.post(
+        `https://accountsettings.roblox.com/v1/users/${userId}/unblock`,
+        {},
+        { headers: this.getPostHeaders(cookie, csrfToken) }
+      );
+
+      return true;
+    } catch (error: any) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new Error('Cookie inválida o expirada');
+      }
+      if (error.response?.data?.errors) {
+        const msg = error.response.data.errors[0]?.message || 'Error desbloqueando usuario';
+        throw new Error(msg);
+      }
+      throw error;
+    }
+  }
+
+  // =====================================================
+  // SEGUIR / DEJAR DE SEGUIR
+  // =====================================================
+
+  /**
+   * Sigue a un usuario
+   */
+  async followUser(cookie: string, userId: number): Promise<boolean> {
+    try {
+      const csrfToken = await this.getCsrfToken(cookie);
+      if (!csrfToken) {
+        throw new Error('No se pudo obtener el X-CSRF-Token');
+      }
+
+      await axios.post(
+        `https://friends.roblox.com/v1/users/${userId}/follow`,
+        {},
+        { headers: this.getPostHeaders(cookie, csrfToken) }
+      );
+
+      return true;
+    } catch (error: any) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new Error('Cookie inválida o expirada');
+      }
+      if (error.response?.data?.errors) {
+        const msg = error.response.data.errors[0]?.message || 'Error siguiendo usuario';
+        throw new Error(msg);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Deja de seguir a un usuario
+   */
+  async unfollowUser(cookie: string, userId: number): Promise<boolean> {
+    try {
+      const csrfToken = await this.getCsrfToken(cookie);
+      if (!csrfToken) {
+        throw new Error('No se pudo obtener el X-CSRF-Token');
+      }
+
+      await axios.post(
+        `https://friends.roblox.com/v1/users/${userId}/unfollow`,
+        {},
+        { headers: this.getPostHeaders(cookie, csrfToken) }
+      );
+
+      return true;
+    } catch (error: any) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new Error('Cookie inválida o expirada');
+      }
+      if (error.response?.data?.errors) {
+        const msg = error.response.data.errors[0]?.message || 'Error dejando de seguir';
+        throw new Error(msg);
+      }
+      throw error;
+    }
+  }
+
+  // =====================================================
+  // NOTIFICACIONES
+  // =====================================================
+
+  /**
+   * Obtiene la configuración de notificaciones
+   */
+  async getNotificationSettings(cookie: string): Promise<NotificationSettings> {
+    try {
+      const response = await axios.get(
+        'https://accountsettings.roblox.com/v1/notifications',
+        { headers: this.getCookieHeader(cookie) }
+      );
+      return {
+        friendRequestNotifications:
+          response.data?.friendRequestNotifications !== false,
+        messageNotifications: response.data?.messageNotifications !== false,
+      };
+    } catch (error: any) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new Error('Cookie inválida o expirada');
+      }
+      return {
+        friendRequestNotifications: true,
+        messageNotifications: true,
+      };
+    }
+  }
+
+  /**
+   * Actualiza un setting de notificación individual
+   */
+  async updateNotificationSetting(
+    cookie: string,
+    key: string,
+    value: boolean
+  ): Promise<boolean> {
+    const validKeys = ['friendRequestNotifications', 'messageNotifications'];
+    if (!validKeys.includes(key)) {
+      throw new Error(`Setting de notificación inválido: ${key}`);
+    }
+
+    try {
+      const csrfToken = await this.getCsrfToken(cookie);
+      if (!csrfToken) {
+        throw new Error('No se pudo obtener el X-CSRF-Token');
+      }
+
+      await axios.post(
+        `https://accountsettings.roblox.com/v1/notifications/${key}`,
+        { value },
+        { headers: this.getPostHeaders(cookie, csrfToken) }
+      );
+
+      return true;
+    } catch (error: any) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new Error('Cookie inválida o expirada');
+      }
+      if (error.response?.data?.errors) {
+        const msg = error.response.data.errors[0]?.message || 'Error actualizando notificación';
         throw new Error(msg);
       }
       throw error;
