@@ -4,7 +4,6 @@
  * Encapsula las operaciones relacionadas con cuentas, cifrado,
  * lanzamiento de Roblox y gestiÃ³n de grupos.
  */
-import { ipcMain } from 'electron';
 import axios from 'axios';
 import crypto from 'crypto';
 import { Account } from '../types/Account';
@@ -128,17 +127,109 @@ export class AccountManager {
   }
 
   /**
-   * Lanza Roblox con una cuenta especÃ­fica
+   * Lanza Roblox con una cuenta específica
+   *
+   * Roblox Player se lanza a través del protocolo roblox:// con la cookie
+   * inyectada en el entorno. Para Multi-Roblox, se crea un directorio de
+   * perfil temporal y se lanza la instancia con el flag -event.
    */
   async launchRoblox(accountId: string, placeId?: string, jobId?: string): Promise<boolean> {
-    const account = await this.db.getAccount(accountId);
+    const os = require('os');
+    const fs = require('fs');
+    const path = require('path');
+    const crypto = require('crypto');
+
+    const account = this.db.getAccount(accountId);
     if (!account) throw new Error('Cuenta no encontrada');
 
     // Descifrar cookie
     const cookie = this.crypto.decrypt(account.encrypted_cookie);
-    // Todo: LÃ³gica para lanzar Roblox con cookie mediante protocolo roblox://
-    // Debe generar un launcher temporal .html o usar Node.js spawn
-    return true;
+
+    // Obtener el ejecutable de Roblox según el sistema operativo
+    const robloxPath = this.getRobloxExecutable();
+
+    // Para Multi-Roblox, crear un directorio de perfil temporal
+    let profileArg: string | undefined;
+    if (this.multiRobloxEnabled) {
+      const tempDir = path.join(os.tmpdir(), 'nexoaccmanager', crypto.randomUUID());
+      fs.mkdirSync(tempDir, { recursive: true });
+
+      // Crear archivo de cookie temporal para que Roblox la use
+      const tempCookiePath = path.join(tempDir, 'Cookies');
+      fs.writeFileSync(tempCookiePath, `.ROBLOSECURITY=${cookie}`, 'utf8');
+
+      profileArg = tempDir;
+    }
+
+    // Preparar argumentos para Roblox
+    const args: string[] = [];
+
+    if (placeId || jobId) {
+      // Usar protocolo roblox:// para unirse a un juego específico
+      const protocolUrl = this.buildRobloxProtocol(placeId, jobId);
+      // En Windows, lanzar el protocolo directamente
+      const { exec } = require('child_process');
+      exec(`start "" "${protocolUrl}"`);
+      return true;
+    }
+
+    if (profileArg) {
+      args.push('--user-data-dir', profileArg);
+    }
+
+    // Lanzar Roblox con la cookie configurada
+    const { spawn } = require('child_process');
+
+    const env = { ...process.env } as NodeJS.ProcessEnv;
+    env.ROBLOX_SECURITY_TOKEN = cookie;
+
+    const proc = spawn(robloxPath, args, {
+      detached: true,
+      stdio: 'ignore',
+      env,
+    });
+
+    return proc.pid !== undefined;
+  }
+
+  /**
+   * Obtiene la ruta al ejecutable de Roblox en el sistema
+   */
+  private getRobloxExecutable(): string {
+    const os = require('os');
+    const path = require('path');
+    const fs = require('fs');
+
+    const platform = os.platform();
+
+    if (platform === 'win32') {
+      const paths = [
+        path.join(os.homedir(), 'AppData', 'Local', 'Roblox', 'Versions', 'RobloxPlayerLauncher.exe'),
+        path.join(os.homedir(), 'AppData', 'Local', 'Roblox', 'Versions', 'RobloxPlayerBeta.exe'),
+        'start roblox://',
+      ];
+
+      for (const p of paths) {
+        if (fs.existsSync(p)) return p;
+      }
+      return 'start roblox://';
+    } else if (platform === 'darwin') {
+      return '/Applications/Roblox.app/Contents/MacOS/Roblox';
+    } else {
+      return 'robloxapp';
+    }
+  }
+
+  /**
+   * Construye una URL de protocolo roblox://
+   */
+  private buildRobloxProtocol(placeId?: string, jobId?: string): string {
+    if (placeId && jobId) {
+      return `roblox://placeId=${placeId}&gameInstanceId=${jobId}`;
+    } else if (placeId) {
+      return `roblox://placeId=${placeId}`;
+    }
+    return 'roblox://';
   }
 
   /**
