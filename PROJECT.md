@@ -53,12 +53,34 @@ https://github.com/ic3w0lf22/Roblox-Account-Manager
 - **Dependencias**: âœ… corregidas (better-sqlite3, @fastify/cors)
 - **Renderer React**: âœ… estructura base con 4 componentes
 - **launchRoblox()**: âœ… implementado (ver formato de URL abajo)
-- **Import/Export**: âŒ mÃ©todos vacÃ­os en main.ts
+- **Import/Export**: âœ… implementado con soporte para cookies (JSON)
 - **Multi-Roblox**: âŒ no implementado
 - **API endpoints**: âŒ parcialmente implementados
 
 ### Formato de URL usado para launchRoblox()
 `roblox-player:1+launchmode:play+gameinfo:<authTicket>+placelauncherurl:https://assetgame.roblox.com/game/placelauncher.ashx?request=RequestGame&placeId=<placeId>&isPlayTogetherGame=false[&gameId=<jobId>]`
+
+### Formato de archivo Import/Export
+```json
+{
+  "version": "1.0",
+  "app": "NexoAccManager",
+  "exportDate": "2024-01-01T00:00:00.000Z",
+  "accounts": [
+    {
+      "cookie": "_|WARNING:-DO-NOT-SHARE|_...",
+      "username": "User123",
+      "robloxUserId": 123456,
+      "displayName": "User Display",
+      "group": "Grupo1",
+      "description": "Notas",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "lastUsed": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+**Nota**: El archivo exportado contiene cookies en texto plano. GuÃ¡rdalo en lugar seguro.
 
 ## Commits realizados
 - 9a1138b — Estructura inicial: backend Electron + crypto + DB + API REST

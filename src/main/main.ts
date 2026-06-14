@@ -123,84 +123,160 @@ class NexoApp {
   }
 
   private async importAccounts(): Promise<void> {
-    const result = await dialog.showOpenDialog({
-      properties: ['openFile'],
-      filters: [{ name: 'Archivos JSON', extensions: ['json'] }],
-    });
-
-    if (result.canceled || result.filePaths.length === 0) return;
-
-    try {
-      const filePath = result.filePaths[0];
-      const data = fs.readFileSync(filePath, 'utf-8');
-      const payload = JSON.parse(data);
-
-      if (!Array.isArray(payload.cuentas)) {
-        throw new Error('Formato inválido: se espera "cuentas" como array');
-      }
-
-      let added = 0;
-      let skipped = 0;
-      const errors: string[] = [];
-
-      for (const item of payload.cuentas) {
-        try {
-          if (!item.cookie || typeof item.cookie !== 'string') {
-            skipped++;
-            continue;
-          }
-          await this.accountManager.addAccountFromCookie(item.cookie);
-          added++;
-        } catch (err: unknown) {
-          const msg = (err as Error).message || String(err);
-          errors.push(`Error importando cuenta: ${msg}`);
-          skipped++;
-        }
-      }
-
-      dialog.showMessageBox(this.mainWindow!, {
-        type: 'info',
-        title: 'Importación completada',
-        message: `Cuentas importadas: ${added}\nOmitadas: ${skipped}`,
-        detail: errors.length > 0 ? `Errores:\n${errors.slice(0, 5).join('\n')}` : undefined,
+      const result = await dialog.showOpenDialog({
+        properties: ['openFile'],
+        filters: [{ name: 'Archivos JSON', extensions: ['json'] }],
       });
-    } catch (err: unknown) {
-      dialog.showErrorBox('Error de importación', (err as Error).message);
-    }
+
+      if (result.canceled || result.filePaths.length === 0) return;
+
+      try {
+        const filePath = result.filePaths[0];
+        const data = fs.readFileSync(filePath, 'utf-8');
+        const payload = JSON.parse(data);
+
+        // Compatibilidad: puede ser "cuentas" o "accounts"
+        const cuentas = payload.cuentas || payload.accounts;
+
+        if (!Array.isArray(cuentas)) {
+          throw new Error('Formato invÃ¡lido: se espera un array de cuentas');
+        }
+
+        if (cuentas.length === 0) {
+          dialog.showMessageBox(this.mainWindow!, {
+            type: 'info',
+            title: 'ImportaciÃ³n',
+            message: 'El archivo no contiene cuentas para importar.',
+          });
+          return;
+        }
+
+        let added = 0;
+        let skipped = 0;
+        const errors: string[] = [];
+
+        for (const item of cuentas) {
+          try {
+            // Validar estructura mÃ­nima
+            if (!item.cookie || typeof item.cookie !== 'string') {
+              errors.push(`Cuenta sin cookie vÃ¡lida: ${item.username || 'desconocido'}`);
+              skipped++;
+              continue;
+            }
+
+            // Verificar que la cookie tenga el formato correcto
+            const cookie = item.cookie.trim();
+            if (!cookie.startsWith('_|WARNING:-DO-NOT-SHARE|_')) {
+              errors.push(`Cookie con formato invÃ¡lido: ${item.username || 'desconocido'}`);
+              skipped++;
+              continue;
+            }
+
+            // Verificar si ya existe por hash de cookie
+            const existing = this.findAccountByCookieHash(cookie);
+            if (existing) {
+              errors.push(`Cuenta duplicada: ${item.username || 'desconocido'} (ya existe)`);
+              skipped++;
+              continue;
+            }
+
+            // Importar la cuenta (verifica contra Roblox automÃ¡ticamente)
+            await this.accountManager.addAccountFromCookie(cookie);
+            added++;
+          } catch (err: unknown) {
+            const msg = (err as Error).message || String(err);
+            errors.push(`Error importando ${item.username || 'desconocido'}: ${msg}`);
+            skipped++;
+          }
+        }
+
+        // Actualizar cache de cuentas en la UI
+        if (added > 0) {
+          this.mainWindow?.webContents.send('accounts:refresh');
+        }
+
+        const detail = errors.length > 0
+          ? `Errores (${errors.length}):\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`
+          : undefined;
+
+        dialog.showMessageBox(this.mainWindow!, {
+          type: 'info',
+          title: 'ImportaciÃ³n completada',
+          message: `Cuentas importadas: ${added}\nOmitidas: ${skipped}`,
+          detail,
+        });
+      } catch (err: unknown) {
+        dialog.showErrorBox('Error de importaciÃ³n', (err as Error).message);
+      }
+  }
+
+  /**
+   * Busca si ya existe una cuenta por el hash de la cookie
+   */
+  private findAccountByCookieHash(cookie: string): any {
+    const crypto = require('crypto');
+    const hash = crypto.createHash('sha256').update(cookie.trim()).digest('hex');
+    const accounts = this.db.getAllAccounts();
+    return accounts.find((a: any) => a.cookie_hash === hash);
   }
 
   private async exportAccounts(): Promise<void> {
-    const result = await dialog.showSaveDialog({
-      defaultPath: 'cuentas_nexo.json',
-      filters: [{ name: 'Archivos JSON', extensions: ['json'] }],
-    });
-
-    if (result.canceled) return;
-
-    try {
-      const accounts = this.accountManager.getAllAccounts();
-      const payload = {
-        version: '1.0',
-        exportDate: new Date().toISOString(),
-        cuentas: accounts.map((a) => ({
-          username: a.username,
-          robloxUserId: a.robloxUserId,
-          group: a.group,
-          description: a.description,
-        })),
-      };
-
-      fs.writeFileSync(result.filePath!, JSON.stringify(payload, null, 2), 'utf-8');
-
-      dialog.showMessageBox(this.mainWindow!, {
-        type: 'info',
-        title: 'Exportación completada',
-        message: `${accounts.length} cuenta(s) exportadas a ${result.filePath}`,
+      const result = await dialog.showSaveDialog({
+        defaultPath: 'cuentas_nexo.json',
+        filters: [{ name: 'Archivos JSON', extensions: ['json'] }],
       });
-    } catch (err: unknown) {
-      dialog.showErrorBox('Error de exportación', (err as Error).message);
+
+      if (result.canceled || !result.filePath) return;
+
+      try {
+        const rawAccounts = this.db.getAllAccounts();
+
+        if (rawAccounts.length === 0) {
+          dialog.showMessageBox(this.mainWindow!, {
+            type: 'info',
+            title: 'ExportaciÃ³n',
+            message: 'No hay cuentas para exportar.',
+          });
+          return;
+        }
+
+        // Descifrar cookies para el export
+        const payload = {
+          version: '1.0',
+          app: 'NexoAccManager',
+          exportDate: new Date().toISOString(),
+          accounts: rawAccounts.map((a: any) => {
+            let cookie = '';
+            try {
+              cookie = this.crypto.decrypt(a.encrypted_cookie);
+            } catch {
+              cookie = '';
+            }
+            return {
+              cookie,
+              username: a.username,
+              robloxUserId: a.roblox_user_id,
+              displayName: a.display_name || undefined,
+              group: a.group_name || 'Default',
+              description: a.description || '',
+              createdAt: a.created_at,
+              lastUsed: a.last_used,
+            };
+          }),
+        };
+
+        fs.writeFileSync(result.filePath, JSON.stringify(payload, null, 2), 'utf-8');
+
+        dialog.showMessageBox(this.mainWindow!, {
+          type: 'info',
+          title: 'ExportaciÃ³n completada',
+          message: `${rawAccounts.length} cuenta(s) exportadas a ${result.filePath}`,
+          detail: 'ADVERTENCIA: El archivo contiene cookies en texto plano. GuÃ¡rdalo en un lugar seguro.',
+        });
+      } catch (err: unknown) {
+        dialog.showErrorBox('Error de exportaciÃ³n', (err as Error).message);
+      }
     }
-  }
 
   private showAPIInfo(): void {
     // Mostrar informaciÃ³n de la API
