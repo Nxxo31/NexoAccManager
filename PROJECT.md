@@ -455,8 +455,8 @@ thumbnails.roblox.com       → avatares, thumbnails de juegos
 - [ ] UI Panel de Notificaciones: toggles
 
 #### Sprint E3 — Server Browser
-- [ ] IPC channels: roblox:games:search, roblox:servers:list, roblox:servers:join
-- [ ] Integración con games.roblox.com
+- [x] IPC channels: roblox:games:search, roblox:servers:list, roblox:servers:join
+- [x] Integración con games.roblox.com
 - [ ] UI: buscar juego por PlaceId o nombre
 - [ ] UI: lista de servers con player count, JobId, región estimada
 - [ ] UI: filtros (por región, por menos jugadores)
@@ -569,7 +569,7 @@ thumbnails.roblox.com       → avatares, thumbnails de juegos
 - API REST local (8080): ✅
 - Build: ✅
 - Account Control Panel: ✅ Sprint E2 (completado)
-- Server Browser: ❌ Sprint E3
+- Server Browser: ✅ Sprint E3 (backend E3.1: GamesService + IPC handlers)
 - Presence Dashboard: ❌ Sprint E4
 - Integración SaaS: ❌ Sprint E5
 

@@ -24,9 +24,10 @@ type IpcChannel =
   | 'account:follow:user'
   | 'account:unfollow:user'
   | 'roblox:launch'
-  | 'roblox:recent-games'
-  | 'roblox:join-server'
-  | 'roblox:multiroblox'
+  | 'roblox:games:search'
+  | 'roblox:servers:list'
+  | 'roblox:servers:join'
+  | 'roblox:servers:distribute'
   | 'settings:get'
   | 'settings:set'
   | 'settings:security:sessions'
@@ -59,9 +60,10 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'account:follow:user',
   'account:unfollow:user',
   'roblox:launch',
-  'roblox:recent-games',
-  'roblox:join-server',
-  'roblox:multiroblox',
+  'roblox:games:search',
+  'roblox:servers:list',
+  'roblox:servers:join',
+  'roblox:servers:distribute',
   'settings:get',
   'settings:set',
   'settings:security:sessions',
@@ -115,9 +117,14 @@ contextBridge.exposeInMainWorld('api', {
   roblox: {
     launch: (accountId: string, placeId?: string, jobId?: string) =>
       invoke('roblox:launch', accountId, placeId, jobId),
-    getRecentGames: () => invoke('roblox:recent-games'),
-    joinServer: (placeId: string, accountId: string) => invoke('roblox:join-server', placeId, accountId),
-    setMultiRoblox: (enabled: boolean) => invoke('roblox:multiroblox', enabled),
+    searchGame: (placeId: string, accountId: string) =>
+      invoke('roblox:games:search', placeId, accountId),
+    getServers: (placeId: string, accountId: string) =>
+      invoke('roblox:servers:list', placeId, accountId),
+    joinServer: (placeId: string, jobId: string, accountId: string) =>
+      invoke('roblox:servers:join', placeId, jobId, accountId),
+    distributeAccounts: (placeId: string, accountIds: string[]) =>
+      invoke('roblox:servers:distribute', placeId, accountIds),
   },
   settings: {
     get: (key: string) => invoke('settings:get', key),
@@ -167,9 +174,10 @@ export interface Api {
   };
   roblox: {
     launch: (accountId: string, placeId?: string, jobId?: string) => Promise<boolean>;
-    getRecentGames: () => Promise<any[]>;
-    joinServer: (placeId: string, accountId: string) => Promise<boolean>;
-    setMultiRoblox: (enabled: boolean) => Promise<boolean>;
+    searchGame: (placeId: string, accountId: string) => Promise<any>;
+    getServers: (placeId: string, accountId: string) => Promise<any[]>;
+    joinServer: (placeId: string, jobId: string, accountId: string) => Promise<boolean>;
+    distributeAccounts: (placeId: string, accountIds: string[]) => Promise<Record<string, boolean>>;
   };
   settings: {
     get: <T = string>(key: string) => Promise<T>;

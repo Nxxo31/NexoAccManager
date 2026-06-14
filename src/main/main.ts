@@ -68,9 +68,10 @@ const ALLOWED_CHANNELS = new Set([
   'account:profile:get',
   'account:profile:update',
   'roblox:launch',
-  'roblox:recent-games',
-  'roblox:join-server',
-  'roblox:multiroblox',
+  'roblox:games:search',
+  'roblox:servers:list',
+  'roblox:servers:join',
+  'roblox:servers:distribute',
   'settings:security:2fa:get',
   'settings:security:2fa:set',
   'settings:privacy:get',
@@ -316,6 +317,91 @@ class NexoApp {
         return ok(result);
       } catch (e) {
         return err(`Error configurando Multi-Roblox: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // ROBLOX: GAMES (Sprint E3 — Server Browser)
+    // =================================================================
+
+    ipcMain.handle('roblox:games:search', async (_, placeId: unknown, accountId: unknown) => {
+      if (!isValidPlaceId(placeId)) {
+        return err('Payload inválido: placeId debe ser un string numérico no vacío');
+      }
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const { GamesService } = await import('./services/GamesService');
+        const service = new GamesService();
+        const game = await service.searchGame(placeId.trim(), cookie);
+        return ok(game);
+      } catch (e) {
+        return err(`Error buscando juego: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('roblox:servers:list', async (_, placeId: unknown, accountId: unknown) => {
+      if (!isValidPlaceId(placeId)) {
+        return err('Payload inválido: placeId debe ser un string numérico no vacío');
+      }
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const { GamesService } = await import('./services/GamesService');
+        const service = new GamesService();
+        const servers = await service.getGameServers(placeId.trim(), cookie);
+        return ok(servers);
+      } catch (e) {
+        return err(`Error listando servers: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('roblox:servers:join', async (_, placeId: unknown, jobId: unknown, accountId: unknown) => {
+      if (!isValidPlaceId(placeId)) {
+        return err('Payload inválido: placeId debe ser un string numérico no vacío');
+      }
+      if (!isValidJobId(jobId)) {
+        return err('Payload inválido: jobId tiene formato inválido');
+      }
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const { GamesService } = await import('./services/GamesService');
+        const service = new GamesService();
+        const result = await service.joinServer(placeId.trim(), jobId as string, this.accountManager, accountId);
+        return ok(result);
+      } catch (e) {
+        return err(`Error uniéndose al server: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('roblox:servers:distribute', async (_, placeId: unknown, accountIds: unknown) => {
+      if (!isValidPlaceId(placeId)) {
+        return err('Payload inválido: placeId debe ser un string numérico no vacío');
+      }
+      if (!Array.isArray(accountIds) || accountIds.length === 0) {
+        return err('Payload inválido: accountIds debe ser un array no vacío');
+      }
+      try {
+        const { GamesService } = await import('./services/GamesService');
+        const service = new GamesService();
+        const results = await service.distributeAccounts(placeId.trim(), accountIds, this.accountManager);
+        return ok(results);
+      } catch (e) {
+        return err(`Error distribuyendo cuentas: ${(e as Error).message}`);
       }
     });
 
