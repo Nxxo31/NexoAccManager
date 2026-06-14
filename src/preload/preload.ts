@@ -15,6 +15,14 @@ type IpcChannel =
   | 'account:profile:get'
   | 'account:profile:update'
   | 'account:avatar-thumbnail'
+  | 'account:friends:list'
+  | 'account:friends:requests'
+  | 'account:friends:respond'
+  | 'account:blocked:list'
+  | 'account:block:user'
+  | 'account:unblock:user'
+  | 'account:follow:user'
+  | 'account:unfollow:user'
   | 'roblox:launch'
   | 'roblox:recent-games'
   | 'roblox:join-server'
@@ -26,7 +34,11 @@ type IpcChannel =
   | 'settings:security:logout-all'
   | 'settings:security:password'
   | 'settings:security:2fa:get'
-  | 'settings:security:2fa:set';
+  | 'settings:security:2fa:set'
+  | 'settings:privacy:get'
+  | 'settings:privacy:update'
+  | 'settings:notifications:get'
+  | 'settings:notifications:update';
 
 const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'account:add',
@@ -38,6 +50,14 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'account:profile:get',
   'account:profile:update',
   'account:avatar-thumbnail',
+  'account:friends:list',
+  'account:friends:requests',
+  'account:friends:respond',
+  'account:blocked:list',
+  'account:block:user',
+  'account:unblock:user',
+  'account:follow:user',
+  'account:unfollow:user',
   'roblox:launch',
   'roblox:recent-games',
   'roblox:join-server',
@@ -50,6 +70,10 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'settings:security:password',
   'settings:security:2fa:get',
   'settings:security:2fa:set',
+  'settings:privacy:get',
+  'settings:privacy:update',
+  'settings:notifications:get',
+  'settings:notifications:update',
 ]);
 
 // =============================================================================
@@ -78,6 +102,15 @@ contextBridge.exposeInMainWorld('api', {
     updateProfile: (accountId: string, patch: { displayName?: string; description?: string }) =>
       invoke('account:profile:update', accountId, patch),
     getAvatarThumbnail: (userId: number) => invoke('account:avatar-thumbnail', userId),
+    getFriends: (accountId: string) => invoke('account:friends:list', accountId),
+    getFriendRequests: (accountId: string) => invoke('account:friends:requests', accountId),
+    respondFriendRequest: (accountId: string, userId: number, accept: boolean) =>
+      invoke('account:friends:respond', accountId, userId, accept),
+    getBlocked: (accountId: string) => invoke('account:blocked:list', accountId),
+    blockUser: (accountId: string, userId: number) => invoke('account:block:user', accountId, userId),
+    unblockUser: (accountId: string, userId: number) => invoke('account:unblock:user', accountId, userId),
+    followUser: (accountId: string, userId: number) => invoke('account:follow:user', accountId, userId),
+    unfollowUser: (accountId: string, userId: number) => invoke('account:unfollow:user', accountId, userId),
   },
   roblox: {
     launch: (accountId: string, placeId?: string, jobId?: string) =>
@@ -89,6 +122,12 @@ contextBridge.exposeInMainWorld('api', {
   settings: {
     get: (key: string) => invoke('settings:get', key),
     set: (key: string, value: any) => invoke('settings:set', key, value),
+    getPrivacy: (accountId: string) => invoke('settings:privacy:get', accountId),
+    updatePrivacy: (accountId: string, settingKey: string, value: string) =>
+      invoke('settings:privacy:update', accountId, settingKey, value),
+    getNotifications: (accountId: string) => invoke('settings:notifications:get', accountId),
+    updateNotification: (accountId: string, key: string, value: boolean) =>
+      invoke('settings:notifications:update', accountId, key, value),
   },
   security: {
     getSessions: (accountId: string) => invoke('settings:security:sessions', accountId),
@@ -117,6 +156,14 @@ export interface Api {
     getProfile: (accountId: string) => Promise<any>;
     updateProfile: (accountId: string, patch: { displayName?: string; description?: string }) => Promise<any>;
     getAvatarThumbnail: (userId: number) => Promise<string | null>;
+    getFriends: (accountId: string) => Promise<any>;
+    getFriendRequests: (accountId: string) => Promise<any>;
+    respondFriendRequest: (accountId: string, userId: number, accept: boolean) => Promise<boolean>;
+    getBlocked: (accountId: string) => Promise<any>;
+    blockUser: (accountId: string, userId: number) => Promise<boolean>;
+    unblockUser: (accountId: string, userId: number) => Promise<boolean>;
+    followUser: (accountId: string, userId: number) => Promise<boolean>;
+    unfollowUser: (accountId: string, userId: number) => Promise<boolean>;
   };
   roblox: {
     launch: (accountId: string, placeId?: string, jobId?: string) => Promise<boolean>;
@@ -127,6 +174,10 @@ export interface Api {
   settings: {
     get: <T = string>(key: string) => Promise<T>;
     set: <T = string>(key: string, value: T) => Promise<void>;
+    getPrivacy: (accountId: string) => Promise<any>;
+    updatePrivacy: (accountId: string, settingKey: string, value: string) => Promise<boolean>;
+    getNotifications: (accountId: string) => Promise<any>;
+    updateNotification: (accountId: string, key: string, value: boolean) => Promise<boolean>;
   };
   security: {
     getSessions: (accountId: string) => Promise<any[]>;

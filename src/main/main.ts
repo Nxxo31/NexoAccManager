@@ -71,15 +71,20 @@ const ALLOWED_CHANNELS = new Set([
   'roblox:recent-games',
   'roblox:join-server',
   'roblox:multiroblox',
-  'settings:get',
-  'settings:set',
+  'settings:security:2fa:get',
+  'settings:security:2fa:set',
   'settings:privacy:get',
-  'settings:privacy:set',
-  'settings:security:sessions',
-  'settings:security:logout',
-  'settings:security:logout-all',
-  'settings:security:password',
-  'settings:security:2fa',
+  'settings:privacy:update',
+  'settings:notifications:get',
+  'settings:notifications:update',
+  'account:friends:list',
+  'account:friends:requests',
+  'account:friends:respond',
+  'account:blocked:list',
+  'account:block:user',
+  'account:unblock:user',
+  'account:follow:user',
+  'account:unfollow:user',
 ]);
 
 // SoluciÃ³n para __dirname en ESM
@@ -532,6 +537,260 @@ class NexoApp {
         return ok(result);
       } catch (e) {
         return err(`Error cambiando 2FA: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // PRIVACY
+    // =================================================================
+
+    ipcMain.handle('settings:privacy:get', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const settings = await this.accountSettingsService.getPrivacySettings(cookie);
+        return ok(settings);
+      } catch (e) {
+        return err(`Error obteniendo privacidad: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('settings:privacy:update', async (_, accountId: unknown, settingKey: unknown, value: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (!isNonEmptyString(settingKey)) {
+        return err('Payload inválido: settingKey debe ser un string no vacío');
+      }
+      if (!isNonEmptyString(value as string)) {
+        return err('Payload inválido: value debe ser un string no vacío');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const result = await this.accountSettingsService.updatePrivacySetting(cookie, settingKey, value as string);
+        return ok(result);
+      } catch (e) {
+        return err(`Error actualizando privacidad: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // NOTIFICATIONS
+    // =================================================================
+
+    ipcMain.handle('settings:notifications:get', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const settings = await this.accountSettingsService.getNotificationSettings(cookie);
+        return ok(settings);
+      } catch (e) {
+        return err(`Error obteniendo notificaciones: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('settings:notifications:update', async (_, accountId: unknown, key: unknown, value: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (!isNonEmptyString(key as string)) {
+        return err('Payload inválido: key debe ser un string no vacío');
+      }
+      if (!isBoolean(value)) {
+        return err('Payload inválido: value debe ser un booleano');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const result = await this.accountSettingsService.updateNotificationSetting(cookie, key as string, value);
+        return ok(result);
+      } catch (e) {
+        return err(`Error actualizando notificaciones: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // FRIENDS
+    // =================================================================
+
+    ipcMain.handle('account:friends:list', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const friends = await this.accountSettingsService.getFriendsList(cookie);
+        return ok(friends);
+      } catch (e) {
+        return err(`Error obteniendo amigos: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('account:friends:requests', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const requests = await this.accountSettingsService.getFriendRequests(cookie);
+        return ok(requests);
+      } catch (e) {
+        return err(`Error obteniendo solicitudes: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('account:friends:respond', async (_, accountId: unknown, userId: unknown, accept: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (!isPositiveInteger(userId)) {
+        return err('Payload inválido: userId debe ser un número entero positivo');
+      }
+      if (!isBoolean(accept)) {
+        return err('Payload inválido: accept debe ser un booleano');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const result = await this.accountSettingsService.respondFriendRequest(cookie, userId, accept);
+        return ok(result);
+      } catch (e) {
+        return err(`Error respondiendo solicitud: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // BLOCKING
+    // =================================================================
+
+    ipcMain.handle('account:blocked:list', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const blocked = await this.accountSettingsService.getBlockedUsers(cookie);
+        return ok(blocked);
+      } catch (e) {
+        return err(`Error obteniendo bloqueados: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('account:block:user', async (_, accountId: unknown, userId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (!isPositiveInteger(userId)) {
+        return err('Payload inválido: userId debe ser un número entero positivo');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const result = await this.accountSettingsService.blockUser(cookie, userId);
+        return ok(result);
+      } catch (e) {
+        return err(`Error bloqueando usuario: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('account:unblock:user', async (_, accountId: unknown, userId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (!isPositiveInteger(userId)) {
+        return err('Payload inválido: userId debe ser un número entero positivo');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const result = await this.accountSettingsService.unblockUser(cookie, userId);
+        return ok(result);
+      } catch (e) {
+        return err(`Error desbloqueando usuario: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // FOLLOW / UNFOLLOW
+    // =================================================================
+
+    ipcMain.handle('account:follow:user', async (_, accountId: unknown, userId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (!isPositiveInteger(userId)) {
+        return err('Payload inválido: userId debe ser un número entero positivo');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const result = await this.accountSettingsService.followUser(cookie, userId);
+        return ok(result);
+      } catch (e) {
+        return err(`Error siguiendo usuario: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('account:unfollow:user', async (_, accountId: unknown, userId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (!isPositiveInteger(userId)) {
+        return err('Payload inválido: userId debe ser un número entero positivo');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const result = await this.accountSettingsService.unfollowUser(cookie, userId);
+        return ok(result);
+      } catch (e) {
+        return err(`Error dejando de seguir: ${(e as Error).message}`);
       }
     });
   }
