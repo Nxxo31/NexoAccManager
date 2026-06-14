@@ -1,77 +1,96 @@
 import { ipcRenderer, contextBridge } from 'electron';
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore - global puede no estar definido
-window.api = window.api || {};
+// =============================================================================
+// WHITELIST DE CANALES IPC – ÚNICA FUENTE VERDADERA
+// No modificar esta sección sin revisar los handlers correspondientes en main.ts
+// =============================================================================
 
-// Definir tipos para el preload (solo estes tipos se exponen al renderer)
-interface Api {
+type IpcChannel =
+  | 'account:add'
+  | 'account:remove'
+  | 'account:list'
+  | 'account:move'
+  | 'account:field:set'
+  | 'account:check'
+  | 'roblox:launch'
+  | 'roblox:recent-games'
+  | 'roblox:join-server'
+  | 'settings:multiroblox'
+  | 'settings:get'
+  | 'settings:set';
 
-  /**
-   * GestiÃ³n de cuentas
-   */
-  account: {
-    /** Agrega una cuenta usando cookie */
-    add: (cookie: string) => Promise<any>;
-    /** Elimina una cuenta */
-    remove: (id: string) => Promise<boolean>;
-    /** Lista todas las cuentas */
-    list: () => Promise<any[]>;
-    /** Actualiza grupo de una cuenta */
-    moveAccount: (accountId: string, groupName: string) => Promise<void>;
-    /** Agrega/Actualiza campo */
-    setField: (accountId: string, key: string, value: string) => Promise<void>;
-  };
+const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
+  'account:add',
+  'account:remove',
+  'account:list',
+  'account:move',
+  'account:field:set',
+  'account:check',
+  'roblox:launch',
+  'roblox:recent-games',
+  'roblox:join-server',
+  'settings:multiroblox',
+  'settings:get',
+  'settings:set',
+]);
 
-  /**
-   * GestiÃ³n de Roblox
-   */
-  roblox: {
-    /** Lanza Roblox con una cuenta especÃ­fica */
-    launch: (accountId: string, placeId?: string, jobId?: string) => Promise<boolean>;
-    /** Lista de juegos recientes */
-    getRecentGames: () => Promise<any[]>;
-    /** Obtiene servidores a los que unirse */
-    joinServer: (placeId: string, accountId: string) => Promise<boolean>;
-    /** Toggle Multi-Roblox */
-    setMultiRoblox: (enabled: boolean) => Promise<boolean>;
-  };
+// =============================================================================
+// VALIDACIÓN PRIVADA – No exponer nunca ipcRenderer al renderer directamente
+// =============================================================================
 
-  /**
-   * ConfiguraciÃ³n
-   */
-  settings: {
-    /** Obtiene un setting */
-    get: <T = string>(key: string) => Promise<T>;
-    /** Guarda un setting */
-    set: <T = string>(key: string, value: T) => Promise<void>;
-  };
-
-  /**
-   * Actualiza la informaciÃ³n de una cuenta */
-  checkAccount: (accountId: string) => Promise<any>;
+function invoke<T>(channel: IpcChannel, ...args: unknown[]): Promise<T> {
+  if (!ALLOWED_CHANNELS.has(channel)) {
+    throw new Error(`IPC channel blocked by preload whitelist: ${channel}`);
+  }
+  return ipcRenderer.invoke(channel, ...args);
 }
+
+// =============================================================================
+// API EXPUESTA AL RENDERER (via contextBridge)
+// =============================================================================
 
 contextBridge.exposeInMainWorld('api', {
   account: {
-    add: (cookie: string) => ipcRenderer.invoke('account:add', cookie),
-    remove: (id: string) => ipcRenderer.invoke('account:remove', id),
-    list: () => ipcRenderer.invoke('account:list'),
-    moveAccount: (id: string, groupName: string) => ipcRenderer.invoke('account:move', id, groupName),
-    setField: (id: string, key: string, value: string) => ipcRenderer.invoke('account:field:set', id, key, value),
+    add: (cookie: string) => invoke('account:add', cookie),
+    remove: (id: string) => invoke('account:remove', id),
+    list: () => invoke('account:list'),
+    moveAccount: (id: string, groupName: string) => invoke('account:move', id, groupName),
+    setField: (id: string, key: string, value: string) => invoke('account:field:set', id, key, value),
   },
   roblox: {
-    launch: (accountId: string, placeId?: string, jobId?: string) => ipcRenderer.invoke('roblox:launch', accountId, placeId, jobId),
-    getRecentGames: () => ipcRenderer.invoke('roblox:recent-games'),
-    joinServer: (placeId: string, accountId: string) => ipcRenderer.invoke('roblox:join-server', placeId, accountId),
-    setMultiRoblox: (enabled: boolean) => ipcRenderer.invoke('settings:multiroblox', enabled),
+    launch: (accountId: string, placeId?: string, jobId?: string) =>
+      invoke('roblox:launch', accountId, placeId, jobId),
+    getRecentGames: () => invoke('roblox:recent-games'),
+    joinServer: (placeId: string, accountId: string) => invoke('roblox:join-server', placeId, accountId),
+    setMultiRoblox: (enabled: boolean) => invoke('settings:multiroblox', enabled),
   },
   settings: {
-    get: (key: string) => ipcRenderer.invoke('settings:get', key),
-    set: (key: string, value: any) => ipcRenderer.invoke('settings:set', key, value),
+    get: (key: string) => invoke('settings:get', key),
+    set: (key: string, value: any) => invoke('settings:set', key, value),
   },
-  checkAccount: (accountId: string) => ipcRenderer.invoke('account:check', accountId),
+  checkAccount: (accountId: string) => invoke('account:check', accountId),
 });
 
-// Exportar types para importar en renderer
-export type { Api };
+// =============================================================================
+// TIPOS PARA IMPORTAR EN EL RENDERER
+// =============================================================================
+export interface Api {
+  account: {
+    add: (cookie: string) => Promise<any>;
+    remove: (id: string) => Promise<boolean>;
+    list: () => Promise<any[]>;
+    moveAccount: (accountId: string, groupName: string) => Promise<void>;
+    setField: (accountId: string, key: string, value: string) => Promise<void>;
+  };
+  roblox: {
+    launch: (accountId: string, placeId?: string, jobId?: string) => Promise<boolean>;
+    getRecentGames: () => Promise<any[]>;
+    joinServer: (placeId: string, accountId: string) => Promise<boolean>;
+    setMultiRoblox: (enabled: boolean) => Promise<boolean>;
+  };
+  settings: {
+    get: <T = string>(key: string) => Promise<T>;
+    set: <T = string>(key: string, value: T) => Promise<void>;
+  };
+  checkAccount: (accountId: string) => Promise<any>;
+}
