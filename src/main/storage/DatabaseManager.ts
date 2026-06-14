@@ -98,6 +98,23 @@ export class DatabaseManager {
   }
 
   /**
+   * Actualiza un campo de una cuenta
+   * @param accountId ID de la cuenta
+   * @param field Nombre del campo (group_name o description)
+   * @param value Nuevo valor
+   */
+  updateAccountField(accountId: string, field: string, value: string): void {
+    const validFields: Record<string, string> = {
+      group: 'group_name',
+      description: 'description',
+    };
+    const dbField = validFields[field];
+    if (!dbField) return;
+    const stmt = this.db.prepare(`UPDATE accounts SET ${dbField} = ? WHERE id = ?`);
+    stmt.run(value, accountId);
+  }
+
+  /**
    * Elimina una cuenta
    */
   deleteAccount(id: string): void {

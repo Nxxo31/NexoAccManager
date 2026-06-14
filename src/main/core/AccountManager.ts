@@ -428,6 +428,42 @@ export class AccountManager {
   }
 
   /**
+   * Obtiene una cuenta por su ID
+   */
+  getAccountById(accountId: string): Account | undefined {
+    return this.cachedAccounts.find((a) => a.id === accountId);
+  }
+
+  /**
+   * Actualiza un campo de una cuenta
+   * @param accountId ID de la cuenta
+   * @param field Nombre del campo (group, description)
+   * @param value Nuevo valor
+   */
+  setAccountField(accountId: string, field: string, value: string): boolean {
+    if (!['group', 'description'].includes(field)) {
+      return false;
+    }
+    this.db.updateAccountField(accountId, field, value);
+    this.updateCachedAccounts();
+    return true;
+  }
+
+  /**
+   * Verifica si Multi-Roblox estÃ¡ habilitado
+   */
+  isMultiRobloxEnabled(): boolean {
+    return this.multiRobloxEnabled;
+  }
+
+  /**
+   * Verifica si Multi-Roblox es compatible con el sistema operativo
+   */
+  isMultiRobloxSupported(): boolean {
+    return MultiRobloxService.isSupported();
+  }
+
+  /**
    * Elimina una cuenta y su cookie
    */
   async removeAccount(accountId: string): Promise<boolean> {

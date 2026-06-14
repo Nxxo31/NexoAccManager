@@ -55,7 +55,27 @@ https://github.com/ic3w0lf22/Roblox-Account-Manager
 - **launchRoblox()**: âœ… implementado (ver formato de URL abajo)
 - **Import/Export**: âœ… implementado con soporte para cookies (JSON)
 - **Multi-Roblox**: ✅ implementado con detección de Windows, perfiles temporales y manejo de mutex.
-- **API endpoints**: âŒ parcialmente implementados
+- **API endpoints**: ✅ completamente implementados (ver lista abajo)
+
+### Endpoints API REST implementados
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/api/v1/health` | Health check (sin auth) |
+| GET | `/api/v1/GetAccounts` | Lista completa de cuentas |
+| GET | `/api/v1/LaunchAccount?accountId=X&placeId=Y&jobId=Z` | Lanzar cuenta a juego |
+| GET | `/api/v1/ImportCookie?cookie=X` | Importar cuenta por cookie |
+| GET | `/api/v1/SetServer?accountId=X&placeId=Y&jobId=Z` | Unirse a servidor específico |
+| GET | `/api/v1/FollowUser?accountId=X&userId=Y` | Seguir usuario a su juego |
+| GET | `/api/v1/GetCookie/:accountId` | ⚠️ Bloqueado por seguridad |
+| GET | `/api/v1/GetCSRFToken/:accountId` | Obtener CSRF token de cuenta |
+| GET | `/api/v1/GetField/:accountId/:field` | Obtener campo de cuenta |
+| GET | `/api/v1/SetField/:accountId/:field?value=X` | Establecer campo de cuenta |
+| GET | `/api/v1/GetSettings` | Obtener configuración |
+| GET | `/api/v1/SetSettings?multiRoblox=true/false` | Cambiar configuración |
+| GET | `/api/v1/DeleteAccount/:accountId` | Eliminar cuenta |
+| POST | `/api/v1/accounts/add` | Agregar cuenta (compatibilidad) |
+
+**Auth**: Todos los endpoints (excepto `/health`) requieren header `Authorization: Bearer <API_KEY>`
 
 ### Formato de URL usado para launchRoblox()
 `roblox-player:1+launchmode:play+gameinfo:<authTicket>+placelauncherurl:https://assetgame.roblox.com/game/placelauncher.ashx?request=RequestGame&placeId=<placeId>&isPlayTogetherGame=false[&gameId=<jobId>]`
