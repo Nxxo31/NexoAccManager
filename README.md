@@ -44,47 +44,70 @@ NexoAccManager/
 
 ## Estado del MVP
 
-### Funcionando
-- **Cifrado**: AES-256-GCM con clave derivada del hardware (no portable entre PCs, intencional).
+### ✅ Funcionando (Sprint E0)
+- **Cifrado**: AES-256-GCM con clave derivada del hardware.
 - **Database**: SQLite con tablas `accounts`, `settings`, `recent_games`.
 - **Verificación de cookies**: Valida contra `auth.roblox.com` y `users.roblox.com`.
 - **API REST interna**: Fastify con autenticación por Bearer token.
 - **Menú de aplicación**: Import/Export JSON, API Web Local, Configuración.
+- **Renderer React**: UI completa con lista de cuentas, modal de lanzamiento, grupos.
+- **Multi-Roblox**: Perfiles temporales para múltiples instancias simultáneas.
+- **Import/Export**: JSON con validación de formato y detección de duplicados.
+- **Lanzamiento Roblox**: Protocolo `roblox-player://` con auth ticket.
 
-### Faltante para MVP v1.0
+### ✅ Sprint E1 — Seguridad IPC (Completado)
+- [x] `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`
+- [x] Whitelist explícita de canales IPC en preload.ts
+- [x] Namespacing: `account:*`, `roblox:*`, `settings:*`
+- [x] Type guards en todos los `ipcMain.handle()` — validación de payloads
+- [x] Content-Security-Policy en BrowserWindow
+- [x] `shell.openExternal()` solo acepta URLs `roblox-player://`
 
-#### Crítico
-- [ ] **Renderer React**: Falta `src/renderer/main.tsx`, `App.tsx` y componentes UI.
-- [ ] **Preload**: `ipcRenderer` no está importado; la build falla.
-- [ ] ** Dependencia `better-sqlite3`**: No está en `package.json` pero se usa en `DatabaseManager.ts`.
+### Pendiente
 
-#### Medio
-- [ ] **`launchRoblox()`**: Stub vacío, no implementa lanzamiento real.
-- [ ] **WebServer**: `fastify-cors` está deprecado; usar `@fastify/cors`.
-- [ ] **Import/Export**: Métodos vacíos en `main.ts`.
-- [ ] **Manejo de errores**: No hay retries ni manejo de fallos de red de Roblox.
-- [ ] **Validación de duplicados**: Al agregar una cuenta no se verifica si ya existe.
+#### Fase 2 — Integración SaaS
+- [ ] Pantalla de login/registro con design system
+- [ ] JWT en electron-store cifrado
+- [ ] Validación de licencia al arrancar (GET /license/verify)
+- [ ] Bloqueo por accountLimit con UI clara y CTA de upgrade
+- [ ] Botón "Mejorar plan" → abre Landing en browser
+- [ ] Modo offline con último plan conocido localmente
+- [ ] Indicador de estado de licencia (online/offline/expirada)
+
+#### Fase 3 — Account Control Panel (Business+)
+- [ ] Cambiar contraseña desde la app
+- [ ] Bloquear/desbloquear cuenta remotamente
+- [ ] Ver sesiones activas
+- [ ] Eliminar cuenta desde Account Control Panel
 
 #### Leve
-- [ ] Tests con Vitest.
-- [ ] CI/CD configurado.
-- [ ] Icono de aplicación (`public/icon.png`).
-- [ ] Sistema de logs estructurados.
+- [ ] Tests con Vitest
+- [ ] CI/CD configurado (GitHub Actions)
+- [ ] Icono de aplicación (`public/icon.png`)
+- [ ] Sistema de logs estructurados
 
 ## Roadmap
 
-### v0.1.0 — MVP Backend Completo
-1. Fix: `preload.ts` (importar `ipcRenderer` de `electron`).
-2. Agregar `better-sqlite3` a `dependencies`.
-3. Implementar renderer básico: lista de cuentas, agregar cuenta, settings.
-4. Implementar `launchRoblox()` mínimo (protocolo `roblox://`).
-5. Build funcional (`npm run build`).
+### ✅ v0.1.0 — MVP Backend Completo
+- [x] Fix: `preload.ts` (importar `ipcRenderer` de `electron`).
+- [x] Agregar `better-sqlite3` a `dependencies`.
+- [x] Implementar renderer básico: lista de cuentas, agregar cuenta, settings.
+- [x] Implementar `launchRoblox()` mínimo (protocolo `roblox-player://`).
+- [x] Build funcional (`npm run build`).
+
+### ✅ v0.1.1 — Seguridad IPC (Sprint E1)
+- [x] contextIsolation + sandbox + nodeIntegration:false
+- [x] Whitelist canales IPC en preload.ts
+- [x] Type guards en ipcMain.handle()
+- [x] CSP en BrowserWindow
+- [x] Validación shell.openExternal()
 
 ### v0.2.0 — UX y Robustez
-- Import/Export de cuentas a JSON cifrado.
-- Manejo de errores de red y reintentos.
-- Validación de duplicados.
-- Tests unitarios con Vitest.
+- [x] Import/Export de cuentas a JSON cifrado.
+- [x] Manejo de errores de red y reintentos.
+- [x] Validación de duplicados.
+- [x] Multi-Roblox con perfiles temporales.
+- [ ] Tests unitarios con Vitest.
 
 ### v0.3.0 — Polish
 - Icono e instalador auto-firmado.
