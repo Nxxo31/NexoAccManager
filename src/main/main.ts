@@ -42,6 +42,7 @@ class NexoApp {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
+        sandbox: true,
         preload: path.join(__dirname, '../preload/preload.js'),
       },
       title: 'NexoAccManager',
