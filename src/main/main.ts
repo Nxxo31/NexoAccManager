@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { AccountManager } from './core/AccountManager';
 import { CryptoService } from './core/CryptoService';
 import { WebServer } from './server/WebServer';
@@ -127,8 +128,44 @@ class NexoApp {
       filters: [{ name: 'Archivos JSON', extensions: ['json'] }],
     });
 
-    if (!result.canceled && result.filePaths.length > 0) {
-      // Implementar importaciÃ³n
+    if (result.canceled || result.filePaths.length === 0) return;
+
+    try {
+      const filePath = result.filePaths[0];
+      const data = fs.readFileSync(filePath, 'utf-8');
+      const payload = JSON.parse(data);
+
+      if (!Array.isArray(payload.cuentas)) {
+        throw new Error('Formato inválido: se espera "cuentas" como array');
+      }
+
+      let added = 0;
+      let skipped = 0;
+      const errors: string[] = [];
+
+      for (const item of payload.cuentas) {
+        try {
+          if (!item.cookie || typeof item.cookie !== 'string') {
+            skipped++;
+            continue;
+          }
+          await this.accountManager.addAccountFromCookie(item.cookie);
+          added++;
+        } catch (err: unknown) {
+          const msg = (err as Error).message || String(err);
+          errors.push(`Error importando cuenta: ${msg}`);
+          skipped++;
+        }
+      }
+
+      dialog.showMessageBox(this.mainWindow!, {
+        type: 'info',
+        title: 'Importación completada',
+        message: `Cuentas importadas: ${added}\nOmitadas: ${skipped}`,
+        detail: errors.length > 0 ? `Errores:\n${errors.slice(0, 5).join('\n')}` : undefined,
+      });
+    } catch (err: unknown) {
+      dialog.showErrorBox('Error de importación', (err as Error).message);
     }
   }
 
@@ -138,8 +175,30 @@ class NexoApp {
       filters: [{ name: 'Archivos JSON', extensions: ['json'] }],
     });
 
-    if (!result.canceled) {
-      // Implementar exportaciÃ³n
+    if (result.canceled) return;
+
+    try {
+      const accounts = this.accountManager.getAllAccounts();
+      const payload = {
+        version: '1.0',
+        exportDate: new Date().toISOString(),
+        cuentas: accounts.map((a) => ({
+          username: a.username,
+          robloxUserId: a.robloxUserId,
+          group: a.group,
+          description: a.description,
+        })),
+      };
+
+      fs.writeFileSync(result.filePath!, JSON.stringify(payload, null, 2), 'utf-8');
+
+      dialog.showMessageBox(this.mainWindow!, {
+        type: 'info',
+        title: 'Exportación completada',
+        message: `${accounts.length} cuenta(s) exportadas a ${result.filePath}`,
+      });
+    } catch (err: unknown) {
+      dialog.showErrorBox('Error de exportación', (err as Error).message);
     }
   }
 
