@@ -3,6 +3,7 @@ import AccountList from './components/AccountList';
 import AddAccountForm from './components/AddAccountForm';
 import SettingsPanel from './components/SettingsPanel';
 import Header from './components/Header';
+import AccountControlPanel from './components/AccountControlPanel/AccountControlPanel';
 
 interface Account {
   id: string;
@@ -12,6 +13,7 @@ interface Account {
   description?: string;
   lastUsed: Date;
   createdAt: Date;
+  robloxUserId?: number;
 }
 
 export default function App() {
@@ -19,14 +21,19 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'accounts' | 'settings'>('accounts');
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
   const fetchAccounts = async () => {
     try {
       setLoading(true);
       setError(null);
       // @ts-expect-error api existe en window via preload
-      const list = await window.api.account.list();
-      setAccounts(list);
+      const result = await window.api.account.list();
+      if (result && result.success === false) {
+        setError(result.error || 'Error al cargar cuentas');
+        return;
+      }
+      setAccounts(result || []);
     } catch (err) {
       setError('Error al cargar cuentas. Asegúrate de que NexoAccManager esté ejecutándose.');
       console.error(err);
@@ -45,6 +52,14 @@ export default function App() {
 
   const handleAccountRemoved = () => {
     fetchAccounts();
+  };
+
+  const handleOpenAccountPanel = (account: Account) => {
+    setSelectedAccount(account);
+  };
+
+  const handleCloseAccountPanel = () => {
+    setSelectedAccount(null);
   };
 
   return (
@@ -70,6 +85,7 @@ export default function App() {
                   accounts={accounts}
                   onRefresh={fetchAccounts}
                   onRemove={handleAccountRemoved}
+                  onOpenAccountPanel={handleOpenAccountPanel}
                 />
               )}
             </div>
@@ -82,6 +98,13 @@ export default function App() {
 
         {activeView === 'settings' && <SettingsPanel />}
       </main>
+
+      {selectedAccount && (
+        <AccountControlPanel
+          account={selectedAccount}
+          onClose={handleCloseAccountPanel}
+        />
+      )}
     </div>
   );
 }
