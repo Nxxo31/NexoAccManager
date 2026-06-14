@@ -10,6 +10,7 @@ import { shell } from 'electron';
 import { Account } from '../../types/Account';
 import { DatabaseManager } from '../storage/DatabaseManager';
 import { CryptoService } from './CryptoService';
+import { MultiRobloxService } from './MultiRobloxService';
 
 /**
  * Enum de endpoints de Roblox
@@ -21,16 +22,18 @@ enum RobloxEndpoints {
 }
 
 export class AccountManager {
-  private db: DatabaseManager;
-  private crypto: CryptoService;
-  private multiRobloxEnabled: boolean = false;
-  private cachedAccounts: Account[] = [];
+ private db: DatabaseManager;
+ private crypto: CryptoService;
+ private multiRobloxService: MultiRobloxService;
+ private multiRobloxEnabled: boolean = false;
+ private cachedAccounts: Account[] = [];
 
-  constructor(db: DatabaseManager, crypto: CryptoService) {
-    this.db = db;
-    this.crypto = crypto;
-    this.updateCachedAccounts();
-  }
+ constructor(db: DatabaseManager, crypto: CryptoService) {
+   this.db = db;
+   this.crypto = crypto;
+   this.multiRobloxService = new MultiRobloxService();
+   this.updateCachedAccounts();
+ }
 
   /**
    * Refresca el cache de cuentas
@@ -120,10 +123,34 @@ export class AccountManager {
 
   /**
    * Activa/desactiva Multi-Roblox
+   *
+   * Habilita o deshabilita el mutex de instancia Ãºnica de Roblox en Windows.
+   * Solo tiene efecto en Windows (modifica el registro).
+   *
+   * @param enabled true para habilitar, false para deshabilitar
+   * @returns true si la operaciÃ³n fue exitosa
    */
   setMultiRoblox(enabled: boolean): boolean {
     this.multiRobloxEnabled = enabled;
     this.db.setSetting('MultiRoblox', enabled ? 'true' : 'false');
+
+    if (!MultiRobloxService.isSupported()) {
+      console.warn('[AccountManager] Multi-Roblox solo disponible en Windows');
+      return false;
+    }
+
+    if (enabled) {
+      const ok = this.multiRobloxService.enable();
+      if (!ok) {
+        console.error('[AccountManager] No se pudo habilitar Multi-Roblox');
+        this.multiRobloxEnabled = false;
+        this.db.setSetting('MultiRoblox', 'false');
+        return false;
+      }
+    } else {
+      this.multiRobloxService.disable();
+    }
+
     return this.multiRobloxEnabled;
   }
 
@@ -138,6 +165,16 @@ export class AccountManager {
    * 5. Construye URL del protocolo roblox-player://
    * 6. Lanza la URL con shell.openExternal
    * 7. Actualiza lastUsed en la base de datos
+   */
+  /**
+   * Lanza Roblox con una cuenta especÃ­fica
+   *
+   * **Multi-Roblox:**
+   *   Cuando multiRobloxEnabled es true y estamos en Windows, lanza una instancia
+   *   directa con perfil temporal en lugar de usar shell.openExternal.
+   *
+   * **Modo normal:**
+   *   Usa el protocolo roblox-player:// con auth ticket.
    */
   async launchRoblox(accountId: string, placeId?: string, jobId?: string): Promise<boolean> {
     // 1. Buscar la cuenta en SQLite por accountId
@@ -164,7 +201,12 @@ export class AccountManager {
       throw new Error('Cookie invÃ¡lida o expirada');
     }
 
-    // 4. Obtener auth ticket para construir la URL del protocolo
+    // 4. Si estÃ¡ en modo Multi-Roblox y soportado, lanzar perfil temporal
+    if (this.multiRobloxEnabled && MultiRobloxService.isSupported()) {
+      return this.launchRobloxDirect(accountId, placeId, jobId);
+    }
+
+    // 5. Modo normal: protocolo roblox-player://
     let authTicket: string;
     try {
       authTicket = await this.getAuthTicket(cookie);
@@ -174,27 +216,22 @@ export class AccountManager {
       );
     }
 
-    // 5. Construir la URL del protocolo roblox-player:// con los parÃ¡metros correctos
     const encodedPlaceId = encodeURIComponent(placeId);
     let launchUrl = `roblox-player:1+launchmode:play+gameinfo:${authTicket}+placelauncherurl:https://assetgame.roblox.com/game/placelauncher.ashx?request=RequestGame&placeId=${encodedPlaceId}&isPlayTogetherGame=false`;
 
-    // 6. Si jobId existe, agregar &gameId=[jobId] a la URL
     if (jobId) {
       launchUrl += `&gameId=${encodeURIComponent(jobId)}`;
     }
 
-    // 7. Lanzar la URL con el shell del sistema operativo (shell.openExternal en Electron)
     try {
       await shell.openExternal(launchUrl);
-    } catch (error) {
-      // 9. Roblox no instalado â†' detectar y lanzar error descriptivo
+    } catch {
       throw new Error('Roblox no estÃ¡ instalado o el protocolo roblox-player no estÃ¡ registrado en el sistema');
     }
 
-    // 8. Actualizar el campo lastUsed de la cuenta en SQLite
+    // 6. Actualizar el campo lastUsed de la cuenta en SQLite
     this.db.updateLastUsed(accountId);
 
-    // 10. Retornar true si el lanzamiento fue exitoso
     return true;
   }
 
@@ -297,6 +334,90 @@ export class AccountManager {
       return code === 'ECONNREFUSED' || code === 'ETIMEDOUT' || code === 'ECONNRESET' || code === 'ENOTFOUND';
     }
     return false;
+  }
+
+  /**
+   * Lanza Roblox directamente con un perfil temporal (modo Multi-Roblox).
+   * Solo funciona en Windows. No usa shell.openExternal para evitar
+   * que Windows devuelva un solo PID para todas las cuentas.
+   */
+  private launchRobloxDirect(accountId: string, placeId: string, jobId?: string): boolean {
+    // Encontrar ejecutable
+    const { spawn } = require('child_process');
+    const os = require('os');
+    const path = require('path');
+    const fs = require('fs');
+
+    let robloxPath: string | null = null;
+
+    // Buscar en AppData
+    const homeDir = os.homedir();
+    const candidate = path.join(homeDir, 'AppData', 'Local', 'Roblox', 'Versions');
+    if (fs.existsSync(candidate)) {
+      const dirs = fs.readdirSync(candidate).filter((f: string) => f.startsWith('version-'));
+      for (const dir of dirs) {
+        const launcher = path.join(candidate, dir, 'RobloxPlayerLauncher.exe');
+        if (fs.existsSync(launcher)) {
+          robloxPath = launcher;
+          break;
+        }
+      }
+    }
+
+    if (!robloxPath) {
+      throw new Error('No se encontrÃ³ RobloxPlayerLauncher.exe en AppData/Local/Roblox/Versions');
+    }
+
+    // Crear perfil temporal
+    const profilePath = this.multiRobloxService.createTempProfile(accountId);
+
+    // Argumentos para Roblox
+    const args: string[] = [];
+    // Usar el --user-data-dir apuntando al perfil temporal
+    args.push('--user-data-dir=' + profilePath);
+
+    // Si hay placeId, agregar argumento de juego
+    if (placeId) {
+      const encodedPlaceId = encodeURIComponent(placeId);
+      let gameUrl = `https://www.roblox.com/games/start?placeId=${encodedPlaceId}&launchmode=play`;
+      if (jobId) {
+        gameUrl += `&gameId=${encodeURIComponent(jobId)}`;
+      }
+      args.push(`--url=${gameUrl}`);
+    }
+
+    // Lanzar proceso con entorno limpio para evitar interferencias entre instancias
+    const env = {
+      ...process.env,
+      // Evitar que Electron o Vite interfieran con Roblox
+      ELECTRON_RUN_AS_NODE: undefined,
+    };
+
+    try {
+      const proc = spawn(robloxPath, args, {
+        detached: true,
+        stdio: 'ignore',
+        env,
+        windowsHide: true,
+      });
+
+      proc.on('error', (err: Error) => {
+        console.error('[AccountManager] Error al lanzar Roblox:', err.message);
+      });
+
+      if (!proc.pid) {
+        throw new Error('El proceso de Roblox no se iniciÃ³, pid es undefined');
+      }
+
+      proc.unref();
+
+      // Actualizar lastUsed despuÃ©s de un lanzamiento exitoso
+      this.db.updateLastUsed(accountId);
+
+      return true;
+    } catch (error) {
+      throw new Error(`Error al lanzar Roblox con Multi-Roblox: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   /**

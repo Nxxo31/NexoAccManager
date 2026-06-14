@@ -6,7 +6,8 @@
  */
 import Fastify from 'fastify';
 import fastifyCors from '@fastify/cors';
-import { AccountManager } from './AccountManager';
+import { AccountManager } from '../core/AccountManager';
+import { Account } from '../../types/Account';
 
 export class WebServer {
   private fastify;
@@ -63,7 +64,7 @@ export class WebServer {
     // Obtener lista de cuentas
     this.fastify.get('/api/v1/accounts', async (request, reply) => {
       const accounts = this.accountManager.getAllAccounts();
-      reply.send(accounts.map(a => ({
+      reply.send(accounts.map((a: Account) => ({
         id: a.id,
         username: a.username,
         group: a.group,
@@ -79,7 +80,7 @@ export class WebServer {
         const result = await this.accountManager.launchRoblox(accountId, placeId, jobId);
         reply.send({ success: result });
       } catch (error) {
-        reply.status(400).send({ error: error.message });
+        reply.status(400).send({ error: (error as Error).message });
       }
     });
 
@@ -90,7 +91,7 @@ export class WebServer {
         await this.accountManager.addAccountFromCookie(cookie);
         reply.send({ success: true });
       } catch (error) {
-        reply.status(400).send({ error: error.message });
+        reply.status(400).send({ error: (error as Error).message });
       }
     });
   }

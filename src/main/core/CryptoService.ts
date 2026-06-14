@@ -30,7 +30,7 @@ export class CryptoService {
       const hostname = os.hostname();
       const platform = os.platform();
       const arch = os.arch();
-      const cpus = os.cpus().map(c => c.model).sort().join(',');
+      const cpus = os.cpus().map((c: { model: string }) => c.model).sort().join(',');
       const totalMem = os.totalmem();
       return crypto.createHash('sha256').update(`${hostname}|${platform}|${arch}|${cpus}|${totalMem}`).digest('hex');
     } catch {

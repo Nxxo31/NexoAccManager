@@ -54,7 +54,7 @@ https://github.com/ic3w0lf22/Roblox-Account-Manager
 - **Renderer React**: âœ… estructura base con 4 componentes
 - **launchRoblox()**: âœ… implementado (ver formato de URL abajo)
 - **Import/Export**: âœ… implementado con soporte para cookies (JSON)
-- **Multi-Roblox**: âŒ no implementado
+- **Multi-Roblox**: ✅ implementado con detección de Windows, perfiles temporales y manejo de mutex.
 - **API endpoints**: âŒ parcialmente implementados
 
 ### Formato de URL usado para launchRoblox()

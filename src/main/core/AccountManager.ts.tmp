@@ -1,0 +1,165 @@
+/**
+ * AccountManager - Controlador principal de lÃ³gica de negocio
+ *
+ * Encapsula las operaciones relacionadas con cuentas, cifrado,
+ * lanzamiento de Roblox y gestiÃ³n de grupos.
+ */
+import axios, { AxiosError } from 'axios';
+import crypto from 'crypto';
+import { shell } from 'electron';
+import { Account } from '../../types/Account';
+import { DatabaseManager } from '../storage/DatabaseManager';
+import { CryptoService } from './CryptoService';
+import { MultiRobloxService } from './MultiRobloxService';
+
+/**
+ * Enum de endpoints de Roblox
+ */
+enum RobloxEndpoints {
+  AccountInfo = 'https://users.roblox.com/v1/users/authenticated',
+  Avatar = 'https://avatar.roblox.com/v1/users/:userId/avatar',
+  AuthVerification = 'https://auth.roblox.com/v2/logout',
+}
+
+export class AccountManager {
+  private db: DatabaseManager;
+  private crypto: CryptoService;
+  private multiRobloxService: MultiRobloxService;
+  private multiRobloxEnabled: boolean = false;
+  private cachedAccounts: Account[] = [];
+
+  constructor(db: DatabaseManager, crypto: CryptoService) {
+    this.db = db;
+    this.crypto = crypto;
+    this.multiRobloxService = new MultiRobloxService();
+    // Limpiar perfiles temporales antiguos al iniciar
+    this.multiRobloxService.cleanupOldProfiles();
+    this.updateCachedAccounts();
+  }
+
+  /**
+   * Refresca el cache de cuentas
+   */
+  private async updateCachedAccounts(): Promise<void> {
+    this.cachedAccounts = (await this.db.getAllAccounts()).map(this.hydrateAccount);
+  }
+
+  /**
+   * Transforma los datos SQL a un objeto Account
+   */
+  private hydrateAccount(row: any): Account {
+    return {
+      id: row.id,
+      robloxUserId: row.roblox_user_id,
+      username: row.username,
+      displayName: row.display_name || undefined,
+      group: row.group_name || 'Default',
+      description: row.description || '',
+      lastUsed: new Date(row.last_used),
+      createdAt: new Date(row.created_at),
+    };
+  }
+
+  /**
+   * AÃ±ade una cuenta desde una cookie .ROBLOSECURITY
+   */
+  async addAccountFromCookie(cookie: string): Promise<Account> {
+    if (!cookie.trim().startsWith('_|WARNING:-DO-NOT-SHARE|_')) {
+      throw new Error('Formato de cookie invÃ¡lido');
+    }
+
+    // Validar la cookie usando Roblox
+    const auth = await this.verifyAndGetAuthInfo(cookie);
+    if (!auth.authenticated || !auth.userId) {
+      throw new Error('Cookie invÃ¡lida o expirada');
+    }
+
+    const encryptedCookie = this.crypto.encrypt(cookie);
+    const hash = crypto.createHash('sha256').update(cookie.trim()).digest('hex');
+    const accountId = crypto.randomUUID();
+
+    const robloxUsername = await this.fetchUsernameFromRoblox(auth.userId);
+
+    this.db.createAccount({
+      id: accountId,
+      robloxUserId: auth.userId,
+      username: robloxUsername,
+      encryptedCookie: encryptedCookie,
+      cookieHash: hash,
+    });
+
+    await this.updateCachedAccounts();
+    return this.hydrateAccount(this.db.getAccount(accountId));
+  }
+
+  /**
+   * Valida una cookie y obtiene informaciÃ³n de autenticaciÃ³n
+   */
+  private async verifyAndGetAuthInfo(cookie: string): Promise<{ authenticated: boolean; userId: number }> {
+    const headers = { Cookie: `.ROBLOSECURITY=${cookie.trim()}` };
+    try {
+      // Verificar autenticaciÃ³n
+      await axios.get(RobloxEndpoints.AuthVerification, { headers, validateStatus: () => true });
+      // Obtener UserId
+      const response = await axios.get(RobloxEndpoints.AccountInfo, { headers });
+      return {
+        authenticated: true,
+        userId: response.data.id,
+      };
+    } catch (error) {
+      return { authenticated: false, userId: 0 };
+    }
+  }
+
+  /**
+   * Obtiene el nombre de usuario de Roblox desde el UserID
+   */
+  private async fetchUsernameFromRoblox(userId: number): Promise<string> {
+    try {
+      const response = await axios.get(`https://users.roblox.com/v1/users/${userId}`);
+      return response.data.name;
+    } catch {
+      return `roblox_user_${userId}`;
+    }
+  }
+
+  /**
+   * Activa/desactiva Multi-Roblox
+   * Habilita o deshabilita el mutex de instancia Ãºnica de Roblox en Windows
+   */
+  setMultiRoblox(enabled: boolean): boolean {
+    this.multiRobloxEnabled = enabled;
+    this.db.setSetting('MultiRoblox', enabled ? 'true' : 'false');
+
+    if (!MultiRobloxService.isSupported()) {
+      console.warn('[AccountManager] Multi-Roblox solo disponible en Windows');
+      return false;
+    }
+
+    if (enabled) {
+      const ok = this.multiRobloxService.enable();
+      if (!ok) {
+        console.error('[AccountManager] No se pudo habilitar Multi-Roblox');
+        this.multiRobloxEnabled = false;
+        this.db.setSetting('MultiRoblox', 'false');
+        return false;
+      }
+    } else {
+      this.multiRobloxService.disable();
+    }
+
+    return this.multiRobloxEnabled;
+  }
+
+  /**
+   * Lanza Roblox con una cuenta especÃ­fica a travÃ©s del protocolo roblox-player://
+   *
+   * Flujo:
+   * 1. Valida que la cuenta exista
+   * 2. Descifra la cookie
+   * 3. Verifica la cookie contra auth.roblox.com (con retry 1 vez)
+   * 4. Obtiene auth ticket de Roblox
+   * 5. Construye URL del protocolo roblox-player://
+   * 6. Lanza la URL con shell.openExternal
+   * 7. Actualiza lastUsed en la base de datos
+   */

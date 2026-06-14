@@ -6,7 +6,7 @@ export interface Account {
   robloxUserId: number;         // UserID de Roblox
   username: string;             // Nombre de usuario (sin cifrar)
   displayName?: string;         // Nombre visible
-  cookie: string;               // Cookie .ROBLOSECURITY (cifrada en reposo)
+  cookie?: string;               // Cookie .ROBLOSECURITY (cifrada en reposo) — nunca expuesta pÃºblicamente
   group: string;                // Grupo de organizaciÃ³n
   description?: string;         // Notas del usuario
   lastUsed: Date;               // Ãšltima vez que se usÃ³
