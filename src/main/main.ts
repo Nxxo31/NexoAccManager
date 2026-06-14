@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu, session } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { AccountManager } from './core/AccountManager';
@@ -86,9 +86,43 @@ class NexoApp {
   async initialize(): Promise<void> {
     await this.db.initialize();
     await this.webServer.start(8080);
+    this.setupCSP();
     this.createWindow();
     this.setupIPCHandlers();
     this.createMenu();
+  }
+
+  /**
+   * Configura Content-Security-Policy para el BrowserWindow
+   * - default-src 'self' — solo recursos del mismo origen
+   * - script-src 'self' — sin scripts inline ni externos
+   * - connect-src 'self' https://*.roblox.com — solo API de Roblox
+   * - img-src 'self' data: — imágenes locales o data URIs
+   * - style-src 'self' 'unsafe-inline' https://fonts.googleapis.com — fuentes externas
+   * - font-src 'self' https://fonts.gstatic.com — Google Fonts
+   */
+  private setupCSP(): void {
+    const CSP = [
+      "default-src 'self'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com",
+      "img-src 'self' data:",
+      "connect-src 'self' https://*.roblox.com https://auth.roblox.com https://users.roblox.com https://avatar.roblox.com https://assetgame.roblox.com",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+    ].join('; ');
+
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [CSP],
+        },
+      });
+    });
   }
 
   private createWindow(): void {
