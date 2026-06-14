@@ -301,16 +301,16 @@ enum LicenseStatus {
 Control completo de la cuenta Roblox desde la app, sin abrir el navegador:
 
 **Perfil:**
-- ❌ Ver y cambiar display name
-- ❌ Ver y editar descripción de perfil
-- ❌ Ver avatar actual con thumbnail
+- ✅ Ver y cambiar display name (Sprint E2)
+- ✅ Ver y editar descripción de perfil (Sprint E2)
+- ✅ Ver avatar actual con thumbnail (Sprint E2)
 
 **Seguridad y acceso:**
-- ❌ Cambiar contraseña (requiere contraseña actual)
-- ❌ Ver sesiones activas (dispositivos conectados)
-- ❌ Cerrar sesión en dispositivos específicos o en todos
+- ✅ Cambiar contraseña (requiere contraseña actual) (Sprint E2)
+- ✅ Ver sesiones activas (dispositivos conectados) (Sprint E2)
+- ✅ Cerrar sesión en dispositivos específicos o en todos (Sprint E2)
 - ❌ Ver historial de accesos recientes
-- ❌ Toggle verificación en dos pasos (2FA)
+- ✅ Toggle verificación en dos pasos (2FA) (Sprint E2)
 
 **Privacidad:**
 - ❌ Quién puede enviarme mensajes (nadie/amigos/todos)
