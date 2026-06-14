@@ -63,25 +63,45 @@ NexoAccManager/
 - [x] Content-Security-Policy en BrowserWindow
 - [x] `shell.openExternal()` solo acepta URLs `roblox-player://`
 
-### ✅ Sprint E2 — Account Control Panel: Perfil y Seguridad (Completado)
+### ✅ Sprint E2 Perfil, Seguridad, Privacidad, Amigos y Notificaciones (Completado)
+
 **Perfil:**
-- [x] Ver y cambiar display name (`account:profile:get`, `account:profile:update`)
-- [x] Ver y editar descripción de perfil
-- [x] Ver avatar actual con thumbnail (`account:avatar-thumbnail`)
-- [x] `AccountSettingsService` con integración a `accountinformation.roblox.com` y `thumbnails.roblox.com`
+- ✅ Ver y cambiar display name (`account:profile:get`, `account:profile:update`)
+- ✅ Ver y editar descripción de perfil
+- ✅ Ver avatar actual con thumbnail (`account:avatar-thumbnail`)
+- ✅ `AccountSettingsService` con integración a `accountinformation.roblox.com` y `thumbnails.roblox.com`
 
 **Seguridad:**
-- [x] Ver sesiones activas (`settings:security:sessions`)
-- [x] Cerrar sesión individual (`settings:security:logout`)
-- [x] Cerrar todas las sesiones (`settings:security:logout-all`)
-- [x] Cambiar contraseña (`settings:security:password`)
-- [x] Estado 2FA (`settings:security:2fa:get`, `settings:security:2fa:set`)
+- ✅ Ver sesiones activas (`settings:security:sessions`)
+- ✅ Cerrar sesión individual (`settings:security:logout`)
+- ✅ Cerrar todas las sesiones (`settings:security:logout-all`)
+- ✅ Cambiar contraseña (`settings:security:password`)
+- ✅ Estado 2FA (`settings:security:2fa:get`, `settings:security:2fa:set`)
+
+**Privacidad:**
+- ✅ Mensajes, chat, inventario, grupos, última conexión, seguidores
+- ✅ UI `PrivacyPanel.tsx` con toggles categorizados
+
+**Amigos:**
+- ✅ Ver lista de amigos con estado online (`account:friends:list`)
+- ✅ Aceptar/rechazar solicitudes de amistad (`account:friends:requests`, `account:friends:respond`)
+- ✅ Bloquear/desbloquear usuarios (`account:block:user`, `account:unblock:user`)
+- ✅ Ver lista de bloqueados (`account:blocked:list`)
+- ✅ UI `FriendsPanel.tsx` con sub-tabs Amigos/Solicitudes/Bloqueados
+
+**Notificaciones:**
+- ✅ Toggle notificaciones de solicitudes de amistad
+- ✅ Toggle notificaciones de mensajes
+- ✅ UI `NotificationsPanel.tsx` con toggles
 
 **UI:**
-- [x] `ProfilePanel.tsx` — avatar, displayName editable, descripción editable
-- [x] `SecurityPanel.tsx` — tabs Sesiones / Contraseña / 2FA
-- [x] `AccountControlPanel.tsx` — modal con tabs integrado en App.tsx
-- [x] Botón "Configurar" en cada cuenta de la lista
+- ✅ `ProfilePanel.tsx` — avatar, displayName editable, descripción editable
+- ✅ `SecurityPanel.tsx` — tabs Sesiones / Contraseña / 2FA
+- ✅ `PrivacyPanel.tsx` — toggles de privacidad categorizados
+- ✅ `FriendsPanel.tsx` — lista de amigos, solicitudes, bloqueados
+- ✅ `NotificationsPanel.tsx` — toggles de notificaciones
+- ✅ `AccountControlPanel.tsx` — modal con 5 tabs integrado en App.tsx
+- ✅ Botón "Configurar" en cada cuenta de la lista
 
 ### Pendiente
 

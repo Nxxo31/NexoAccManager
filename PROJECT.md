@@ -313,23 +313,24 @@ Control completo de la cuenta Roblox desde la app, sin abrir el navegador:
 - ✅ Toggle verificación en dos pasos (2FA) (Sprint E2)
 
 **Privacidad:**
-- ❌ Quién puede enviarme mensajes (nadie/amigos/todos)
-- ❌ Quién puede seguirme
-- ❌ Quién puede chatear conmigo en juegos
-- ❌ Privacidad del inventario (público/privado)
-- ❌ Privacidad de grupos
+- ✅ Quién puede enviarme mensajes (nadie/amigos/todos) (Sprint E2)
+- ✅ Quién puede seguirme (Sprint E2)
+- ✅ Quién puede chatear conmigo en juegos (Sprint E2)
+- ✅ Privacidad del inventario (público/privado) (Sprint E2)
+- ✅ Privacidad de grupos (Sprint E2)
 - ❌ Privacidad de juegos recientes
 
 **Amigos y contactos:**
-- ❌ Ver lista de amigos con estado online
-- ❌ Enviar/aceptar/rechazar solicitudes de amistad
-- ❌ Bloquear / desbloquear usuarios por username o userId
-- ❌ Ver lista de bloqueados
+- ✅ Ver lista de amigos con estado online (Sprint E2)
+- ✅ Aceptar/rechazar solicitudes de amistad (Sprint E2)
+- ❌ Enviar solicitudes de amistad
+- ✅ Bloquear / desbloquear usuarios por username o userId (Sprint E2)
+- ✅ Ver lista de bloqueados (Sprint E2)
 - ❌ Seguir / dejar de seguir usuarios
 
 **Notificaciones:**
-- ❌ Toggle notificaciones de solicitudes de amistad
-- ❌ Toggle notificaciones de mensajes
+- ✅ Toggle notificaciones de solicitudes de amistad (Sprint E2)
+- ✅ Toggle notificaciones de mensajes (Sprint E2)
 
 ### Fase 4 — Server Browser + Smart Selection (Pro+)
 - ❌ Buscar juego por PlaceId o nombre
@@ -567,7 +568,7 @@ thumbnails.roblox.com       → avatares, thumbnails de juegos
 - Multi-Roblox: ✅
 - API REST local (8080): ✅
 - Build: ✅
-- Account Control Panel: ❌ Sprint E2
+- Account Control Panel: ✅ Sprint E2 (completado)
 - Server Browser: ❌ Sprint E3
 - Presence Dashboard: ❌ Sprint E4
 - Integración SaaS: ❌ Sprint E5
