@@ -15,7 +15,7 @@ type IpcChannel =
   | 'roblox:launch'
   | 'roblox:recent-games'
   | 'roblox:join-server'
-  | 'settings:multiroblox'
+  | 'roblox:multiroblox'
   | 'settings:get'
   | 'settings:set';
 
@@ -29,7 +29,7 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'roblox:launch',
   'roblox:recent-games',
   'roblox:join-server',
-  'settings:multiroblox',
+  'roblox:multiroblox',
   'settings:get',
   'settings:set',
 ]);
@@ -62,7 +62,7 @@ contextBridge.exposeInMainWorld('api', {
       invoke('roblox:launch', accountId, placeId, jobId),
     getRecentGames: () => invoke('roblox:recent-games'),
     joinServer: (placeId: string, accountId: string) => invoke('roblox:join-server', placeId, accountId),
-    setMultiRoblox: (enabled: boolean) => invoke('settings:multiroblox', enabled),
+    setMultiRoblox: (enabled: boolean) => invoke('roblox:multiroblox', enabled),
   },
   settings: {
     get: (key: string) => invoke('settings:get', key),

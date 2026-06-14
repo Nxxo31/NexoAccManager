@@ -6,6 +6,64 @@ import { CryptoService } from './core/CryptoService';
 import { WebServer } from './server/WebServer';
 import { DatabaseManager } from './storage/DatabaseManager';
 
+// =============================================================================
+// TYPE GUARDS PARA VALIDACIÓN DE PAYLOADS IPC (Defense in Depth)
+// Nunca confiar en los datos que llegan del renderer
+// =============================================================================
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isBoolean(value: unknown): value is boolean {
+  return typeof value === 'boolean';
+}
+
+function isValidPlaceId(value: unknown): value is string {
+  return isNonEmptyString(value) && /^\d{1,20}$/.test(value.trim());
+}
+
+function isValidJobId(value: unknown): value is string {
+  if (value === undefined || value === null) return true;
+  return isNonEmptyString(value) && /^[a-zA-Z0-9\-]{1,100}$/.test(String(value).trim());
+}
+
+/**
+ * Result type para respuestas IPC — nunca throw en handlers,
+ * siempre retorna { success, error } para que el renderer maneje gracefully
+ */
+interface IpcResult<T = void> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+function ok<T>(data: T): IpcResult<T> {
+  return { success: true, data };
+}
+
+function err(message: string): IpcResult {
+  return { success: false, error: message };
+}
+
+// =============================================================================
+// CONSTANTES — Whitelist de canales conocidos
+// =============================================================================
+const ALLOWED_CHANNELS = new Set([
+  'account:add',
+  'account:remove',
+  'account:list',
+  'account:move',
+  'account:field:set',
+  'account:check',
+  'roblox:launch',
+  'roblox:recent-games',
+  'roblox:join-server',
+  'roblox:multiroblox',
+  'settings:get',
+  'settings:set',
+]);
+
 // SoluciÃ³n para __dirname en ESM
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
@@ -59,61 +117,178 @@ class NexoApp {
   }
 
   private setupIPCHandlers(): void {
-    // GestiÃ³n de cuentas
-    ipcMain.handle('account:add', async (_, cookie: string) => {
-      return this.accountManager.addAccountFromCookie(cookie);
+    // =================================================================
+    // GESTIÓN DE CUENTAS — con validación de tipos
+    // =================================================================
+
+    ipcMain.handle('account:add', async (event, cookie: unknown) => {
+      if (!isNonEmptyString(cookie)) {
+        return err('Payload inválido: cookie debe ser un string no vacío');
+      }
+      if (!cookie.trim().startsWith('_|WARNING:-DO-NOT-SHARE|_')) {
+        return err('La cookie no tiene el formato válido de .ROBLOSECURITY');
+      }
+      try {
+        const result = await this.accountManager.addAccountFromCookie(cookie.trim());
+        return ok(result);
+      } catch (e) {
+        return err(`Error agregando cuenta: ${(e as Error).message}`);
+      }
     });
 
-    ipcMain.handle('account:remove', async (_, id: string) => {
-      return this.accountManager.removeAccount(id);
+    ipcMain.handle('account:remove', async (_, id: unknown) => {
+      if (!isNonEmptyString(id)) {
+        return err('Payload inválido: id debe ser un string no vacío');
+      }
+      try {
+        const removed = await this.accountManager.removeAccount(id.trim());
+        return removed ? ok(true) : err('Cuenta no encontrada');
+      } catch (e) {
+        return err(`Error removiendo cuenta: ${(e as Error).message}`);
+      }
     });
 
     ipcMain.handle('account:list', async () => {
-      return this.accountManager.getAllAccounts();
+      try {
+        const accounts = this.accountManager.getAllAccounts();
+        return ok(accounts);
+      } catch (e) {
+        return err(`Error listando cuentas: ${(e as Error).message}`);
+      }
     });
 
-    ipcMain.handle('account:move', async (_, accountId: string, groupName: string) => {
-      this.accountManager.setAccountField(accountId, 'group', groupName);
-      return true;
+    ipcMain.handle('account:move', async (_, accountId: unknown, groupName: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (!isNonEmptyString(groupName)) {
+        return err('Payload inválido: groupName debe ser un string no vacío');
+      }
+      try {
+        this.accountManager.setAccountField(accountId.trim(), 'group', groupName.trim());
+        return ok(true);
+      } catch (e) {
+        return err(`Error moviendo cuenta: ${(e as Error).message}`);
+      }
     });
 
-    ipcMain.handle('account:field:set', async (_, accountId: string, key: string, value: string) => {
-      this.accountManager.setAccountField(accountId, key, value);
-      return true;
+    ipcMain.handle('account:field:set', async (_, accountId: unknown, key: unknown, value: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (!isNonEmptyString(key)) {
+        return err('Payload inválido: key debe ser un string no vacío');
+      }
+      if (typeof value !== 'string') {
+        return err('Payload inválido: value debe ser un string');
+      }
+      try {
+        this.accountManager.setAccountField(accountId.trim(), key.trim(), value);
+        return ok(true);
+      } catch (e) {
+        return err(`Error actualizando campo: ${(e as Error).message}`);
+      }
     });
 
-    ipcMain.handle('account:check', async (_, accountId: string) => {
-      return this.accountManager.getAccountById(accountId);
+    ipcMain.handle('account:check', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const account = this.accountManager.getAccountById(accountId.trim());
+        return account ? ok(account) : err('Cuenta no encontrada');
+      } catch (e) {
+        return err(`Error verificando cuenta: ${(e as Error).message}`);
+      }
     });
 
-    // Roblox
-    ipcMain.handle('roblox:launch', async (_, accountId: string, placeId?: string, jobId?: string) => {
-      return this.accountManager.launchRoblox(accountId, placeId, jobId);
+    // =================================================================
+    // ROBLOX — con validación de tipos
+    // =================================================================
+
+    ipcMain.handle('roblox:launch', async (_, accountId: unknown, placeId: unknown, jobId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (!isValidPlaceId(placeId)) {
+        return err('Payload inválido: placeId debe ser un string numérico no vacío');
+      }
+      if (!isValidJobId(jobId)) {
+        return err('Payload inválido: jobId tiene formato inválido');
+      }
+      try {
+        const result = await this.accountManager.launchRoblox(
+          accountId.trim(),
+          String(placeId).trim(),
+          jobId ? String(jobId).trim() : undefined
+        );
+        return ok(result);
+      } catch (e) {
+        return err(`Error lanzando Roblox: ${(e as Error).message}`);
+      }
     });
 
     ipcMain.handle('roblox:recent-games', async () => {
       // TODO: implementar lista de juegos recientes
-      return [];
+      return ok([]);
     });
 
-    ipcMain.handle('roblox:join-server', async (_, placeId: string, accountId: string) => {
-      // Alias para launchRoblox sin jobId
-      return this.accountManager.launchRoblox(accountId, placeId);
+    ipcMain.handle('roblox:join-server', async (_, placeId: unknown, accountId: unknown) => {
+      if (!isValidPlaceId(placeId)) {
+        return err('Payload inválido: placeId debe ser un string numérico no vacío');
+      }
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const result = await this.accountManager.launchRoblox(accountId.trim(), String(placeId).trim());
+        return ok(result);
+      } catch (e) {
+        return err(`Error uniéndose al servidor: ${(e as Error).message}`);
+      }
     });
 
-    // Multi-Roblox toggle
-    ipcMain.handle('settings:multiroblox', async (_, enabled: boolean) => {
-      return this.accountManager.setMultiRoblox(enabled);
+    ipcMain.handle('roblox:multiroblox', async (_, enabled: unknown) => {
+      if (!isBoolean(enabled)) {
+        return err('Payload inválido: enabled debe ser un booleano');
+      }
+      try {
+        const result = this.accountManager.setMultiRoblox(enabled);
+        return ok(result);
+      } catch (e) {
+        return err(`Error configurando Multi-Roblox: ${(e as Error).message}`);
+      }
     });
 
-    // Settings
-    ipcMain.handle('settings:get', async (_, key: string) => {
-      return this.db.getSetting(key);
+    // =================================================================
+    // SETTINGS — con validación de tipos
+    // =================================================================
+
+    ipcMain.handle('settings:get', async (_, key: unknown) => {
+      if (!isNonEmptyString(key)) {
+        return err('Payload inválido: key debe ser un string no vacío');
+      }
+      try {
+        const value = this.db.getSetting(key.trim());
+        return ok(value);
+      } catch (e) {
+        return err(`Error obteniendo setting: ${(e as Error).message}`);
+      }
     });
 
-    ipcMain.handle('settings:set', async (_, key: string, value: any) => {
-      this.db.setSetting(key, String(value));
-      return true;
+    ipcMain.handle('settings:set', async (_, key: unknown, value: unknown) => {
+      if (!isNonEmptyString(key)) {
+        return err('Payload inválido: key debe ser un string no vacío');
+      }
+      if (value === undefined) {
+        return err('Payload inválido: value no puede ser undefined');
+      }
+      try {
+        this.db.setSetting(key.trim(), String(value));
+        return ok(true);
+      } catch (e) {
+        return err(`Error configurando setting: ${(e as Error).message}`);
+      }
     });
   }
 
