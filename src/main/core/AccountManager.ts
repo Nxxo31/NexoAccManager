@@ -1,8 +1,8 @@
 /**
- * AccountManager - Controlador principal de lÃ³gica de negocio
+ * AccountManager - Controlador principal de lógica de negocio
  *
  * Encapsula las operaciones relacionadas con cuentas, cifrado,
- * lanzamiento de Roblox y gestiÃ³n de grupos.
+ * lanzamiento de Roblox y gestión de grupos.
  */
 import axios, { AxiosError } from 'axios';
 import crypto from 'crypto';
@@ -11,6 +11,18 @@ import { Account } from '../../types/Account';
 import { DatabaseManager } from '../storage/DatabaseManager';
 import { CryptoService } from './CryptoService';
 import { MultiRobloxService } from './MultiRobloxService';
+
+// =============================================================================
+// SEGURIDAD — Constantes de validación
+// =============================================================================
+
+/**
+ * Valida que una URL use exclusivamente el protocolo roblox-player://
+ * Defense in depth: shell.openExternal solo debe aceptar URLs de Roblox
+ */
+function isValidRobloxProtocol(url: string): boolean {
+  return typeof url === 'string' && url.startsWith('roblox-player:');
+}
 
 /**
  * Enum de endpoints de Roblox
@@ -223,10 +235,16 @@ export class AccountManager {
       launchUrl += `&gameId=${encodeURIComponent(jobId)}`;
     }
 
+    // SEGURIDAD: Validar protocolo antes de abrir con shell.openExternal
+    // Defense in depth — la URL se construye internamente pero se valida por si acaso
+    if (!isValidRobloxProtocol(launchUrl)) {
+      throw new Error('Intento de abrir URL con protocolo no autorizado');
+    }
+
     try {
       await shell.openExternal(launchUrl);
     } catch {
-      throw new Error('Roblox no estÃ¡ instalado o el protocolo roblox-player no estÃ¡ registrado en el sistema');
+      throw new Error('Roblox no está instalado o el protocolo roblox-player no está registrado en el sistema');
     }
 
     // 6. Actualizar el campo lastUsed de la cuenta en SQLite
