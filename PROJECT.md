@@ -51,7 +51,7 @@ https://github.com/ic3w0lf22/Roblox-Account-Manager
 - **Backend Electron**: âœ… completo
 - **Preload**: âœ… corregido (ipcRenderer importado)
 - **Dependencias**: âœ… corregidas (better-sqlite3, @fastify/cors)
-- **Renderer React**: âœ… estructura base con 4 componentes
+- **Renderer React**: ✅ UI completa con 4 componentes, modal de lanzamiento, integración con IPC
 - **launchRoblox()**: âœ… implementado (ver formato de URL abajo)
 - **Import/Export**: âœ… implementado con soporte para cookies (JSON)
 - **Multi-Roblox**: ✅ implementado con detección de Windows, perfiles temporales y manejo de mutex.

@@ -71,14 +71,48 @@ class NexoApp {
       return this.accountManager.getAllAccounts();
     });
 
-    // Launch Roblox
+    ipcMain.handle('account:move', async (_, accountId: string, groupName: string) => {
+      this.accountManager.setAccountField(accountId, 'group', groupName);
+      return true;
+    });
+
+    ipcMain.handle('account:field:set', async (_, accountId: string, key: string, value: string) => {
+      this.accountManager.setAccountField(accountId, key, value);
+      return true;
+    });
+
+    ipcMain.handle('account:check', async (_, accountId: string) => {
+      return this.accountManager.getAccountById(accountId);
+    });
+
+    // Roblox
     ipcMain.handle('roblox:launch', async (_, accountId: string, placeId?: string, jobId?: string) => {
       return this.accountManager.launchRoblox(accountId, placeId, jobId);
+    });
+
+    ipcMain.handle('roblox:recent-games', async () => {
+      // TODO: implementar lista de juegos recientes
+      return [];
+    });
+
+    ipcMain.handle('roblox:join-server', async (_, placeId: string, accountId: string) => {
+      // Alias para launchRoblox sin jobId
+      return this.accountManager.launchRoblox(accountId, placeId);
     });
 
     // Multi-Roblox toggle
     ipcMain.handle('settings:multiroblox', async (_, enabled: boolean) => {
       return this.accountManager.setMultiRoblox(enabled);
+    });
+
+    // Settings
+    ipcMain.handle('settings:get', async (_, key: string) => {
+      return this.db.getSetting(key);
+    });
+
+    ipcMain.handle('settings:set', async (_, key: string, value: any) => {
+      this.db.setSetting(key, String(value));
+      return true;
     });
   }
 

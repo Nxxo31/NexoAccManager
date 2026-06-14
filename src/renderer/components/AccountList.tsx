@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 interface Account {
   id: string;
   username: string;
@@ -14,11 +16,83 @@ interface AccountListProps {
   onRemove: () => void;
 }
 
+interface LaunchModalProps {
+  account: Account;
+  onClose: () => void;
+  onLaunch: (accountId: string, placeId: string, jobId?: string) => void;
+}
+
+function LaunchModal({ account, onClose, onLaunch }: LaunchModalProps) {
+  const [placeId, setPlaceId] = useState('');
+  const [jobId, setJobId] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = () => {
+    if (!placeId.trim()) return;
+    setLoading(true);
+    onLaunch(account.id, placeId.trim(), jobId.trim() || undefined);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-[#2f3640] rounded-lg p-6 w-96 border border-gray-700">
+        <h3 className="text-lg font-semibold mb-2">
+          Lanzar {account.displayName || account.username}
+        </h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Introduce los parámetros del juego
+        </p>
+
+        <div className="space-y-3 mb-4">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Place ID</label>
+            <input
+              type="text"
+              value={placeId}
+              onChange={(e) => setPlaceId(e.target.value)}
+              placeholder="ej. 1818"
+              className="w-full bg-[#1e272e] border border-gray-700 rounded px-3 py-2 text-sm focus:border-[#6c5ce7] focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Job ID (opcional)</label>
+            <input
+              type="text"
+              value={jobId}
+              onChange={(e) => setJobId(e.target.value)}
+              placeholder="ID del servidor"
+              className="w-full bg-[#1e272e] border border-gray-700 rounded px-3 py-2 text-sm focus:border-[#6c5ce7] focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2 bg-gray-700 text-gray-300 rounded text-sm hover:bg-gray-600 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={!placeId.trim() || loading}
+            className="flex-1 py-2 bg-[#6c5ce7] text-white rounded text-sm hover:brightness-110 transition-all disabled:opacity-50"
+          >
+            {loading ? 'Lanzando...' : 'Lanzar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 export default function AccountList({ accounts, onRefresh, onRemove }: AccountListProps) {
-  const handleLaunch = async (accountId: string) => {
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+
+  const handleLaunchDirect = async (accountId: string, placeId: string, jobId?: string) => {
     try {
       // @ts-expect-error api existe en window via preload
-      await window.api.roblox.launch(accountId);
+      await window.api.roblox.launch(accountId, placeId, jobId);
     } catch (err) {
       console.error('Error al lanzar:', err);
     }
@@ -93,7 +167,7 @@ export default function AccountList({ accounts, onRefresh, onRemove }: AccountLi
 
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleLaunch(account.id)}
+                    onClick={() => setSelectedAccount(account)}
                     className="px-3 py-1.5 bg-[#2ed573] text-white text-sm rounded-md hover:brightness-110 transition-all"
                   >
                     Jugar
@@ -110,6 +184,14 @@ export default function AccountList({ accounts, onRefresh, onRemove }: AccountLi
           </div>
         </div>
       ))}
+
+      {selectedAccount && (
+        <LaunchModal
+          account={selectedAccount}
+          onClose={() => setSelectedAccount(null)}
+          onLaunch={handleLaunchDirect}
+        />
+      )}
     </div>
   );
 }
