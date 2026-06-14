@@ -12,12 +12,21 @@ type IpcChannel =
   | 'account:move'
   | 'account:field:set'
   | 'account:check'
+  | 'account:profile:get'
+  | 'account:profile:update'
+  | 'account:avatar-thumbnail'
   | 'roblox:launch'
   | 'roblox:recent-games'
   | 'roblox:join-server'
   | 'roblox:multiroblox'
   | 'settings:get'
-  | 'settings:set';
+  | 'settings:set'
+  | 'settings:security:sessions'
+  | 'settings:security:logout'
+  | 'settings:security:logout-all'
+  | 'settings:security:password'
+  | 'settings:security:2fa:get'
+  | 'settings:security:2fa:set';
 
 const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'account:add',
@@ -26,12 +35,21 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'account:move',
   'account:field:set',
   'account:check',
+  'account:profile:get',
+  'account:profile:update',
+  'account:avatar-thumbnail',
   'roblox:launch',
   'roblox:recent-games',
   'roblox:join-server',
   'roblox:multiroblox',
   'settings:get',
   'settings:set',
+  'settings:security:sessions',
+  'settings:security:logout',
+  'settings:security:logout-all',
+  'settings:security:password',
+  'settings:security:2fa:get',
+  'settings:security:2fa:set',
 ]);
 
 // =============================================================================
@@ -56,6 +74,10 @@ contextBridge.exposeInMainWorld('api', {
     list: () => invoke('account:list'),
     moveAccount: (id: string, groupName: string) => invoke('account:move', id, groupName),
     setField: (id: string, key: string, value: string) => invoke('account:field:set', id, key, value),
+    getProfile: (accountId: string) => invoke('account:profile:get', accountId),
+    updateProfile: (accountId: string, patch: { displayName?: string; description?: string }) =>
+      invoke('account:profile:update', accountId, patch),
+    getAvatarThumbnail: (userId: number) => invoke('account:avatar-thumbnail', userId),
   },
   roblox: {
     launch: (accountId: string, placeId?: string, jobId?: string) =>
@@ -67,6 +89,17 @@ contextBridge.exposeInMainWorld('api', {
   settings: {
     get: (key: string) => invoke('settings:get', key),
     set: (key: string, value: any) => invoke('settings:set', key, value),
+  },
+  security: {
+    getSessions: (accountId: string) => invoke('settings:security:sessions', accountId),
+    logoutSession: (accountId: string, sessionId: string) =>
+      invoke('settings:security:logout', accountId, sessionId),
+    logoutAll: (accountId: string) => invoke('settings:security:logout-all', accountId),
+    changePassword: (accountId: string, current: string, newPass: string) =>
+      invoke('settings:security:password', accountId, current, newPass),
+    get2FA: (accountId: string) => invoke('settings:security:2fa:get', accountId),
+    set2FA: (accountId: string, enabled: boolean) =>
+      invoke('settings:security:2fa:set', accountId, enabled),
   },
   checkAccount: (accountId: string) => invoke('account:check', accountId),
 });
@@ -81,6 +114,9 @@ export interface Api {
     list: () => Promise<any[]>;
     moveAccount: (accountId: string, groupName: string) => Promise<void>;
     setField: (accountId: string, key: string, value: string) => Promise<void>;
+    getProfile: (accountId: string) => Promise<any>;
+    updateProfile: (accountId: string, patch: { displayName?: string; description?: string }) => Promise<any>;
+    getAvatarThumbnail: (userId: number) => Promise<string | null>;
   };
   roblox: {
     launch: (accountId: string, placeId?: string, jobId?: string) => Promise<boolean>;
@@ -91,6 +127,14 @@ export interface Api {
   settings: {
     get: <T = string>(key: string) => Promise<T>;
     set: <T = string>(key: string, value: T) => Promise<void>;
+  };
+  security: {
+    getSessions: (accountId: string) => Promise<any[]>;
+    logoutSession: (accountId: string, sessionId: string) => Promise<boolean>;
+    logoutAll: (accountId: string) => Promise<boolean>;
+    changePassword: (accountId: string, current: string, newPass: string) => Promise<boolean>;
+    get2FA: (accountId: string) => Promise<any>;
+    set2FA: (accountId: string, enabled: boolean) => Promise<boolean>;
   };
   checkAccount: (accountId: string) => Promise<any>;
 }

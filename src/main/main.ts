@@ -5,6 +5,7 @@ import { AccountManager } from './core/AccountManager';
 import { CryptoService } from './core/CryptoService';
 import { WebServer } from './server/WebServer';
 import { DatabaseManager } from './storage/DatabaseManager';
+import { AccountSettingsService } from './core/AccountSettingsService';
 
 // =============================================================================
 // TYPE GUARDS PARA VALIDACIÓN DE PAYLOADS IPC (Defense in Depth)
@@ -26,6 +27,10 @@ function isValidPlaceId(value: unknown): value is string {
 function isValidJobId(value: unknown): value is string {
   if (value === undefined || value === null) return true;
   return isNonEmptyString(value) && /^[a-zA-Z0-9\-]{1,100}$/.test(String(value).trim());
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0;
 }
 
 /**
@@ -56,12 +61,25 @@ const ALLOWED_CHANNELS = new Set([
   'account:move',
   'account:field:set',
   'account:check',
+  'account:profile',
+  'account:update-displayname',
+  'account:update-description',
+  'account:avatar-thumbnail',
+  'account:profile:get',
+  'account:profile:update',
   'roblox:launch',
   'roblox:recent-games',
   'roblox:join-server',
   'roblox:multiroblox',
   'settings:get',
   'settings:set',
+  'settings:privacy:get',
+  'settings:privacy:set',
+  'settings:security:sessions',
+  'settings:security:logout',
+  'settings:security:logout-all',
+  'settings:security:password',
+  'settings:security:2fa',
 ]);
 
 // SoluciÃ³n para __dirname en ESM
@@ -75,12 +93,14 @@ class NexoApp {
   private webServer: WebServer;
   private db: DatabaseManager;
   private crypto: CryptoService;
+  private accountSettingsService: AccountSettingsService;
 
   constructor() {
     this.db = new DatabaseManager();
     this.crypto = new CryptoService();
     this.accountManager = new AccountManager(this.db, this.crypto);
     this.webServer = new WebServer(this.accountManager);
+    this.accountSettingsService = new AccountSettingsService();
   }
 
   async initialize(): Promise<void> {
@@ -322,6 +342,196 @@ class NexoApp {
         return ok(true);
       } catch (e) {
         return err(`Error configurando setting: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // ACCOUNT SETTINGS — Perfil y seguridad (Sprint E2)
+    // =================================================================
+
+    // PROFILE
+    ipcMain.handle('account:profile:get', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const account = this.accountManager.getAccountById(accountId.trim());
+        if (!account) return err('Cuenta no encontrada');
+        const raw = (this.db as any).getAccount?.(accountId) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const profile = await this.accountSettingsService.getProfile(cookie);
+        return ok(profile);
+      } catch (e) {
+        return err(`Error obteniendo perfil: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('account:profile:update', async (_, accountId: unknown, patch: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (!patch || typeof patch !== 'object') {
+        return err('Payload inválido: patch debe ser un objeto');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+
+        const p = patch as { displayName?: string; description?: string };
+        if (p.displayName !== undefined) {
+          if (!isNonEmptyString(p.displayName)) {
+            return err('Payload inválido: displayName debe ser un string no vacío');
+          }
+          await this.accountSettingsService.updateDisplayName(cookie, p.displayName.trim());
+        }
+        if (p.description !== undefined) {
+          if (!isNonEmptyString(p.description)) {
+            return err('Payload inválido: description debe ser un string no vacío');
+          }
+          await this.accountSettingsService.updateDescription(cookie, p.description.trim());
+        }
+        return ok(true);
+      } catch (e) {
+        return err(`Error actualizando perfil: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('account:avatar-thumbnail', async (_, userId: unknown) => {
+      if (!isPositiveInteger(userId)) {
+        return err('Payload inválido: userId debe ser un número entero positivo');
+      }
+      try {
+        const url = await this.accountSettingsService.getAvatarThumbnail(userId);
+        return ok(url);
+      } catch (e) {
+        return err(`Error obteniendo avatar: ${(e as Error).message}`);
+      }
+    });
+
+    // SECURITY — Sessions
+    ipcMain.handle('settings:security:sessions', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const sessions = await this.accountSettingsService.getActiveSessions(cookie);
+        return ok(sessions);
+      } catch (e) {
+        return err(`Error obteniendo sesiones: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('settings:security:logout', async (_, accountId: unknown, sessionId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (!isNonEmptyString(sessionId)) {
+        return err('Payload inválido: sessionId debe ser un string no vacío');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const result = await this.accountSettingsService.logoutSession(cookie, sessionId.trim());
+        return ok(result);
+      } catch (e) {
+        return err(`Error cerrando sesión: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('settings:security:logout-all', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const result = await this.accountSettingsService.logoutAllSessions(cookie);
+        return ok(result);
+      } catch (e) {
+        return err(`Error cerrando todas las sesiones: ${(e as Error).message}`);
+      }
+    });
+
+    // SECURITY — Password
+    ipcMain.handle('settings:security:password', async (_, accountId: unknown, currentPassword: unknown, newPassword: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (!isNonEmptyString(currentPassword)) {
+        return err('Payload inválido: currentPassword debe ser un string no vacío');
+      }
+      if (!isNonEmptyString(newPassword)) {
+        return err('Payload inválido: newPassword debe ser un string no vacío');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const result = await this.accountSettingsService.changePassword(
+          cookie,
+          currentPassword.trim(),
+          newPassword.trim()
+        );
+        return ok(result);
+      } catch (e) {
+        return err(`Error cambiando contraseña: ${(e as Error).message}`);
+      }
+    });
+
+    // SECURITY — 2FA
+    ipcMain.handle('settings:security:2fa:get', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const status = await this.accountSettingsService.get2FAStatus(cookie);
+        return ok(status);
+      } catch (e) {
+        return err(`Error obteniendo estado 2FA: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('settings:security:2fa:set', async (_, accountId: unknown, enabled: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (!isBoolean(enabled)) {
+        return err('Payload inválido: enabled debe ser un booleano');
+      }
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const result = await this.accountSettingsService.toggle2FA(cookie, enabled);
+        return ok(result);
+      } catch (e) {
+        return err(`Error cambiando 2FA: ${(e as Error).message}`);
       }
     });
   }
