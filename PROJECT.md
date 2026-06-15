@@ -457,11 +457,11 @@ thumbnails.roblox.com       → avatares, thumbnails de juegos
 #### Sprint E3 — Server Browser
 - [x] IPC channels: roblox:games:search, roblox:servers:list, roblox:servers:join
 - [x] Integración con games.roblox.com
-- [ ] UI: buscar juego por PlaceId o nombre
-- [ ] UI: lista de servers con player count, JobId, región estimada
-- [ ] UI: filtros (por región, por menos jugadores)
-- [ ] Auto-join least populated
-- [ ] Multi-account server split
+- [x] UI: buscar juego por PlaceId o nombre
+- [x] UI: lista de servers con player count, JobId, region estimada
+- [x] UI: filtros (por region, por menos jugadores)
+- [x] Auto-join least populated
+- [x] Multi-account server split
 
 #### Sprint E4 — Presence Dashboard
 - [ ] Integración con presence.roblox.com (polling cada 30s)
