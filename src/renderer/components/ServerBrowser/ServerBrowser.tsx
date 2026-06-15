@@ -31,6 +31,24 @@ const MOCK_GAME: RobloxGame = {
   placeId: 123456789,
 };
 
+interface GameServer {
+  jobId: string;
+  playerCount: number;
+  maxPlayers: number;
+  region: 'NA' | 'EU' | 'ASIA' | 'SA' | 'UNKNOWN';
+}
+
+const MOCK_SERVERS: GameServer[] = [
+  { jobId: 'abc123def456', playerCount: 12, maxPlayers: 20, region: 'NA' },
+  { jobId: 'def789abc012', playerCount: 5, maxPlayers: 20, region: 'EU' },
+  { jobId: 'aabbcc112233', playerCount: 18, maxPlayers: 20, region: 'ASIA' },
+  { jobId: 'dd4422557788', playerCount: 1, maxPlayers: 20, region: 'SA' },
+  { jobId: '112233445566', playerCount: 9, maxPlayers: 20, region: 'NA' },
+];
+
+type Region = 'ALL' | 'NA' | 'EU' | 'ASIA' | 'SA';
+type SortBy = 'least-players' | 'most-players';
+
 interface ServerBrowserProps {
   accounts: Account[];
 }
@@ -40,6 +58,17 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [game, setGame] = useState<RobloxGame | null>(null);
+  const [servers, setServers] = useState<GameServer[]>([]);
+  const [regionFilter, setRegionFilter] = useState<Region>('ALL');
+  const [sortBy, setSortBy] = useState<SortBy>('least-players');
+
+  const filteredServers = servers.filter((s) => {
+    if (regionFilter === 'ALL') return true;
+    return s.region === regionFilter;
+  }).sort((a, b) => {
+    if (sortBy === 'least-players') return a.playerCount - b.playerCount;
+    return b.playerCount - a.playerCount;
+  });
 
   const handleSearch = () => {
     if (!placeId.trim()) return;
@@ -49,6 +78,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
     // Simulate search delay with mock data
     setTimeout(() => {
       setGame(placeId.trim() === '123456789' ? MOCK_GAME : { ...MOCK_GAME, name: `Juego ${placeId}`, placeId: Number(placeId) });
+      setServers(MOCK_SERVERS);
       setSearching(false);
     }, 800);
   };
@@ -120,28 +150,79 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
             </div>
           </div>
 
-          {/* Filtros (placeholder — sin funcionalidad aun) */}
+          {/* Filtros */}
           <div className="px-4 py-3 border-b border-[#2A2A2A] flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <label className="text-sm text-gray-400">Region:</label>
               <select
+                value={regionFilter}
+                onChange={(e) => setRegionFilter(e.target.value as Region)}
                 className="bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#DE350D]"
               >
                 <option value="ALL">Todas</option>
                 <option value="NA">North America</option>
                 <option value="EU">Europe</option>
+                <option value="ASIA">Asia</option>
+                <option value="SA">South America</option>
               </select>
             </div>
-            <span className="text-sm text-gray-600 italic">(filtros proximamente)</span>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-400">Ordenar:</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortBy)}
+                className="bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#DE350D]"
+              >
+                <option value="least-players">Menos jugadores</option>
+                <option value="most-players">Mas jugadores</option>
+              </select>
+            </div>
           </div>
 
-          {/* Placeholder servers */}
-          <div className="flex-1 flex flex-col items-center justify-center text-gray-500 p-8">
-            <svg className="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
-            </svg>
-            <p className="text-lg font-medium">Lista de servers</p>
-            <p className="text-sm mt-1">Proximamente: servers activos con informacion de region y ocupacion</p>
+          {/* Tabla de servers */}
+          <div className="flex-1 overflow-auto p-4">
+            {filteredServers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-gray-500 py-8">
+                <svg className="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
+                </svg>
+                <p className="text-lg font-medium">Lista de servers</p>
+                <p className="text-sm mt-1">Proximamente: servers activos con informacion de region y ocupacion</p>
+              </div>
+            ) : (
+              <table className="w-full text-left">
+                <thead className="sticky top-0 bg-[#0D0D0D]">
+                  <tr className="border-b border-[#2A2A2A]">
+                    <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">JobId</th>
+                    <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Region</th>
+                    <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Jugadores</th>
+                    <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Ocupacion</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#2A2A2A]">
+                  {filteredServers.map((server) => {
+                    const occupancy = Math.round((server.playerCount / server.maxPlayers) * 100);
+                    const occupancyColor = occupancy > 80 ? 'text-red-400 bg-red-500/20' : occupancy > 50 ? 'text-orange-400' : 'text-green-400';                     
+                    return (
+                      <tr key={server.jobId} className="hover:bg-[#1E1E1E]/50 transition-colors">
+                        <td className="py-3 px-3 text-sm font-mono text-gray-300">{server.jobId}</td>
+                        <td className="py-3 px-3 text-sm text-gray-300">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#1E1E1E] border border-[#2A2A2A] text-gray-400">
+                            {server.region}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-sm text-gray-300">{server.playerCount} / {server.maxPlayers}</td>
+                        <td className="py-3 px-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${occupancyColor}`}>
+                            {occupancy}%
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </>
       ) : (

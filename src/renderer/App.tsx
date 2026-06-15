@@ -4,6 +4,7 @@ import AddAccountForm from './components/AddAccountForm';
 import SettingsPanel from './components/SettingsPanel';
 import Header from './components/Header';
 import AccountControlPanel from './components/AccountControlPanel/AccountControlPanel';
+import ServerBrowser from './components/ServerBrowser/ServerBrowser';
 
 interface Account {
   id: string;
@@ -20,7 +21,7 @@ export default function App() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<'accounts' | 'settings'>('accounts');
+  const [activeView, setActiveView] = useState<'accounts' | 'servers' | 'settings'>('accounts');
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
   const fetchAccounts = async () => {
@@ -93,6 +94,12 @@ export default function App() {
             <div className="w-80 border-l border-gray-700 p-4 overflow-y-auto">
               <AddAccountForm onSuccess={handleAccountAdded} />
             </div>
+          </div>
+        )}
+
+        {activeView === 'servers' && (
+          <div className="flex h-full">
+            <ServerBrowser accounts={accounts} />
           </div>
         )}
 
