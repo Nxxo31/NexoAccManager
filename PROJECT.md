@@ -698,7 +698,7 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 - ✅ Sprint E3 — Server Browser
 - ✅ Sprint E4 — Presence Dashboard
 - ✅ Sprint E5 — Integración SaaS
- - ✅ Sprint E6 — i18n — E6.4 completado (strings reemplazadas en App, Header, AddAccountForm, AccountList, ServerBrowser)
+ - ✅ Sprint E6 — i18n — completado
  - ❌ Sprint E7 — Temas personalizables
 - ❌ Sprint E8 — Settings Panel completo
 
