@@ -465,11 +465,11 @@ thumbnails.roblox.com       → avatares, thumbnails de juegos
 
 #### Sprint E4 — Presence Dashboard
 - [x] Integración con presence.roblox.com (polling cada 30s)
-- [ ] UI: grid de cuentas con estado en tiempo real
-- [ ] UI: thumbnail del juego actual
-- [ ] UI: tiempo en sesión
-- [ ] Robux balance por cuenta
-- [ ] Historial de juegos recientes
+- [x] UI: grid de cuentas con estado en tiempo real
+- [x] UI: thumbnail del juego actual
+- [x] UI: tiempo en sesión
+- [x] Robux balance por cuenta
+- [x] Historial de juegos recientes
 
 #### Sprint E5 — Integración SaaS
 - [ ] Pantalla de login/registro en la app con design system

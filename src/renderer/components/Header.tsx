@@ -1,6 +1,6 @@
 interface HeaderProps {
-  activeView: 'accounts' | 'settings';
-  onViewChange: (view: 'accounts' | 'settings') => void;
+  activeView: 'accounts' | 'servers' | 'settings' | 'presence';
+  onViewChange: (view: 'accounts' | 'servers' | 'settings' | 'presence') => void;
 }
 
 export default function Header({ activeView, onViewChange }: HeaderProps) {
@@ -16,21 +16,37 @@ export default function Header({ activeView, onViewChange }: HeaderProps) {
       <nav className="flex gap-1">
         <button
           onClick={() => onViewChange('accounts')}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors $
             activeView === 'accounts'
               ? 'bg-[#6c5ce7] text-white'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
+              : 'text-gray-400 hover:text-white hover:bg-white/5'`
         >
           Cuentas
         </button>
         <button
+          onClick={() => onViewChange('servers')}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors $
+            activeView === 'servers'
+              ? 'bg-[#6c5ce7] text-white'
+              : 'text-gray-400 hover:text-white hover:bg-white/5'`
+        >
+          Servidores
+        </button>
+        <button
+          onClick={() => onViewChange('presence')}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors $
+            activeView === 'presence'
+              ? 'bg-[#6c5ce7] text-white'
+              : 'text-gray-400 hover:text-white hover:bg-white/5'`
+        >
+          Presence
+        </button>
+        <button
           onClick={() => onViewChange('settings')}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors $
             activeView === 'settings'
               ? 'bg-[#6c5ce7] text-white'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
+              : 'text-gray-400 hover:text-white hover:bg-white/5'`
         >
           Configuración
         </button>

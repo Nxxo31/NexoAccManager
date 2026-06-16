@@ -5,6 +5,7 @@ import SettingsPanel from './components/SettingsPanel';
 import Header from './components/Header';
 import AccountControlPanel from './components/AccountControlPanel/AccountControlPanel';
 import ServerBrowser from './components/ServerBrowser/ServerBrowser';
+import PresenceDashboard from './components/PresenceDashboard';
 
 interface Account {
   id: string;
@@ -21,7 +22,7 @@ export default function App() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<'accounts' | 'servers' | 'settings'>('accounts');
+  const [activeView, setActiveView] = useState<'accounts' | 'servers' | 'settings' | 'presence'>('accounts');
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
   const fetchAccounts = async () => {
@@ -100,6 +101,12 @@ export default function App() {
         {activeView === 'servers' && (
           <div className="flex h-full">
             <ServerBrowser accounts={accounts} />
+          </div>
+        )}
+        
+        {activeView === 'presence' && (
+          <div className="flex h-full">
+            <PresenceDashboard />
           </div>
         )}
 
