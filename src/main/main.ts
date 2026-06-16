@@ -101,11 +101,18 @@ class NexoApp {
   private crypto: CryptoService;
   private accountSettingsService: AccountSettingsService;
 
+  private presenceService: PresenceService;
+
   constructor() {
     this.db = new DatabaseManager();
     this.crypto = new CryptoService();
     this.accountManager = new AccountManager(this.db, this.crypto);
     this.webServer = new WebServer(this.accountManager);
+  +  this.presenceService = new PresenceService(this.db);
+
+    // Comenzar polling de presencia si hay al menos una cuenta
+    // Se registra automaticamente al crear el servicio
+  }
     this.accountSettingsService = new AccountSettingsService();
   }
 
