@@ -464,7 +464,7 @@ thumbnails.roblox.com       → avatares, thumbnails de juegos
 - [x] Multi-account server split
 
 #### Sprint E4 — Presence Dashboard
-- [ ] Integración con presence.roblox.com (polling cada 30s)
+- [x] Integración con presence.roblox.com (polling cada 30s)
 - [ ] UI: grid de cuentas con estado en tiempo real
 - [ ] UI: thumbnail del juego actual
 - [ ] UI: tiempo en sesión
