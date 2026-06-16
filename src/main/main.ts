@@ -6,6 +6,7 @@ import { CryptoService } from './core/CryptoService';
 import { WebServer } from './server/WebServer';
 import { DatabaseManager } from './storage/DatabaseManager';
 import { AccountSettingsService } from './core/AccountSettingsService';
+import { PresenceService } from './services/PresenceService';
 
 // =============================================================================
 // TYPE GUARDS PARA VALIDACIÓN DE PAYLOADS IPC (Defense in Depth)
@@ -86,6 +87,11 @@ const ALLOWED_CHANNELS = new Set([
   'account:unblock:user',
   'account:follow:user',
   'account:unfollow:user',
+  'presence:get',
+  'presence:start-polling',
+  'presence:stop-polling',
+  'presence:recent-games',
+  'presence:robux-balance',
 ]);
 
 // SoluciÃ³n para __dirname en ESM
@@ -100,6 +106,7 @@ class NexoApp {
   private db: DatabaseManager;
   private crypto: CryptoService;
   private accountSettingsService: AccountSettingsService;
+  private presenceService: PresenceService;
 
   constructor() {
     this.db = new DatabaseManager();
@@ -107,6 +114,7 @@ class NexoApp {
     this.accountManager = new AccountManager(this.db, this.crypto);
     this.webServer = new WebServer(this.accountManager);
     this.accountSettingsService = new AccountSettingsService();
+    this.presenceService = new PresenceService(this.db, this.crypto);
   }
 
   async initialize(): Promise<void> {
@@ -877,6 +885,79 @@ class NexoApp {
         return ok(result);
       } catch (e) {
         return err(`Error dejando de seguir: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // PRESENCE — Dashboard en tiempo real (Sprint E4)
+    // =================================================================
+
+    // Obtener presencia de cuentas (batch)
+    ipcMain.handle('presence:get', async (_, accountIds: unknown) => {
+      if (!Array.isArray(accountIds) || accountIds.length === 0) {
+        return err('Payload inválido: accountIds debe ser un array no vacío');
+      }
+      for (const id of accountIds) {
+        if (!isNonEmptyString(id)) {
+          return err('Payload inválido: cada accountId debe ser un string no vacío');
+        }
+      }
+      try {
+        const data = await this.presenceService.getPresence(accountIds as string[]);
+        return ok(data);
+      } catch (e) {
+        return err(`Error obteniendo presencia: ${(e as Error).message}`);
+      }
+    });
+
+    // Iniciar polling de presencia
+    ipcMain.handle('presence:start-polling', async (_, accountIds: unknown, intervalMs: unknown) => {
+      if (!Array.isArray(accountIds) || accountIds.length === 0) {
+        return err('Payload inválido: accountIds debe ser un array no vacío');
+      }
+      for (const id of accountIds) {
+        if (!isNonEmptyString(id)) {
+          return err('Payload inválido: cada accountId debe ser un string no vacío');
+        }
+      }
+      const interval = typeof intervalMs === 'number' && intervalMs > 0 ? intervalMs : 30_000;
+      try {
+        this.presenceService.startPolling(accountIds as string[], interval);
+        return ok({ started: true, accounts: accountIds.length, intervalMs: interval });
+      } catch (e) {
+        return err(`Error iniciando polling: ${(e as Error).message}`);
+      }
+    });
+
+    // Detener polling de presencia
+    ipcMain.handle('presence:stop-polling', () => {
+      this.presenceService.stopPolling();
+      return ok({ stopped: true });
+    });
+
+    // Obtener juegos recientes de una cuenta
+    ipcMain.handle('presence:recent-games', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const games = await this.presenceService.getRecentGames(accountId.trim());
+        return ok(games);
+      } catch (e) {
+        return err(`Error obteniendo juegos recientes: ${(e as Error).message}`);
+      }
+    });
+
+    // Obtener balance de Robux de una cuenta
+    ipcMain.handle('presence:robux-balance', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const balance = await this.presenceService.getRobuxBalance(accountId.trim());
+        return ok(balance);
+      } catch (e) {
+        return err(`Error obteniendo balance de Robux: ${(e as Error).message}`);
       }
     });
   }

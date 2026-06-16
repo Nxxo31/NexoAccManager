@@ -39,7 +39,12 @@ type IpcChannel =
   | 'settings:privacy:get'
   | 'settings:privacy:update'
   | 'settings:notifications:get'
-  | 'settings:notifications:update';
+  | 'settings:notifications:update'
+  | 'presence:get'
+  | 'presence:start-polling'
+  | 'presence:stop-polling'
+  | 'presence:recent-games'
+  | 'presence:robux-balance';
 
 const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'account:add',
@@ -76,6 +81,11 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'settings:privacy:update',
   'settings:notifications:get',
   'settings:notifications:update',
+  'presence:get',
+  'presence:start-polling',
+  'presence:stop-polling',
+  'presence:recent-games',
+  'presence:robux-balance',
 ]);
 
 // =============================================================================
@@ -147,6 +157,14 @@ contextBridge.exposeInMainWorld('api', {
     set2FA: (accountId: string, enabled: boolean) =>
       invoke('settings:security:2fa:set', accountId, enabled),
   },
+  presence: {
+    getPresence: (accountIds: string[]) => invoke('presence:get', accountIds),
+    startPolling: (accountIds: string[], intervalMs?: number) =>
+      invoke('presence:start-polling', accountIds, intervalMs),
+    stopPolling: () => invoke('presence:stop-polling'),
+    getRecentGames: (accountId: string) => invoke('presence:recent-games', accountId),
+    getRobuxBalance: (accountId: string) => invoke('presence:robux-balance', accountId),
+  },
   checkAccount: (accountId: string) => invoke('account:check', accountId),
 });
 
@@ -194,6 +212,13 @@ export interface Api {
     changePassword: (accountId: string, current: string, newPass: string) => Promise<boolean>;
     get2FA: (accountId: string) => Promise<any>;
     set2FA: (accountId: string, enabled: boolean) => Promise<boolean>;
+  },
+  presence: {
+    getPresence: (accountIds: string[]) => Promise<any[]>;
+    startPolling: (accountIds: string[], intervalMs?: number) => Promise<any>;
+    stopPolling: () => Promise<any>;
+    getRecentGames: (accountId: string) => Promise<any[]>;
+    getRobuxBalance: (accountId: string) => Promise<any>;
   };
   checkAccount: (accountId: string) => Promise<any>;
 }
