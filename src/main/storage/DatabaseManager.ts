@@ -35,9 +35,24 @@ export class DatabaseManager {
         created_at TEXT DEFAULT (datetime('now')),
         avatar_url TEXT,
         custom_fields TEXT DEFAULT '{}',
-        browser_tracker_id TEXT
+        browser_tracker_id TEXT,
+        cookie_expires_at TEXT
       );
+    `);
+    
+    // Migrate existing databases to add cookie_expires_at column if it doesn't exist
+    try {
+      const tableInfo = this.db.prepare("PRAGMA table_info(accounts)").all();
+      const hasCookieExpiresAt = tableInfo.some((col: any) => col.name === 'cookie_expires_at');
+      if (!hasCookieExpiresAt) {
+        this.db.exec(`ALTER TABLE accounts ADD COLUMN cookie_expires_at TEXT`);
+        console.log('[DatabaseManager] Added cookie_expires_at column to accounts table');
+      }
+    } catch (migrationError) {
+      console.warn('[DatabaseManager] Could not migrate cookie_expires_at column:', migrationError);
+    }
 
+    this.db.exec(`
       CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
@@ -71,7 +86,7 @@ export class DatabaseManager {
     return stmt.get(id);
   }
 
-  /**
+  /**  
    * Crea una nueva cuenta
    */
   createAccount(data: {
@@ -81,12 +96,21 @@ export class DatabaseManager {
     encryptedCookie: string;
     cookieHash?: string;
     groupName?: string;
+    cookieExpiresAt?: string;
   }): void {
     const stmt = this.db.prepare(`
-      INSERT INTO accounts (id, roblox_user_id, username, encrypted_cookie, cookie_hash, group_name)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO accounts (id, roblox_user_id, username, encrypted_cookie, cookie_hash, group_name, cookie_expires_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
-    stmt.run(data.id, data.robloxUserId, data.username, data.encryptedCookie, data.cookieHash || null, data.groupName || 'Default');
+    stmt.run(
+      data.id, 
+      data.robloxUserId, 
+      data.username, 
+      data.encryptedCookie, 
+      data.cookieHash || null, 
+      data.groupName || 'Default',
+      data.cookieExpiresAt || null
+    );
   }
 
   /**

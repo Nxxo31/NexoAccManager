@@ -99,6 +99,7 @@ export class WebServer {
             description: a.description,
             lastUsed: a.lastUsed?.toISOString(),
             createdAt: a.createdAt?.toISOString(),
+            cookieExpiresAt: a.cookieExpiresAt?.toISOString(),
           })),
           count: accounts.length,
         });

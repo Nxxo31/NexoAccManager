@@ -54,7 +54,7 @@ export class AccountManager {
     this.cachedAccounts = (await this.db.getAllAccounts()).map(this.hydrateAccount);
   }
 
-  /**
+  /**  
    * Transforma los datos SQL a un objeto Account
    */
   private hydrateAccount(row: any): Account {
@@ -67,6 +67,7 @@ export class AccountManager {
       description: row.description || '',
       lastUsed: new Date(row.last_used),
       createdAt: new Date(row.created_at),
+      cookieExpiresAt: row.cookie_expires_at ? new Date(row.cookie_expires_at) : undefined,
     };
   }
 
@@ -90,12 +91,17 @@ export class AccountManager {
 
     const robloxUsername = await this.fetchUsernameFromRoblox(auth.userId);
 
+    // Calculate cookie expiration (30 days from now for Roblox .ROBLOSECURITY cookies)
+    const cookieExpiresAt = new Date();
+    cookieExpiresAt.setDate(cookieExpiresAt.getDate() + 30);
+
     this.db.createAccount({
       id: accountId,
       robloxUserId: auth.userId,
       username: robloxUsername,
       encryptedCookie: encryptedCookie,
       cookieHash: hash,
+      cookieExpiresAt: cookieExpiresAt.toISOString(),
     });
 
     await this.updateCachedAccounts();

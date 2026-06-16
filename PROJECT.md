@@ -289,13 +289,14 @@ enum LicenseStatus {
 - ✅ API REST local en puerto 8080
 
 ### Fase 2 — Integración SaaS
-- ❌ Pantalla de login/registro con design system
-- ❌ JWT en electron-store cifrado
-- ❌ Validación de licencia al arrancar (GET /license/verify)
-- ❌ Bloqueo por accountLimit con UI clara y CTA de upgrade
-- ❌ Botón "Mejorar plan" → abre Landing en browser
-- ❌ Modo offline con último plan conocido localmente
-- ❌ Indicador de estado de licencia (online/offline/expirada)
+- ✅ Pantalla de login/registro con design system (Sprint E5 — completado)
+- ✅ JWT en electron-store cifrado (Sprint E5 — completado)
+- ✅ Validación de licencia al arrancar (GET /license/verify) (Sprint E5 — completado)
+- ✅ Bloqueo por accountLimit con UI clara y CTA de upgrade (Sprint E5 — completado)
+- ✅ Botón "Mejorar plan" → abre Landing en browser (Sprint E5 — completado)
+- ✅ Modo offline con último plan conocido localmente (Sprint E5 — completado)
+- ✅ Indicador de estado de licencia (online/offline/expirada) (Sprint E5 — completado)
+- ✅ Auto Cookie Refresh: renovar cookie 24h antes de expirar (Sprint E5.6 — completado)
 
 ### Fase 3 — Account Control Panel (Business+)
 Control completo de la cuenta Roblox desde la app, sin abrir el navegador:
@@ -472,12 +473,12 @@ thumbnails.roblox.com       → avatares, thumbnails de juegos
 - [x] Historial de juegos recientes
 
 #### Sprint E5 — Integración SaaS
-- [ ] Pantalla de login/registro en la app con design system
-- [ ] electron-store cifrado para JWT
-- [ ] Validación de licencia al arrancar
-- [ ] Bloqueo por accountLimit con UI y CTA de upgrade
-- [ ] Modo offline con último plan conocido
-- [ ] Auto Cookie Refresh (cookie 24h antes de expirar)
+- [x] Pantalla de login/registro en la app con design system (E5.0–E5.1)
+- [x] electron-store cifrado para JWT (E5.2)
+- [x] Validación de licencia al arrancar (E5.3)
+- [x] Bloqueo por accountLimit con UI y CTA de upgrade (E5.4)
+- [x] Modo offline con último plan conocido (E5.5)
+- [x] Auto Cookie Refresh (cookie 24h antes de expirar) (E5.6)
 
 ---
 

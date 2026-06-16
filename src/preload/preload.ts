@@ -44,7 +44,13 @@ type IpcChannel =
   | 'presence:start-polling'
   | 'presence:stop-polling'
   | 'presence:recent-games'
-  | 'presence:robux-balance';
+  | 'presence:robux-balance'
+  // Auth y licencia (Sprint E5)
+  | 'auth:login'
+  | 'auth:logout'
+  | 'auth:status'
+  | 'auth:refresh-token'
+  | 'auth:can-add-account';
 
 const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'account:add',
@@ -86,6 +92,12 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'presence:stop-polling',
   'presence:recent-games',
   'presence:robux-balance',
+  // Auth y licencia (Sprint E5)
+  'auth:login',
+  'auth:logout',
+  'auth:status',
+  'auth:refresh-token',
+  'auth:can-add-account',
 ]);
 
 // =============================================================================
@@ -165,6 +177,14 @@ contextBridge.exposeInMainWorld('api', {
     getRecentGames: (accountId: string) => invoke('presence:recent-games', accountId),
     getRobuxBalance: (accountId: string) => invoke('presence:robux-balance', accountId),
   },
+  // Auth y licencia (Sprint E5)
+  auth: {
+    login: (email: string, password: string) => invoke('auth:login', email, password),
+    logout: () => invoke('auth:logout'),
+    status: () => invoke('auth:status'),
+    refreshToken: (currentToken: string) => invoke('auth:refresh-token', currentToken),
+    canAddAccount: () => invoke('auth:can-add-account'),
+  },
   checkAccount: (accountId: string) => invoke('account:check', accountId),
 });
 
@@ -212,13 +232,21 @@ export interface Api {
     changePassword: (accountId: string, current: string, newPass: string) => Promise<boolean>;
     get2FA: (accountId: string) => Promise<any>;
     set2FA: (accountId: string, enabled: boolean) => Promise<boolean>;
-  },
+  };
   presence: {
     getPresence: (accountIds: string[]) => Promise<any[]>;
     startPolling: (accountIds: string[], intervalMs?: number) => Promise<any>;
     stopPolling: () => Promise<any>;
     getRecentGames: (accountId: string) => Promise<any[]>;
     getRobuxBalance: (accountId: string) => Promise<any>;
+  };
+  // Auth y licencia (Sprint E5)
+  auth: {
+    login: (email: string, password: string) => Promise<any>;
+    logout: () => Promise<any>;
+    status: () => Promise<any>;
+    refreshToken: (currentToken: string) => Promise<any>;
+    canAddAccount: () => Promise<any>;
   };
   checkAccount: (accountId: string) => Promise<any>;
 }

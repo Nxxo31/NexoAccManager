@@ -7,6 +7,8 @@ import { WebServer } from './server/WebServer';
 import { DatabaseManager } from './storage/DatabaseManager';
 import { AccountSettingsService } from './core/AccountSettingsService';
 import { PresenceService } from './services/PresenceService';
+import { AuthService, LicenseData } from './services/AuthService';
+import { CookieExpiryService } from './services/CookieExpiryService';
 
 // =============================================================================
 // TYPE GUARDS PARA VALIDACIÓN DE PAYLOADS IPC (Defense in Depth)
@@ -34,7 +36,7 @@ function isPositiveInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value > 0;
 }
 
-/**
+/** 
  * Result type para respuestas IPC — nunca throw en handlers,
  * siempre retorna { success, error } para que el renderer maneje gracefully
  */
@@ -92,6 +94,12 @@ const ALLOWED_CHANNELS = new Set([
   'presence:stop-polling',
   'presence:recent-games',
   'presence:robux-balance',
+  // Auth y licencia (Sprint E5)
+  'auth:login',
+  'auth:logout',
+  'auth:status',
+  'auth:refresh-token',
+  'auth:can-add-account',
 ]);
 
 // SoluciÃ³n para __dirname en ESM
@@ -107,6 +115,8 @@ class NexoApp {
   private crypto: CryptoService;
   private accountSettingsService: AccountSettingsService;
   private presenceService: PresenceService;
+  private authService: AuthService;
+  private cookieExpiryService: CookieExpiryService;
 
   constructor() {
     this.db = new DatabaseManager();
@@ -115,6 +125,8 @@ class NexoApp {
     this.webServer = new WebServer(this.accountManager);
     this.accountSettingsService = new AccountSettingsService();
     this.presenceService = new PresenceService(this.db, this.crypto);
+    this.authService = new AuthService(this.db);
+    this.cookieExpiryService = new CookieExpiryService(this.db, this.crypto);
   }
 
   async initialize(): Promise<void> {
@@ -123,6 +135,7 @@ class NexoApp {
     this.setupCSP();
     this.createWindow();
     this.setupIPCHandlers();
+    this.cookieExpiryService.start();
     this.createMenu();
   }
 
@@ -958,6 +971,89 @@ class NexoApp {
         return ok(balance);
       } catch (e) {
         return err(`Error obteniendo balance de Robux: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // AUTENTICACIÓN Y LICENCIA — Sprint E5
+    // =================================================================
+
+    // Iniciar sesión (login)
+    ipcMain.handle('auth:login', async (_, email: unknown, password: unknown) => {
+      if (!isNonEmptyString(email)) {
+        return err('Payload inválido: email debe ser un string no vacío');
+      }
+      if (!isNonEmptyString(password)) {
+        return err('Payload inválido: password debe ser un string no vacío');
+      }
+      try {
+        // TODO: Implementar lógica real de login contra el backend
+        // Por ahora, simulamos un login exitoso para desarrollo
+        const mockUserId = 'dev_user_' + Math.floor(Math.random() * 10000);
+        const mockLicense: LicenseData = {
+          plan: 'PRO',
+          accountLimit: 20,
+          status: 'ACTIVE',
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 días desde ahora
+        };
+        const token = this.authService.generateToken(mockUserId, email.trim(), mockLicense);
+        await this.authService.saveLicenseToStorage(mockLicense);
+        return ok({ token, userId: mockUserId, email: email.trim(), license: mockLicense });
+      } catch (e) {
+        return err(`Error en login: ${(e as Error).message}`);
+      }
+    });
+
+    // Cerrar sesión (logout)
+    ipcMain.handle('auth:logout', async () => {
+      try {
+        await this.authService.saveLicenseToStorage(null as any); // Limpiar licencia almacenada
+        return ok({ loggedOut: true });
+      } catch (e) {
+        return err(`Error en logout: ${(e as Error).message}`);
+      }
+    });
+
+    // Verificar estado de autenticación
+    ipcMain.handle('auth:status', async () => {
+      try {
+        const license = await this.authService.getLicenseFromStorage();
+        if (!license) {
+          return ok({ authenticated: false, license: null });
+        }
+        // Aquí podríamos verificar el token almacenado también
+        return ok({ authenticated: true, license });
+      } catch (e) {
+        return err(`Error verificando estado de auth: ${(e as Error).message}`);
+      }
+    });
+
+    // Renovar token si es necesario
+    ipcMain.handle('auth:refresh-token', async (_, currentToken: unknown) => {
+      if (!isNonEmptyString(currentToken)) {
+        return err('Payload inválido: currentToken debe ser un string no vacío');
+      }
+      try {
+        const newToken = await this.authService.refreshTokenIfNeeded(currentToken as string);
+        if (newToken) {
+          return ok({ token: newToken, refreshed: true });
+        } else {
+          return ok({ token: currentToken, refreshed: false }); // No necesitaba renovación
+        }
+      } catch (e) {
+        return err(`Error renovando token: ${(e as Error).message}`);
+      }
+    });
+
+    // Verificar si se puede agregar una cuenta según la licencia
+    ipcMain.handle('auth:can-add-account', async () => {
+      try {
+        const accountCount = this.accountManager.getAllAccounts().length;
+        const canAdd = await this.authService.canAddAccount(accountCount);
+        const plan = await this.authService.getCurrentPlan();
+        return ok({ canAdd, plan, currentCount: accountCount });
+      } catch (e) {
+        return err(`Error verificando límite de cuenta: ${(e as Error).message}`);
       }
     });
   }

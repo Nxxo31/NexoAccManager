@@ -13,6 +13,7 @@ export interface Account {
   createdAt: Date;              // Fecha de creaciÃ³n en NexoAccManager
   avatarUrl?: string;           // URL del avatar (opcional)
   fields?: Record<string, string>; // Campos personalizables
+  cookieExpiresAt?: Date;       // Fecha de expiraciÃ³n de la cookie
 }
 
 /**
