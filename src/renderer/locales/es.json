@@ -1,0 +1,346 @@
+{
+  "app": {
+    "checkingAuth": "Verificando autenticación...",
+    "loadingAccounts": "Cargando cuentas...",
+    "errorLoadingAccounts": "Error al cargar cuentas. Asegúrate de que NexoAccManager esté ejecutándose.",
+    "errorUnknown": "Error al cargar cuentas"
+  },
+  "header": {
+    "title": "NexoAccManager",
+    "navAccounts": "Cuentas",
+    "navServers": "Servidores",
+    "navPresence": "Presence",
+    "navAuth": "Auth",
+    "navSettings": "Configuración",
+    "logoAlt": "NX"
+  },
+  "addAccount": {
+    "title": "Agregar cuenta",
+    "labelCookie": "Cookie .ROBLOSECURITY",
+    "placeholderCookie": "_|WARNING:-DO-NOT-SHARE|_...",
+    "labelGroup": "Grupo",
+    "placeholderGroup": "Default",
+    "errorEmptyCookie": "Ingresa una cookie .ROBLOSECURITY",
+    "errorInvalidFormat": "Formato de cookie inválido. Debe empezar con _|WARNING:-DO-NOT-SHARE|_",
+    "errorAdding": "Error al agregar cuenta",
+    "buttonAdding": "Verificando...",
+    "buttonAdd": "Agregar cuenta",
+    "buttonLimitReached": "Límite alcanzado",
+    "limitReachedText": "Límite de cuenta alcanzado: {current}/{limit} cuentas en el plan {plan}.",
+    "upgradeLink": "¿Cómo upgrade?",
+    "securityNote": "La cookie se almacena cifrada localmente con AES-256-GCM.\nNunca se envía a servidores externos."
+  },
+  "accountList": {
+    "noAccountsTitle": "Sin cuentas",
+    "noAccountsDescription": "Agrega una cuenta usando el formulario",
+    "noAccountsEmoji": "🎮",
+    "accountsCount": "{count} cuenta",
+    "accountsCountPlural": "{count} cuentas",
+    "refreshButton": "↻ Actualizar",
+    "playButton": "Jugar",
+    "controlPanelTitle": "Account Control Panel",
+    "deleteButton": "Eliminar",
+    "groupDefault": "Default",
+    "confirmDelete": "¿Eliminar esta cuenta?",
+    "launchModal": {
+      "title": "Lanzar {name}",
+      "description": "Introduce los parámetros del juego",
+      "labelPlaceId": "Place ID",
+      "placeholderPlaceId": "ej. 1818",
+      "labelJobId": "Job ID (opcional)",
+      "placeholderJobId": "ID del servidor",
+      "cancelButton": "Cancelar",
+      "launchButton": "Lanzar",
+      "launchingButton": "Lanzando..."
+    }
+  },
+  "settings": {
+    "title": "Configuración",
+    "multiRoblox": {
+      "title": "Multi-Roblox",
+      "description": "Permite tener varias instancias de Roblox abiertas simultáneamente.\nUsa el protocolo roblox:// directamente."
+    },
+    "apiKey": {
+      "title": "Clave API",
+      "description": "Usa esta clave para controlar NexoAccManager desde scripts externos\nvia API REST (puerto 8080).",
+      "buttonCopy": "Copiar",
+      "copied": "¡Copiado!",
+      "notAvailable": "API key no disponible. Ejecuta la aplicación para generarla."
+    },
+    "about": {
+      "title": "Acerca de",
+      "description": "NexoAccManager v1.0.0",
+      "description2": "Gestión segura de cuentas de Roblox.",
+      "license": "Licencia: GPL-3.0"
+    }
+  },
+  "serverBrowser": {
+    "searchBar": {
+      "placeholder": "Ingresa el PlaceId del juego...",
+      "buttonSearch": "Buscar",
+      "buttonSearching": "Buscando...",
+      "errorAddAccount": "Agrega al menos una cuenta para buscar juegos",
+      "errorSearch": "No se pudo encontrar el juego",
+      "errorSearchGeneric": "Error buscando juego"
+    },
+    "emptyState": {
+      "title": "Busca un juego por PlaceId",
+      "description": "Ingresa el PlaceId de un juego de Roblox para ver sus servers"
+    },
+    "noServers": {
+      "title": "No hay servers disponibles",
+      "description": "Intenta ajustar los filtros o buscar otro juego"
+    },
+    "gameCard": {
+      "noThumbnail": "Sin thumbnail",
+      "noDescription": "Sin descripcion",
+      "rating": "{rating} *",
+      "noRating": "N/A",
+      "maxPlayers": "Max: {max}"
+    },
+    "filters": {
+      "regionLabel": "Region:",
+      "regionAll": "Todas",
+      "regionNA": "North America",
+      "regionEU": "Europe",
+      "regionASIA": "Asia",
+      "regionSA": "South America",
+      "sortLabel": "Ordenar:",
+      "sortLeastPlayers": "Menos jugadores",
+      "sortMostPlayers": "Mas jugadores",
+      "buttonAutoJoin": "Auto-join menos jugadores",
+      "buttonDistribute": "Distribuir cuentas"
+    },
+    "table": {
+      "colJobId": "JobId",
+      "colRegion": "Region",
+      "regionEstimated": "(estimada)",
+      "colPlayers": "Jugadores",
+      "colPing": "Ping",
+      "pingEstimated": "(estimado)",
+      "colOccupancy": "Ocupacion",
+      "colAction": "Accion",
+      "occupancyHigh": "Alta",
+      "occupancyMedium": "Media",
+      "occupancyLow": "Baja",
+      "joinButton": "Unirse",
+      "joiningButton": "Uniendo...",
+      "distributing": "Distribuyendo...",
+      "distributeSuccess": "Distribucion completada: {success}/{total} cuentas",
+      "joinAlert": "Uniendo a {game} — Server {server}...",
+      "joinError": "Error uniendose al server"
+    },
+    "playersPlaying": "{count} jugando"
+  },
+  "presenceDashboard": {
+    "title": "Presence Dashboard",
+    "loading": "Cargando Presence Dashboard...",
+    "errorInit": "Error al inicializar Presence Dashboard",
+    "buttonRefresh": "Actualizar ahora",
+    "lastUpdate": "Última actualización: {time}",
+    "timeNow": "ahora",
+    "timeAgo": "hace {seconds}s",
+    "timeAgoMinutes": "hace {minutes}m",
+    "timeAgoHours": "hace {hours}h",
+    "timeAgoDays": "hace {days}d",
+    "timeNever": "Nunca",
+    "status": {
+      "online": "En línea",
+      "inGame": "En juego",
+      "offline": "Desconectado"
+    },
+    "counters": {
+      "online": "Online: {count}",
+      "inGame": "En juego: {count}",
+      "offline": "Offline: {count}",
+      "total": "Total: {count}"
+    },
+    "noAccounts": {
+      "title": "No hay cuentas para mostrar",
+      "description": "Agrega cuentas desde la pestaña de Cuentas"
+    },
+    "robux": {
+      "loading": "Cargando...",
+      "premium": "Premium"
+    },
+    "recentGames": {
+      "title": "Juegos recientes",
+      "empty": "No hay juegos recientes disponibles"
+    },
+    "joinButton": "Unirse al juego"
+  },
+  "accountControlPanel": {
+    "title": "Account Control Panel",
+    "tabs": {
+      "profile": "Perfil",
+      "security": "Seguridad",
+      "privacy": "Privacidad",
+      "friends": "Amigos",
+      "notifications": "Notificaciones"
+    },
+    "profilePanel": {
+      "loading": "Cargando perfil...",
+      "errorLoading": "Error cargando perfil",
+      "errorSave": "Error guardando perfil",
+      "successSave": "Perfil actualizado correctamente",
+      "labelDisplayName": "Display Name",
+      "placeholderDisplayName": "Tu nombre visible",
+      "charCount": "{current}/{max}",
+      "labelDescription": "Descripción",
+      "placeholderDescription": "Cuéntanos sobre ti...",
+      "saveButton": "Guardar cambios",
+      "savingButton": "Guardando...",
+      "avatarAlt": "Avatar",
+      "idLabel": "ID: {id}"
+    },
+    "securityPanel": {
+      "tabs": {
+        "sessions": "Sesiones",
+        "password": "Contraseña",
+        "twoFA": "2FA"
+      },
+      "sessions": {
+        "activeSessions": "{count} sesión activa",
+        "activeSessionsPlural": "{count} sesiones activas",
+        "noSessions": "No hay sesiones activas",
+        "closeAll": "Cerrar todas",
+        "closingAll": "Cerrando...",
+        "deviceUnknown": "Dispositivo desconocido",
+        "closeButton": "Cerrar",
+        "closingButton": "Cerrando...",
+        "successClose": "Sesión cerrada correctamente",
+        "successCloseAll": "Todas las sesiones han sido cerradas",
+        "updateButton": "Actualizar"
+      },
+      "password": {
+        "labelCurrent": "Contraseña actual",
+        "placeholderCurrent": "••••••••",
+        "labelNew": "Nueva contraseña",
+        "placeholderNew": "Mínimo 8 caracteres",
+        "labelConfirm": "Confirmar nueva contraseña",
+        "placeholderConfirm": "Repite la nueva contraseña",
+        "errorMatch": "Las contraseñas no coinciden",
+        "buttonChange": "Cambiar contraseña",
+        "buttonChanging": "Cambiando...",
+        "successChange": "Contraseña cambiada correctamente"
+      },
+      "twoFA": {
+        "title": "Verificación en dos pasos",
+        "enabled": "Activo ({method})",
+        "methodDefault": "autenticador",
+        "disabled": "Protege tu cuenta con un segundo factor",
+        "infoEnabled": "Tu cuenta tiene verificación en dos pasos activada mediante {method}. Esto añade una capa extra de seguridad.",
+        "infoDisabled": "Activa la verificación en dos pasos para proteger tu cuenta contra accesos no autorizados. Se recomienda usar una app de autenticación como Google Authenticator o Authy.",
+        "errorLoading": "Error cargando estado 2FA",
+        "successUpdate": "Configuración actualizada",
+        "updateButton": "Actualizar estado"
+      }
+    },
+    "privacyPanel": {
+      "loading": "Cargando privacidad...",
+      "errorLoading": "Error al cargar privacidad",
+      "successUpdate": "Configuración actualizada",
+      "updateButton": "Actualizar",
+      "optionAll": "Todos",
+      "optionFriends": "Amigos",
+      "optionNone": "Nadie",
+      "optionPublic": "Publico",
+      "optionPrivate": "Privado",
+      "sections": {
+        "privateMessages": {
+          "title": "Quién puede enviarme mensajes",
+          "description": "Controla quién puede enviarte mensajes privados"
+        },
+        "chatInGame": {
+          "title": "Chat en juegos",
+          "description": "Quién puede chatear contigo dentro de los juegos"
+        },
+        "inventoryPrivacy": {
+          "title": "Privacidad del inventario",
+          "description": "Quién puede ver tus items y Robux"
+        },
+        "groupPrivacy": {
+          "title": "Privacidad de grupos",
+          "description": "Quién puede ver a qué grupos perteneces"
+        },
+        "lastSeenPrivacy": {
+          "title": "Última conexión",
+          "description": "Quién puede ver cuándo estuviste en línea por última vez"
+        },
+        "followPrivacy": {
+          "title": "Quién puede seguirme",
+          "description": "Controla quién puede seguir tu actividad"
+        }
+      }
+    },
+    "friendsPanel": {
+      "tabs": {
+        "friends": "Amigos",
+        "requests": "Solicitudes",
+        "blocked": "Bloqueados"
+      },
+      "friendsTab": {
+        "noFriends": "No tienes amigos agregados aún",
+        "noRequests": "No tienes solicitudes de amistad pendientes",
+        "noBlocked": "No tienes usuarios bloqueados",
+        "onlineStatus": "En línea",
+        "inGameStatus": "En juego",
+        "updateButton": "Actualizar",
+        "acceptButton": "Aceptar",
+        "rejectButton": "Rechazar",
+        "unblockButton": "Desbloquear",
+        "unblockingButton": "Desbloqueando...",
+        "errorLoading": "Error cargando amigos",
+        "errorRequests": "Error cargando solicitudes",
+        "errorBlocked": "Error cargando bloqueados",
+        "errorResponding": "Error respondiendo solicitud",
+        "errorUnblocking": "Error desbloqueando usuario"
+      }
+    },
+    "notificationsPanel": {
+      "loading": "Cargando notificaciones...",
+      "errorLoading": "Error al cargar notificaciones",
+      "successUpdate": "Configuración actualizada",
+      "updateButton": "Actualizar",
+      "infoText": "Estas configuraciones controlan las notificaciones dentro de Roblox. Las notificaciones de la app se manejan desde el sistema operativo.",
+      "solicitudesAmistad": {
+        "title": "Solicitudes de amistad",
+        "description": "Recibir notificaciones cuando alguien te envía una solicitud de amistad"
+      },
+      "mensajes": {
+        "title": "Mensajes",
+        "description": "Recibir notificaciones cuando recibes un mensaje nuevo"
+      }
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Iniciar Sesión",
+      "subtitle": "Accede a tu cuenta de NexoAccManager",
+      "labelEmail": "Email",
+      "placeholderEmail": "tu@email Github por email.com",
+      "labelPassword": "Contraseña",
+      "placeholderPassword": "••••••••"
+    },
+    "register": {
+      "title": "Crear Cuenta",
+      "subtitle": "Únete a NexoAccManager y comienza a gestionar tus cuentas Roblox",
+      "labelEmail": "Email",
+      "placeholderEmail": "tu@email.com",
+      "labelPassword": "Contraseña",
+      "placeholderPassword": "••••••••",
+      "labelConfirmPassword": "Confirmar Contraseña",
+      "placeholderConfirmPassword": "••••••••"
+    },
+    "errorLogin": "Error al iniciar sesión",
+    "errorRegister": "Error al registrar",
+    "errorLogout": "Error al cerrar sesión",
+    "successRegister": "Registro exitoso. Ahora puedes iniciar sesión",
+    "buttonLogin": "Iniciar Sesión",
+    "buttonLoggingIn": "Iniciando sesión...",
+    "buttonRegister": "Registrarse",
+    "buttonRegistering": "Creando cuenta...",
+    "noAccountLink": "¿No tienes una cuenta? Regístrate aquí",
+    "hasAccountLink": "¿Ya tienes una cuenta? Inicia sesión"
+  }
+}

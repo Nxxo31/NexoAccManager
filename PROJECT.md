@@ -9,7 +9,7 @@ Las cookies de Roblox NUNCA salen del dispositivo del usuario.
 ## Repositorios
 - Motor RAM (App Electron): https://github.com/Nxxo31/NexoAccManager
 - Backend API: https://github.com/Nxxo31/NexoAccManager-Backend (crear)
-- Landing Page: https://github.com/Nxxo31/NexoAccManager-Landing (crear)
+- Landing Page: https://github.com/Nxxo31/NexoAccManager-Landing (en progreso)
 
 ## Referencias
 - https://github.com/ic3w0lf22/Roblox-Account-Manager
@@ -40,6 +40,8 @@ Las cookies de Roblox NUNCA salen del dispositivo del usuario.
 | **Soporte activo** | ❌ Abandonado | ✅ Incentivo financiero por SaaS |
 | **Descarga** | GitHub releases | Landing page con checkout y onboarding |
 | **Inventario desde app** | ❌ No | ✅ Ver items, Robux balance desde dashboard |
+| **Idiomas** | ❌ Solo inglés | ✅ ES, EN, PT con i18n completo |
+| **Temas personalizables** | ❌ No | ✅ Dark, Light, Roblox Classic, Custom |
 
 ---
 
@@ -51,7 +53,7 @@ Las cookies de Roblox NUNCA salen del dispositivo del usuario.
 | Starter | 10 | $5 | + Auto Cookie Refresh + Presence Dashboard |
 | Pro | 20 | $10 | + Smart Server Selection + Player Finder |
 | Business | 30 | $20 | + Account Control Panel completo + Dashboard Web |
-| Enterprise | ∞ | $50 | Todo + soporte prioritario |
+| Enterprise | ∞ | $50 | Todo + soporte prioritario + temas custom |
 
 ---
 
@@ -76,8 +78,14 @@ Las cookies de Roblox NUNCA salen del dispositivo del usuario.
 }
 ```
 
+### Temas disponibles
+- **Dark (default)** — fondo #0D0D0D, el tema actual
+- **Light** — fondo #F5F5F5, texto oscuro, mismo accent
+- **Roblox Classic** — rojo dominante #DE350D con negro
+- **Custom** — usuario define colores primario y acento (solo Enterprise)
+
 ### Estilo visual
-- Dark theme exclusivo
+- Dark theme exclusivo por defecto
 - Glassmorphism en cards: `backdrop-filter: blur(12px)`, bordes translúcidos
 - Gradientes de fondo con rojo Roblox sutil
 - Tipografía: Inter (UI) + JetBrains Mono (datos técnicos)
@@ -85,6 +93,46 @@ Las cookies de Roblox NUNCA salen del dispositivo del usuario.
 - Animaciones: 200ms ease-in-out
 - Iconografía: Lucide Icons
 - Inspiración: Linear.app + Vercel Dashboard + Stripe Dashboard
+
+---
+
+## Internacionalización (i18n)
+
+### Idiomas soportados
+- 🇪🇸 Español (es) — idioma por defecto
+- 🇺🇸 English (en)
+- 🇧🇷 Português (pt)
+
+### Implementación Motor RAM (Electron)
+- Librería: `i18next` + `react-i18next`
+- Archivos: `src/renderer/locales/es.json`, `en.json`, `pt.json`
+- Selector: dropdown con banderas en Header y en pantalla de Login
+- Persistencia: guardado en SQLite tabla `settings` con key `language`
+- Detección automática: usa el idioma del sistema operativo al primer arranque
+- IPC channel: `settings:language:get/set`
+
+### Implementación Landing Page (Next.js)
+- Librería: `next-intl`
+- Rutas localizadas: `/es/`, `/en/`, `/pt/`
+- Selector: dropdown con banderas en Header
+- Detección: `Accept-Language` header del browser
+- SEO: `hreflang` tags por idioma en `<head>`
+
+---
+
+## Personalización y Temas
+
+### Motor RAM — Settings Panel de Apariencia
+- **Selector de tema**: Dark / Light / Roblox Classic / Custom (Enterprise)
+- **Color primario custom**: color picker (solo Enterprise)
+- **Color acento custom**: color picker (solo Enterprise)
+- **Tamaño de fuente**: Small / Medium (default) / Large
+- **Densidad de UI**: Compacta / Normal / Espaciosa
+- **Animaciones**: On / Off (para PCs con recursos limitados)
+- **Idioma**: dropdown con banderas ES / EN / PT
+
+Persistencia: SQLite tabla `settings`.
+Aplicación: CSS variables en `:root` actualizadas dinámicamente via IPC `theme:set`.
 
 ---
 
@@ -98,6 +146,7 @@ NexoAccManager-Landing (Vercel)
   ├── Hero + Features + Pricing
   ├── Login / Registro / Verificación email
   ├── Dashboard de usuario (plan, uso, descarga)
+  ├── Selector de idioma (next-intl)
   └── Stripe Checkout
           │
           ▼
@@ -113,8 +162,9 @@ Motor RAM — App Electron (local en PC del usuario)
   ├── Login con JWT del Backend
   ├── GET /license/verify → plan + accountLimit
   ├── SQLite AES-256-GCM → cuentas Roblox (NUNCA salen del PC)
-  ├── Roblox API calls con cookie local
-  └── Dashboard Web local en puerto 8081
+  ├── i18n con i18next (ES/EN/PT)
+  ├── Temas personalizables con CSS variables
+  └── Roblox API calls con cookie local
 ```
 
 ---
@@ -125,11 +175,13 @@ Motor RAM — App Electron (local en PC del usuario)
 - **Patrón principal**: Two-process model (Main + Renderer) con IPC tipado
 - **IPC**: invoke/handle (Promise-based) — nunca send/on para request-response
 - **Seguridad IPC**: contextBridge con whitelist explícita de canales, validación en ambos lados
-- **Namespacing IPC**: `account:add`, `account:launch`, `roblox:servers`, `settings:privacy`
+- **Namespacing IPC**: `account:*`, `roblox:*`, `settings:*`, `license:*`, `i18n:*`, `theme:*`
 - **Estado**: Zustand en renderer — nunca estado en main process
 - **Servicios**: Repository pattern para SQLite, Service layer para Roblox API
 - **Cache**: LRU cache en main process para responses de Roblox API (TTL 60s)
 - **Error handling**: Result pattern (success/error) en IPC — nunca throw sin catch
+- **i18n**: i18next inicializado en renderer, idioma guardado via `settings:language:set`
+- **Temas**: CSS variables en `:root` actualizadas via IPC `theme:set`
 
 ### Backend API
 - **Patrón**: Layered Architecture — Routes → Controllers → Services → Repositories
@@ -141,6 +193,7 @@ Motor RAM — App Electron (local en PC del usuario)
 
 ### Landing Page
 - **Patrón**: Next.js App Router con Server Components donde sea posible
+- **i18n**: next-intl con rutas localizadas `/[locale]/`
 - **Auth state**: React Context + httpOnly cookies para JWT
 - **Forms**: React Hook Form + zod validation
 - **Pagos**: Stripe Checkout hosted — cero manejo de datos de tarjeta
@@ -173,6 +226,7 @@ Almacenamiento:
   - JWT en electron-store con encryptionKey derivado del hardware
   - Cookies Roblox en SQLite con AES-256-GCM
   - Nunca localStorage para datos sensibles
+  - Preferencias de tema e idioma en SQLite (no sensibles, sin cifrado)
 ```
 
 ### Backend API
@@ -215,6 +269,7 @@ Secrets:
 - Input validation con zod en cliente Y servidor
 - Stripe Checkout hosted — cero contacto con datos de tarjeta
 - Next.js escapa HTML por defecto — nunca dangerouslySetInnerHTML con datos externos
+- next-intl no expone datos sensibles por idioma
 ```
 
 ---
@@ -223,15 +278,16 @@ Secrets:
 
 ```prisma
 model User {
-  id              String         @id @default(cuid())
-  email           String         @unique
-  passwordHash    String
-  emailVerified   Boolean        @default(false)
+  id               String         @id @default(cuid())
+  email            String         @unique
+  passwordHash     String
+  emailVerified    Boolean        @default(false)
   emailVerifyToken String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  license         License?
-  refreshTokens   RefreshToken[]
+  language         String         @default("es")
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  license          License?
+  refreshTokens    RefreshToken[]
 }
 
 model License {
@@ -274,6 +330,25 @@ enum LicenseStatus {
 }
 ```
 
+### SQLite Motor RAM — tabla settings
+```sql
+CREATE TABLE settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+-- Keys usadas:
+-- language          → 'es' | 'en' | 'pt'
+-- theme             → 'dark' | 'light' | 'roblox-classic' | 'custom'
+-- fontSize          → 'small' | 'medium' | 'large'
+-- uiDensity         → 'compact' | 'normal' | 'spacious'
+-- animationsEnabled → 'true' | 'false'
+-- primaryColor      → '#DE350D' (solo Enterprise)
+-- accentColor       → '#6347FF' (solo Enterprise)
+-- licenseStatus     → último estado conocido (modo offline)
+-- lastPlanKnown     → último plan conocido (modo offline)
+-- accountLimit      → último límite conocido (modo offline)
+```
+
 ---
 
 ## Features del Motor RAM — App Electron
@@ -288,97 +363,107 @@ enum LicenseStatus {
 - ✅ Import/Export JSON
 - ✅ API REST local en puerto 8080
 
-### Fase 2 — Integración SaaS
-- ✅ Pantalla de login/registro con design system (Sprint E5 — completado)
-- ✅ JWT en electron-store cifrado (Sprint E5 — completado)
-- ✅ Validación de licencia al arrancar (GET /license/verify) (Sprint E5 — completado)
-- ✅ Bloqueo por accountLimit con UI clara y CTA de upgrade (Sprint E5 — completado)
-- ✅ Botón "Mejorar plan" → abre Landing en browser (Sprint E5 — completado)
-- ✅ Modo offline con último plan conocido localmente (Sprint E5 — completado)
-- ✅ Indicador de estado de licencia (online/offline/expirada) (Sprint E5 — completado)
-- ✅ Auto Cookie Refresh: renovar cookie 24h antes de expirar (Sprint E5.6 — completado)
+### Fase 2 — Integración SaaS ✅ Sprint E5 completado
+- ✅ Pantalla de login/registro con design system
+- ✅ JWT en electron-store cifrado
+- ✅ Validación de licencia al arrancar (GET /license/verify)
+- ✅ Bloqueo por accountLimit con UI clara y CTA de upgrade
+- ✅ Botón "Mejorar plan" → abre Landing en browser
+- ✅ Modo offline con último plan conocido localmente
+- ✅ Indicador de estado de licencia (online/offline/expirada)
+- ✅ Auto Cookie Refresh: renovar cookie 24h antes de expirar
 
-### Fase 3 — Account Control Panel (Business+)
+### Fase 3 — Account Control Panel ✅ Sprint E2 completado
 Control completo de la cuenta Roblox desde la app, sin abrir el navegador:
 
 **Perfil:**
-- ✅ Ver y cambiar display name (Sprint E2)
-- ✅ Ver y editar descripción de perfil (Sprint E2)
-- ✅ Ver avatar actual con thumbnail (Sprint E2)
+- ✅ Ver y cambiar display name
+- ✅ Ver y editar descripción de perfil
+- ✅ Ver avatar actual con thumbnail
 
 **Seguridad y acceso:**
-- ✅ Cambiar contraseña (requiere contraseña actual) (Sprint E2)
-- ✅ Ver sesiones activas (dispositivos conectados) (Sprint E2)
-- ✅ Cerrar sesión en dispositivos específicos o en todos (Sprint E2)
+- ✅ Cambiar contraseña (requiere contraseña actual)
+- ✅ Ver sesiones activas (dispositivos conectados)
+- ✅ Cerrar sesión en dispositivos específicos o en todos
 - ❌ Ver historial de accesos recientes
-- ✅ Toggle verificación en dos pasos (2FA) (Sprint E2)
+- ✅ Toggle verificación en dos pasos (2FA)
 
 **Privacidad:**
-- ✅ Quién puede enviarme mensajes (nadie/amigos/todos) (Sprint E2)
-- ✅ Quién puede seguirme (Sprint E2)
-- ✅ Quién puede chatear conmigo en juegos (Sprint E2)
-- ✅ Privacidad del inventario (público/privado) (Sprint E2)
-- ✅ Privacidad de grupos (Sprint E2)
+- ✅ Quién puede enviarme mensajes (nadie/amigos/todos)
+- ✅ Quién puede seguirme
+- ✅ Quién puede chatear conmigo en juegos
+- ✅ Privacidad del inventario (público/privado)
+- ✅ Privacidad de grupos
 - ❌ Privacidad de juegos recientes
 
 **Amigos y contactos:**
-- ✅ Ver lista de amigos con estado online (Sprint E2)
-- ✅ Aceptar/rechazar solicitudes de amistad (Sprint E2)
+- ✅ Ver lista de amigos con estado online
+- ✅ Aceptar/rechazar solicitudes de amistad
 - ❌ Enviar solicitudes de amistad
-- ✅ Bloquear / desbloquear usuarios por username o userId (Sprint E2)
-- ✅ Ver lista de bloqueados (Sprint E2)
+- ✅ Bloquear / desbloquear usuarios por username o userId
+- ✅ Ver lista de bloqueados
 - ❌ Seguir / dejar de seguir usuarios
 
 **Notificaciones:**
-- ✅ Toggle notificaciones de solicitudes de amistad (Sprint E2)
-- ✅ Toggle notificaciones de mensajes (Sprint E2)
+- ✅ Toggle notificaciones de solicitudes de amistad
+- ✅ Toggle notificaciones de mensajes
 
-### Fase 4 — Server Browser + Smart Selection (Pro+)
-- ❌ Buscar juego por PlaceId o nombre
-- ❌ Ver thumbnail, descripción, player count, rating del juego
-- ❌ Listar servers activos con: JobId, players actuales, players máximos
-- ❌ Detectar región del server por latencia estimada
-- ❌ Filtrar servers por región
-- ❌ Filtrar servidor con menos jugadores (auto-select)
-- ❌ Auto-join least populated: unirse automáticamente al server más vacío
-- ❌ Multi-account server split: distribuir N cuentas en servers diferentes
+### Fase 4 — Server Browser ✅ Sprint E3 completado
+- ✅ IPC channels: roblox:games:search, roblox:servers:list, roblox:servers:join
+- ✅ Integración con games.roblox.com
+- ✅ UI: buscar juego por PlaceId o nombre
+- ✅ UI: lista de servers con player count, JobId, región estimada
+- ✅ UI: filtros (por región, por menos jugadores)
+- ✅ Auto-join least populated
+- ✅ Multi-account server split
 - ❌ VIP Server support: pegar link completo para extraer JobId
-- ❌ Unirse a server específico por JobId directamente
+- ❌ Unirse a server específico por JobId directamente desde URL
 
-### Fase 5 — Presence Dashboard + Inventario (Starter+)
-- ❌ Estado en tiempo real de todas las cuentas (online/in-game/offline)
-- ❌ En qué juego está cada cuenta con thumbnail
-- ❌ Tiempo en el juego actual
-- ❌ Mapa visual de actividad de todas las cuentas
-- ❌ Ver Robux balance de cada cuenta
+### Fase 5 — Presence Dashboard ✅ Sprint E4 completado
+- ✅ Integración con presence.roblox.com (polling cada 30s)
+- ✅ UI: grid de cuentas con estado en tiempo real
+- ✅ UI: thumbnail del juego actual
+- ✅ UI: tiempo en sesión
+- ✅ Robux balance por cuenta
+- ✅ Historial de juegos recientes
 - ❌ Ver inventario de items limitados con valor estimado
-- ❌ Historial de juegos recientes por cuenta
+- ❌ Mapa visual de actividad de todas las cuentas
 
-### Fase 6 — Features avanzadas
-- ❌ Auto Cookie Refresh (Starter+): renovar cookie 24h antes de expirar
+### Fase 6 — i18n + Temas ❌ Sprints E6-E8 pendientes
+- ❌ i18next + react-i18next instalado
+- ❌ Archivos de traducción: es.json, en.json, pt.json
+- ❌ Selector de idioma con banderas en Header y Login
+- ❌ Detección automática del idioma del SO
+- ❌ Persistencia de idioma en SQLite settings
+- ❌ Tema Dark / Light / Roblox Classic
+- ❌ Custom theme con color picker (Enterprise)
+- ❌ Tamaño de fuente, densidad UI, toggle animaciones
+- ❌ Settings Panel completo con todas las secciones
+
+### Fase 7 — Features avanzadas ❌ pendientes
 - ❌ Player Finder (Pro+): buscar jugador específico en qué server está
 - ❌ Account Control via WebSocket (Business+): control en-game
 - ❌ Quick Log In: cambio rápido de cuenta en browser
 - ❌ BrowserTrackerID: prevenir instancias duplicadas
 - ❌ FPS Unlocker integrado
-- ❌ Themes/skins personalizables
 - ❌ Max Instances setting
+- ❌ VIP Server support
 
 ---
 
 ## APIs de Roblox utilizadas
 
 ```
-accountsettings.roblox.com  → privacidad, notificaciones
+accountsettings.roblox.com    → privacidad, notificaciones
 accountinformation.roblox.com → perfil, información de cuenta
-auth.roblox.com             → verificar cookie, auth ticket, logout remoto
-users.roblox.com            → info de usuarios, buscar por username
-friends.roblox.com          → amigos, followers, solicitudes
-presence.roblox.com         → estado online en tiempo real
-games.roblox.com            → info de juegos, servers, player count
-inventory.roblox.com        → inventario de items
-economy.roblox.com          → Robux balance, transacciones
-thumbnails.roblox.com       → avatares, thumbnails de juegos
+auth.roblox.com               → verificar cookie, auth ticket, logout remoto
+users.roblox.com              → info de usuarios, buscar por username
+friends.roblox.com            → amigos, followers, solicitudes
+presence.roblox.com           → estado online en tiempo real
+games.roblox.com              → info de juegos, servers, player count
+inventory.roblox.com          → inventario de items
+economy.roblox.com            → Robux balance, transacciones
+thumbnails.roblox.com         → avatares, thumbnails de juegos
 ```
 
 ---
@@ -390,28 +475,29 @@ thumbnails.roblox.com       → avatares, thumbnails de juegos
 2. **Features** — comparativa visual vs RAM con iconos
 3. **Pricing** — tabla 5 planes con toggle mensual
 4. **FAQ** — preguntas frecuentes
-5. **Footer** — links, copyright, términos
+5. **Footer** — links, copyright, términos + selector de idioma
 
 ### Páginas de auth
-6. **/register** — email + password + confirm + verificación email
-7. **/login** — email + password + forgot password
-8. **/verify-email/[token]** — confirmar email
-9. **/forgot-password** — solicitar reset
-10. **/reset-password/[token]** — nueva contraseña
+6. **/[locale]/register** — email + password + confirm + verificación email + selector idioma
+7. **/[locale]/login** — email + password + forgot password + selector idioma
+8. **/[locale]/verify-email/[token]** — confirmar email
+9. **/[locale]/forgot-password** — solicitar reset
+10. **/[locale]/reset-password/[token]** — nueva contraseña
 
 ### Dashboard de usuario (post-login)
-11. **/dashboard** — plan actual, uso (X/Y cuentas), próximo pago
-12. **/dashboard/billing** — historial pagos, cambiar plan, cancelar
-13. **/dashboard/download** — descargar app con instrucciones de instalación
-14. **/success** — confirmación de pago exitoso
-15. **/cancel** — usuario canceló el checkout
+11. **/[locale]/dashboard** — plan actual, uso (X/Y cuentas), próximo pago
+12. **/[locale]/dashboard/billing** — historial pagos, cambiar plan, cancelar
+13. **/[locale]/dashboard/download** — descargar app con instrucciones de instalación
+14. **/[locale]/dashboard/settings** — idioma, tema, notificaciones email
+15. **/success** — confirmación de pago exitoso
+16. **/cancel** — usuario canceló el checkout
 
 ---
 
 ## Endpoints Backend API
 
 ### Auth
-- POST /auth/register → crear User + License FREE + tokens
+- POST /auth/register → crear User + License FREE + tokens (incluye language preference)
 - POST /auth/login → validar credenciales → tokens
 - POST /auth/refresh → rotar refresh token → nuevo access token
 - POST /auth/logout → invalidar refresh token
@@ -428,8 +514,8 @@ thumbnails.roblox.com       → avatares, thumbnails de juegos
 - POST /webhook/stripe → checkout.session.completed, subscription.updated, subscription.deleted
 
 ### Usuario
-- GET /user/me → perfil autenticado
-- PATCH /user/me → actualizar email
+- GET /user/me → perfil autenticado (incluye language)
+- PATCH /user/me → actualizar email o language
 - DELETE /user/me → cancelar cuenta y suscripción en Stripe
 
 ---
@@ -438,94 +524,131 @@ thumbnails.roblox.com       → avatares, thumbnails de juegos
 
 ### PRIORIDAD 1 — Motor RAM (App Electron)
 
-#### Sprint E1 — Seguridad IPC (refactor)
-- [ ] Auditar preload.ts — verificar contextIsolation y sandbox activos
-- [ ] Implementar whitelist de canales IPC en preload
-- [ ] Namespacing de canales: account:*, roblox:*, settings:*, license:*
-- [ ] Validación de tipos en todos los ipcMain.handle()
-- [ ] CSP en BrowserWindow
-- [ ] Verificar shell.openExternal() solo acepta URLs roblox-player://
+#### Sprint E1 — Seguridad IPC ✅ completado
+- ✅ Auditar preload.ts — contextIsolation y sandbox activos
+- ✅ Whitelist de canales IPC en preload
+- ✅ Namespacing de canales: account:*, roblox:*, settings:*, license:*
+- ✅ Validación de tipos en todos los ipcMain.handle()
+- ✅ CSP en BrowserWindow
+- ✅ shell.openExternal() solo acepta URLs roblox-player://
 
-#### Sprint E2 — Account Control Panel
-- [ ] IPC channels: settings:privacy:get/set, settings:security:sessions, settings:security:password
-- [ ] Integración con accountsettings.roblox.com y accountinformation.roblox.com
-- [ ] UI Panel de Perfil: display name, descripción
-- [ ] UI Panel de Seguridad: cambiar contraseña, ver sesiones, cerrar sesiones, 2FA toggle
-- [ ] UI Panel de Privacidad: mensajes, chat, inventario, grupos, juegos recientes
-- [ ] UI Panel de Amigos: lista, solicitudes, bloquear/desbloquear, seguir
-- [ ] UI Panel de Notificaciones: toggles
+#### Sprint E2 — Account Control Panel ✅ completado
+- ✅ IPC channels: settings:privacy:get/set, settings:security:sessions, settings:security:password
+- ✅ Integración con accountsettings.roblox.com y accountinformation.roblox.com
+- ✅ UI Panel de Perfil: display name, descripción
+- ✅ UI Panel de Seguridad: cambiar contraseña, ver sesiones, cerrar sesiones, 2FA toggle
+- ✅ UI Panel de Privacidad: mensajes, chat, inventario, grupos
+- ✅ UI Panel de Amigos: lista, solicitudes, bloquear/desbloquear
+- ✅ UI Panel de Notificaciones: toggles
 
-#### Sprint E3 — Server Browser
-- [x] IPC channels: roblox:games:search, roblox:servers:list, roblox:servers:join
-- [x] Integración con games.roblox.com
-- [x] UI: buscar juego por PlaceId o nombre
-- [x] UI: lista de servers con player count, JobId, region estimada
-- [x] UI: filtros (por region, por menos jugadores)
-- [x] Auto-join least populated
-- [x] Multi-account server split
+#### Sprint E3 — Server Browser ✅ completado
+- ✅ IPC channels: roblox:games:search, roblox:servers:list, roblox:servers:join
+- ✅ Integración con games.roblox.com
+- ✅ UI: buscar juego por PlaceId o nombre
+- ✅ UI: lista de servers con player count, JobId, región estimada
+- ✅ UI: filtros (por región, por menos jugadores)
+- ✅ Auto-join least populated
+- ✅ Multi-account server split
 
-#### Sprint E4 — Presence Dashboard
-- [x] Integración con presence.roblox.com (polling cada 30s)
-- [x] UI: grid de cuentas con estado en tiempo real
-- [x] UI: thumbnail del juego actual
-- [x] UI: tiempo en sesión
-- [x] Robux balance por cuenta
-- [x] Historial de juegos recientes
+#### Sprint E4 — Presence Dashboard ✅ completado
+- ✅ Integración con presence.roblox.com (polling cada 30s)
+- ✅ UI: grid de cuentas con estado en tiempo real
+- ✅ UI: thumbnail del juego actual
+- ✅ UI: tiempo en sesión
+- ✅ Robux balance por cuenta
+- ✅ Historial de juegos recientes
 
-#### Sprint E5 — Integración SaaS
-- [x] Pantalla de login/registro en la app con design system (E5.0–E5.1)
-- [x] electron-store cifrado para JWT (E5.2)
-- [x] Validación de licencia al arrancar (E5.3)
-- [x] Bloqueo por accountLimit con UI y CTA de upgrade (E5.4)
-- [x] Modo offline con último plan conocido (E5.5)
-- [x] Auto Cookie Refresh (cookie 24h antes de expirar) (E5.6)
+#### Sprint E5 — Integración SaaS ✅ completado
+- ✅ Pantalla de login/registro en la app con design system
+- ✅ electron-store cifrado para JWT
+- ✅ Validación de licencia al arrancar
+- ✅ Bloqueo por accountLimit con UI y CTA de upgrade
+- ✅ Modo offline con último plan conocido
+- ✅ Auto Cookie Refresh (cookie 24h antes de expirar)
+
+### Sprint E6 — i18n ❌ SIGUIENTE
+ [ ] Crear src/renderer/locales/es.json, en.json, pt.json con todas las traducciones ✅
+ [ ] Envolver toda la UI en i18next provider
+- [ ] Selector de idioma con banderas en Header
+- [ ] Selector de idioma en pantalla de Login (antes de autenticarse)
+- [ ] IPC channel: settings:language:get/set
+- [ ] Persistir idioma en SQLite tabla settings
+- [ ] Detectar idioma del SO al primer arranque con i18next-browser-languagedetector
+
+#### Sprint E7 — Temas personalizables ❌ pendiente
+- [ ] Instalar y configurar sistema de temas con CSS variables
+- [ ] Implementar ThemeService en main process
+- [ ] IPC channel: settings:theme:get/set
+- [ ] 3 temas built-in: Dark, Light, Roblox Classic
+- [ ] Custom theme con color picker para primario y acento (Enterprise)
+- [ ] Persistir tema en SQLite tabla settings
+- [ ] Aplicar tema dinámicamente en renderer sin recargar
+
+#### Sprint E8 — Settings Panel completo ❌ pendiente
+- [ ] Sección "Apariencia": selector tema, tamaño fuente, densidad UI, toggle animaciones
+- [ ] Sección "Idioma": dropdown con banderas ES/EN/PT
+- [ ] Sección "Cuenta": email, plan actual, botón logout, botón upgrade
+- [ ] Sección "Seguridad": cambiar contraseña (delega a Account Control Panel)
+- [ ] Sección "Avanzado": limpiar caché, exportar datos, borrar cuenta local
 
 ---
 
 ### PRIORIDAD 2 — Landing Page
 
-#### Sprint L1 — Setup
-- [ ] Crear repo NexoAccManager-Landing
-- [ ] Next.js 14 + TypeScript + TailwindCSS + Shadcn UI + Framer Motion
-- [ ] Implementar design system (CSS variables, componentes base)
+#### Sprint L1 — Setup ❌ en progreso
+- [ ] Limpiar node_modules del git history: git rm -r --cached node_modules .next
+- [ ] Verificar .gitignore tiene node_modules/ y .next/
+- [ ] Push inicial limpio a GitHub: Nxxo31/NexoAccManager-Landing
+- [ ] Instalar next-intl para i18n
+- [ ] Instalar Framer Motion para animaciones
+- [ ] Instalar Shadcn UI
+- [ ] Design system completo en globals.css con CSS variables del PROJECT.md
+- [ ] Estructura de carpetas: src/app/[locale]/ para rutas localizadas
+- [ ] Configurar next-intl con middleware para detección de idioma
 
-#### Sprint L2 — Páginas públicas
-- [ ] Hero section con mockup de la app
-- [ ] Features section con comparativa vs RAM
-- [ ] Pricing section con 5 planes
-- [ ] FAQ + Footer
+#### Sprint L2 — Páginas públicas ❌ pendiente
+- [ ] Header: logo, nav, selector idioma con banderas, CTA "Empezar gratis"
+- [ ] Hero section: headline, subheadline, CTAs, gradiente animado con rojo Roblox
+- [ ] Features section: 6 cards glassmorphism + comparativa vs RAM
+- [ ] Pricing section: 5 planes con toggle mensual
+- [ ] FAQ section: 8 preguntas frecuentes
+- [ ] Footer: links, copyright, selector de idioma
 
-#### Sprint L3 — Auth
-- [ ] /register con validación zod
-- [ ] /login con forgot password
-- [ ] /verify-email/[token]
-- [ ] /reset-password/[token]
+#### Sprint L3 — Auth ❌ pendiente
+- [ ] /[locale]/register con React Hook Form + zod
+- [ ] /[locale]/login con forgot password
+- [ ] /[locale]/verify-email/[token]
+- [ ] /[locale]/reset-password/[token]
 - [ ] httpOnly cookies para JWT
+- [ ] Middleware de auth en Next.js
+- [ ] Selector de idioma visible en todas las páginas de auth
 
-#### Sprint L4 — Dashboard de usuario
-- [ ] /dashboard — plan, uso, próximo pago
-- [ ] /dashboard/billing — historial, cambiar plan, cancelar
-- [ ] /dashboard/download — descarga con instrucciones
+#### Sprint L4 — Dashboard de usuario ❌ pendiente
+- [ ] /[locale]/dashboard — plan, uso X/Y cuentas, próximo pago
+- [ ] /[locale]/dashboard/billing — historial, cambiar plan, cancelar
+- [ ] /[locale]/dashboard/download — descarga con instrucciones por SO (Windows/Mac/Linux)
+- [ ] /[locale]/dashboard/settings — idioma, tema, notificaciones email
 
-#### Sprint L5 — Stripe + Deploy
-- [ ] Integración Stripe Checkout
-- [ ] /success y /cancel
-- [ ] Deploy Vercel
-- [ ] Configurar env vars en Vercel
+#### Sprint L5 — Stripe + i18n + Deploy ❌ pendiente
+- [ ] POST /checkout/create-session integrado
+- [ ] Páginas /success y /cancel
+- [ ] Traducir todas las páginas a ES, EN, PT
+- [ ] Deploy Vercel con variables de entorno
+- [ ] Configurar dominio custom si aplica
 
 ---
 
 ### PRIORIDAD 3 — Backend API
 
-#### Sprint B1 — Setup
-- [ ] Crear repo NexoAccManager-Backend
+#### Sprint B1 — Setup ❌ pendiente
+- [ ] Crear repo NexoAccManager-Backend en GitHub
 - [ ] Fastify + TypeScript + Prisma + PostgreSQL local
-- [ ] Schema Prisma (User + License + RefreshToken)
+- [ ] Schema Prisma (User + License + RefreshToken) con campo language en User
 - [ ] Primera migración
 - [ ] Variables de entorno: DATABASE_URL, JWT_PRIVATE_KEY, JWT_PUBLIC_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
 
-#### Sprint B2 — Auth
-- [ ] POST /auth/register con bcrypt + License FREE automática + email verification
+#### Sprint B2 — Auth ❌ pendiente
+- [ ] POST /auth/register con bcrypt + License FREE automática + email verification + language
 - [ ] POST /auth/login con JWT RS256
 - [ ] POST /auth/refresh con rotación de refresh token
 - [ ] POST /auth/logout con invalidación de token
@@ -533,21 +656,21 @@ thumbnails.roblox.com       → avatares, thumbnails de juegos
 - [ ] POST /auth/forgot-password + /auth/reset-password
 - [ ] Middleware JWT para rutas protegidas
 
-#### Sprint B3 — Licencias + Rate limiting
+#### Sprint B3 — Licencias + Rate limiting ❌ pendiente
 - [ ] GET /license/verify
 - [ ] GET /license/plans
 - [ ] @fastify/rate-limit en endpoints de auth
 - [ ] @fastify/helmet para headers de seguridad
 - [ ] CORS configurado solo para orígenes permitidos
 
-#### Sprint B4 — Stripe
+#### Sprint B4 — Stripe ❌ pendiente
 - [ ] Crear productos y precios en Stripe Dashboard
 - [ ] POST /checkout/create-session
 - [ ] POST /webhook/stripe con verificación de firma
 - [ ] Manejar: checkout.session.completed, subscription.updated, subscription.deleted
 - [ ] Actualizar License en DB según eventos
 
-#### Sprint B5 — Deploy
+#### Sprint B5 — Deploy ❌ pendiente
 - [ ] Crear proyecto Railway
 - [ ] PostgreSQL en Railway
 - [ ] Variables de entorno en Railway
@@ -557,25 +680,37 @@ thumbnails.roblox.com       → avatares, thumbnails de juegos
 
 ---
 
-## Estado actual
+## Estado actual REAL — junio 2026
 
 ### Motor RAM (App Electron)
-- Backend Electron: ✅
-- Preload: ✅ corregido (pendiente auditoría IPC Sprint E1)
-- Dependencias: ✅
-- Renderer React UI: ✅ con modal de lanzamiento
-- launchRoblox(): ✅
-- Import/Export: ✅
-- Multi-Roblox: ✅
-- API REST local (8080): ✅
-- Build: ✅
-- Account Control Panel: ✅ Sprint E2 (completado)
-- Server Browser: ✅ Sprint E3 (backend E3.1: GamesService + IPC handlers)
-- Presence Dashboard: ❌ Sprint E4
-- Integración SaaS: ❌ Sprint E5
+- ✅ Backend Electron completo
+- ✅ Preload corregido + IPC seguro (Sprint E1)
+- ✅ Dependencias corregidas
+- ✅ Renderer React UI con modal de lanzamiento
+- ✅ launchRoblox() con protocolo roblox-player
+- ✅ Import/Export JSON
+- ✅ Multi-Roblox
+- ✅ API REST local (8080)
+- ✅ Build funcional
+- ✅ Sprint E1 — Seguridad IPC
+- ✅ Sprint E2 — Account Control Panel
+- ✅ Sprint E3 — Server Browser
+- ✅ Sprint E4 — Presence Dashboard
+- ✅ Sprint E5 — Integración SaaS
+- ❌ Sprint E6 — i18n — SIGUIENTE TAREA
+- ❌ Sprint E7 — Temas personalizables
+- ❌ Sprint E8 — Settings Panel completo
 
-### Backend API: ❌ Prioridad 3
-### Landing Page: ❌ Prioridad 2
+### Landing Page (NexoAccManager-Landing)
+- ✅ Repo creado localmente
+- ✅ Next.js 14 + TypeScript + Tailwind setup iniciado
+- ✅ layout.tsx creado
+- ❌ Sprint L1 — Setup completo + git limpio + push
+
+### Backend API (NexoAccManager-Backend)
+- ❌ Todo pendiente — Prioridad 3
+
+---
 
 ## Commits Motor RAM realizados
 - 9a1138b — Estructura inicial: backend Electron + crypto + DB + API REST
@@ -585,6 +720,23 @@ thumbnails.roblox.com       → avatares, thumbnails de juegos
 - ac4c3b8 — fix: usar @fastify/cors en lugar de fastify-cors (deprecado)
 - 68e5702 — feat: implementar launchRoblox con protocolo roblox-player
 - 260dbe7 — feat: UI completa con modal de lanzamiento e IPC completa
+- [Sprints E1-E5 — ejecutar git log --oneline para ver commits completos]
+
+---
+
+## Instrucciones para el agente — LEER ANTES DE TOCAR CUALQUIER ARCHIVO
+
+1. Lee este PROJECT.md completo antes de empezar cualquier tarea
+2. Ejecuta `git log --oneline -10` para ver el estado real de commits
+3. Ejecuta `git status` para ver cambios pendientes
+4. Verifica el estado real antes de asumir qué está hecho o no
+5. Una tarea a la vez — commit atómico en español después de cada una
+6. Actualiza este PROJECT.md marcando ✅ al completar cada item
+7. Push a origin main después de cada commit
+8. Para y reporta después de cada tarea esperando confirmación
+9. Si hay errores de TypeScript — corrígelos antes de continuar
+10. NUNCA commitear con errores de tsc sin resolver
+11. Responde siempre en español
 
 ---
 
@@ -601,3 +753,7 @@ thumbnails.roblox.com       → avatares, thumbnails de juegos
 - contextIsolation: true + nodeIntegration: false + sandbox: true en Electron — nunca deshabilitar
 - Modo offline usa el último plan conocido localmente — nunca bloquear sin conexión
 - Roblox API calls con cache LRU de 60s para respetar rate limits
+- i18n: español como idioma por defecto en toda la plataforma
+- Temas: Dark como tema por defecto
+- Custom themes solo disponibles para plan Enterprise
+- NUNCA usar dangerouslySetInnerHTML con datos externos en React/Next.js
