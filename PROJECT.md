@@ -568,7 +568,7 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 
 ### Sprint E6 — i18n ❌ SIGUIENTE
  [ ] Crear src/renderer/locales/es.json, en.json, pt.json con todas las traducciones ✅
- [ ] Envolver toda la UI en i18next provider
+ [ ] Envolver toda la UI en i18next provider ✅
 - [ ] Selector de idioma con banderas en Header
 - [ ] Selector de idioma en pantalla de Login (antes de autenticarse)
 - [ ] IPC channel: settings:language:get/set
@@ -697,8 +697,8 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 - ✅ Sprint E3 — Server Browser
 - ✅ Sprint E4 — Presence Dashboard
 - ✅ Sprint E5 — Integración SaaS
-- ❌ Sprint E6 — i18n — SIGUIENTE TAREA
-- ❌ Sprint E7 — Temas personalizables
+ - ⏳ Sprint E6 — i18n — en progreso (archivos de traducción creados, i18next configurado)
+ - ❌ Sprint E7 — Temas personalizables
 - ❌ Sprint E8 — Settings Panel completo
 
 ### Landing Page (NexoAccManager-Landing)
