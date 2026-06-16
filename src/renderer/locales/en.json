@@ -342,5 +342,11 @@
     "buttonRegistering": "Creating account...",
     "noAccountLink": "Don't have an account? Sign up here",
     "hasAccountLink": "Already have an account? Log in here"
+  },
+  "languageSelector": {
+    "title": "Language",
+    "es": "Spanish",
+    "en": "English",
+    "pt": "Portuguese"
   }
 }

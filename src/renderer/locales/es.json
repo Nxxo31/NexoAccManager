@@ -318,7 +318,7 @@
       "title": "Iniciar Sesión",
       "subtitle": "Accede a tu cuenta de NexoAccManager",
       "labelEmail": "Email",
-      "placeholderEmail": "tu@email Github por email.com",
+      "placeholderEmail": "tu@email.com",
       "labelPassword": "Contraseña",
       "placeholderPassword": "••••••••"
     },
@@ -342,5 +342,11 @@
     "buttonRegistering": "Creando cuenta...",
     "noAccountLink": "¿No tienes una cuenta? Regístrate aquí",
     "hasAccountLink": "¿Ya tienes una cuenta? Inicia sesión"
+  },
+  "languageSelector": {
+    "title": "Idioma",
+    "es": "Español",
+    "en": "English",
+    "pt": "Portugués"
   }
 }

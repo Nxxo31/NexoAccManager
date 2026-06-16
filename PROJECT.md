@@ -566,15 +566,15 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 - ✅ Modo offline con último plan conocido
 - ✅ Auto Cookie Refresh (cookie 24h antes de expirar)
 
-### Sprint E6 — i18n ❌ SIGUIENTE
- [ ] Crear src/renderer/locales/es.json, en.json, pt.json con todas las traducciones ✅
- [ ] Envolver toda la UI en i18next provider ✅
- [ ] Reemplazar strings hardcodeadas en App.tsx y componentes por t('key') ✅
- [ ] Selector de idioma con banderas en Header
- [ ] Selector de idioma en pantalla de Login (antes de autenticarse)
- [ ] IPC channel: settings:language:get/set
- [ ] Persistir idioma en SQLite tabla settings
- [ ] Detectar idioma del SO al primer arranque con i18next-browser-languagedetector
+### Sprint E6 — i18n ✅ COMPLETADO
+[ x ] Crear src/renderer/locales/es.json, en.json, pt.json con todas las traducciones ✅
+[ x ] Envolver toda la UI en i18next provider ✅
+[ x ] Reemplazar strings hardcodeadas en App.tsx y componentes por t('key') ✅
+[ x ] Selector de idioma con banderas en Header
+[ x ] Selector de idioma en pantalla de Login (antes de autenticarse)
+[ x ] IPC channel: settings:language:get/set
+[ x ] Persistir idioma en SQLite tabla settings
+[ x ] Detectar idioma del SO al primer arranque con i18next-browser-languagedetector
 
 #### Sprint E7 — Temas personalizables ❌ pendiente
 - [ ] Instalar y configurar sistema de temas con CSS variables

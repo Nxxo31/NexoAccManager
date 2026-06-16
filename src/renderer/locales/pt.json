@@ -342,5 +342,11 @@
     "buttonRegistering": "Criando conta...",
     "noAccountLink": "Não tem uma conta? Registre-se aqui",
     "hasAccountLink": "Já tem uma conta? Entre aqui"
+  },
+  "languageSelector": {
+    "title": "Idioma",
+    "es": "Espanhol",
+    "en": "Inglês",
+    "pt": "Português"
   }
 }
