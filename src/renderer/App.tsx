@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import AccountList from './components/AccountList';
 import AddAccountForm from './components/AddAccountForm';
 import SettingsPanel from './components/SettingsPanel';
@@ -20,6 +21,7 @@ interface Account {
 }
 
 export default function App() {
+  const { t } = useTranslation();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,12 +36,12 @@ export default function App() {
       // @ts-expect-error api existe en window via preload
       const result = await window.api.account.list();
       if (result && result.success === false) {
-        setError(result.error || 'Error al cargar cuentas');
+        setError(result.error || t('app.errorLoadingAccounts'));
         return;
       }
       setAccounts(result || []);
     } catch (err) {
-      setError('Error al cargar cuentas. Asegúrate de que NexoAccManager esté ejecutándose.');
+      setError(t('app.errorLoadingAccounts'));
       console.error(err);
     } finally {
       setLoading(false);
@@ -89,7 +91,6 @@ export default function App() {
           // Usuario no autenticado y no hay datos offline, ir a pantalla de login
           setActiveView('auth');
         }
-      } finally {
         setCheckingAuth(false);
       }
     };
@@ -116,8 +117,9 @@ export default function App() {
   return (
     <div className="dark flex flex-col h-screen bg-[#1e272e] text-[#f5f6fa]">
       {checkingAuth && (
-        <div className="flex items-center justify-center h-screen bg-[#1e272e]">
-          <div className="animate-spin w-8 h-8 border-2 border-[#6c5ce7] border-t-transparent rounded-full"></div>
+        <div className="flex flex-col items-center justify-center h-screen bg-[#1e272e]">
+          <div className="animate-spin w-8 h-8 border-2 border-[#6c5ce7] border-t-transparent rounded-full mb-4"></div>
+          <p className="text-sm text-gray-400">{t('app.checkingAuth')}</p>
         </div>
       )}
       {!checkingAuth && (

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface AddAccountFormProps {
   onSuccess: () => void;
 }
 
 export default function AddAccountForm({ onSuccess }: AddAccountFormProps) {
+  const { t } = useTranslation();
   const [cookie, setCookie] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,19 +44,19 @@ export default function AddAccountForm({ onSuccess }: AddAccountFormProps) {
 
     const trimmed = cookie.trim();
     if (!trimmed) {
-      setError('Ingresa una cookie .ROBLOSECURITY');
+      setError(t('addAccount.errorEmptyCookie'));
       return;
     }
 
     if (!trimmed.startsWith('_|WARNING:-DO-NOT-SHARE|_')) {
-      setError('Formato de cookie inválido. Debe empezar con _|WARNING:-DO-NOT-SHARE|_');
+      setError(t('addAccount.errorInvalidFormat'));
       return;
     }
 
     // Verificar límite de cuenta antes de intentar agregar
     const limitData = await checkAccountLimit();
     if (!limitData.canAdd) {
-      setError(`Has alcanzado el límite de tu plan (${limitData.plan}). Actualmente tienes ${limitData.currentCount}/${limitData.limit} cuentas.`);
+      setError(t('addAccount.limitReachedText', { current: limitData.currentCount, limit: limitData.limit, plan: limitData.plan }));
       return;
     }
 
@@ -65,7 +67,7 @@ export default function AddAccountForm({ onSuccess }: AddAccountFormProps) {
       setCookie('');
       onSuccess();
     } catch (err: unknown) {
-      setError((err as Error).message || 'Error al agregar cuenta');
+      setError(t('addAccount.errorAdding'));
     } finally {
       setLoading(false);
     }
@@ -78,11 +80,11 @@ export default function AddAccountForm({ onSuccess }: AddAccountFormProps) {
 
   return (
     <div className="bg-[#2f3640] rounded-lg p-4">
-      <h3 className="font-semibold mb-3">Agregar cuenta</h3>
+      <h3 className="font-semibold mb-3">{t('addAccount.title')}</h3>
 
       {limitInfo && !limitInfo.canAdd && (
         <div className="p-3 bg-red-900/30 border border-red-600/50 rounded mb-4 text-sm text-red-300">
-          Límite de cuenta alcanzado: {limitInfo.currentCount}/{limitInfo.limit} cuentas en el plan {limitInfo.plan}.
+          {t('addAccount.limitReachedText', { current: limitInfo.currentCount, limit: limitInfo.limit, plan: limitInfo.plan })}
           <button
             onClick={() => {
               // Aquí podríamos navegar a una página de upgrade o mostrar más info
@@ -90,7 +92,7 @@ export default function AddAccountForm({ onSuccess }: AddAccountFormProps) {
             }}
             className="ml-2 text-xs text-[#6c5ce7] underline hover:cursor-pointer"
           >
-            ¿Cómo upgrade?
+            {t('addAccount.upgradeLink')}
           </button>
         </div>
       )}
@@ -98,12 +100,12 @@ export default function AddAccountForm({ onSuccess }: AddAccountFormProps) {
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
           <label className="block text-xs text-gray-400 mb-1">
-            Cookie .ROBLOSECURITY
+            {t('addAccount.labelCookie')}
           </label>
           <textarea
             value={cookie}
             onChange={(e) => setCookie(e.target.value)}
-            placeholder="_|WARNING:-DO-NOT-SHARE|_..."
+            placeholder={t('addAccount.placeholderCookie')}
             className="w-full bg-[#1e272e] border border-gray-600 rounded-md px-3 py-2 text-sm text-[#f5f6fa] placeholder-gray-600 resize-none focus:outline-none focus:border-[#6c5ce7] transition-colors"
             rows={4}
             disabled={loading}
@@ -111,12 +113,14 @@ export default function AddAccountForm({ onSuccess }: AddAccountFormProps) {
         </div>
 
         <div>
-          <label className="block text-xs text-gray-400 mb-1">Grupo</label>
+          <label className="block text-xs text-gray-400 mb-1">
+            {t('addAccount.labelGroup')}
+          </label>
           <input
             type="text"
             value={group}
             onChange={(e) => setGroup(e.target.value)}
-            placeholder="Default"
+            placeholder={t('addAccount.placeholderGroup')}
             className="w-full bg-[#1e272e] border border-gray-600 rounded-md px-3 py-2 text-sm text-[#f5f6fa] placeholder-gray-600 focus:outline-none focus:border-[#6c5ce7] transition-colors"
             disabled={loading}
           />
@@ -133,13 +137,12 @@ export default function AddAccountForm({ onSuccess }: AddAccountFormProps) {
           disabled={loading || !cookie.trim() || (limitInfo && !limitInfo.canAdd)}
           className="w-full py-2 bg-[#6c5ce7] text-white text-sm font-medium rounded-md hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Verificando...' : !limitInfo || !limitInfo.canAdd ? 'Límite alcanzado' : 'Agregar cuenta'}
+          {loading ? t('addAccount.buttonAdding') : !limitInfo || !limitInfo.canAdd ? t('addAccount.buttonLimitReached') : t('addAccount.buttonAdd')}
         </button>
       </form>
 
       <p className="text-xs text-gray-500 mt-3 leading-relaxed">
-        La cookie se almacena cifrada localmente con AES-256-GCM.
-        Nunca se envía a servidores externos.
+        {t('addAccount.securityNote')}
       </p>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface Account {
   id: string;
@@ -25,6 +26,7 @@ interface LaunchModalProps {
 }
 
 function LaunchModal({ account, onClose, onLaunch }: LaunchModalProps) {
+  const { t } = useTranslation();
   const [placeId, setPlaceId] = useState('');
   const [jobId, setJobId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,30 +42,34 @@ function LaunchModal({ account, onClose, onLaunch }: LaunchModalProps) {
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
       <div className="bg-[#2f3640] rounded-lg p-6 w-96 border border-gray-700">
         <h3 className="text-lg font-semibold mb-2">
-          Lanzar {account.displayName || account.username}
+          {t('accountList.launchModal.title', { name: account.displayName || account.username })}
         </h3>
         <p className="text-sm text-gray-500 mb-4">
-          Introduce los parámetros del juego
+          {t('accountList.launchModal.description')}
         </p>
 
         <div className="space-y-3 mb-4">
           <div>
-            <label className="block text-xs text-gray-400 mb-1">Place ID</label>
+            <label className="block text-xs text-gray-400 mb-1">
+              {t('accountList.launchModal.labelPlaceId')}
+            </label>
             <input
               type="text"
               value={placeId}
               onChange={(e) => setPlaceId(e.target.value)}
-              placeholder="ej. 1818"
+              placeholder={t('accountList.launchModal.placeholderPlaceId')}
               className="w-full bg-[#1e272e] border border-gray-700 rounded px-3 py-2 text-sm focus:border-[#6c5ce7] focus:outline-none"
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-400 mb-1">Job ID (opcional)</label>
+            <label className="block text-xs text-gray-400 mb-1">
+              {t('accountList.launchModal.labelJobId')}
+            </label>
             <input
               type="text"
               value={jobId}
               onChange={(e) => setJobId(e.target.value)}
-              placeholder="ID del servidor"
+              placeholder={t('accountList.launchModal.placeholderJobId')}
               className="w-full bg-[#1e272e] border border-gray-700 rounded px-3 py-2 text-sm focus:border-[#6c5ce7] focus:outline-none"
             />
           </div>
@@ -74,21 +80,23 @@ function LaunchModal({ account, onClose, onLaunch }: LaunchModalProps) {
             onClick={onClose}
             className="flex-1 py-2 bg-gray-700 text-gray-300 rounded text-sm hover:bg-gray-600 transition-colors"
           >
-            Cancelar
+            {t('accountList.launchModal.cancelButton')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={!placeId.trim() || loading}
             className="flex-1 py-2 bg-[#6c5ce7] text-white rounded text-sm hover:brightness-110 transition-all disabled:opacity-50"
           >
-            {loading ? 'Lanzando...' : 'Lanzar'}
+            {loading ? t('accountList.launchModal.launchingButton') : t('accountList.launchModal.launchButton')}
           </button>
         </div>
       </div>
     </div>
   );
 }
+
 export default function AccountList({ accounts, onRefresh, onRemove, onOpenAccountPanel }: AccountListProps) {
+  const { t } = useTranslation();
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
   const handleLaunchDirect = async (accountId: string, placeId: string, jobId?: string) => {
@@ -101,7 +109,7 @@ export default function AccountList({ accounts, onRefresh, onRemove, onOpenAccou
   };
 
   const handleRemove = async (accountId: string) => {
-    if (!confirm('¿Eliminar esta cuenta?')) return;
+    if (!window.confirm(t('accountList.confirmDelete'))) return;
     try {
       // @ts-expect-error api existe en window via preload
       await window.api.account.remove(accountId);
@@ -123,8 +131,8 @@ export default function AccountList({ accounts, onRefresh, onRemove, onOpenAccou
     return (
       <div className="flex flex-col items-center justify-center h-64 text-gray-500">
         <div className="text-4xl mb-3">🎮</div>
-        <p className="text-lg font-medium">Sin cuentas</p>
-        <p className="text-sm">Agrega una cuenta usando el formulario</p>
+        <p className="text-lg font-medium">{t('accountList.noAccountsTitle')}</p>
+        <p className="text-sm">{t('accountList.noAccountsDescription')}</p>
       </div>
     );
   }
@@ -133,13 +141,13 @@ export default function AccountList({ accounts, onRefresh, onRemove, onOpenAccou
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">
-          {accounts.length} cuenta{accounts.length !== 1 ? 's' : ''}
+          {accounts.length} {accounts.length === 1 ? t('accountList.accountsCount') : t('accountList.accountsCountPlural', { count: accounts.length })}
         </h2>
         <button
           onClick={onRefresh}
           className="text-sm text-gray-400 hover:text-white transition-colors"
         >
-          ↻ Actualizar
+          {t('accountList.refreshButton')}
         </button>
       </div>
 
@@ -172,12 +180,12 @@ export default function AccountList({ accounts, onRefresh, onRemove, onOpenAccou
                     onClick={() => setSelectedAccount(account)}
                     className="px-3 py-1.5 bg-[#2ed573] text-white text-sm rounded-md hover:brightness-110 transition-all"
                   >
-                    Jugar
+                    {t('accountList.playButton')}
                   </button>
                   <button
                     onClick={() => onOpenAccountPanel(account)}
                     className="px-3 py-1.5 bg-[#6347FF]/20 text-[#8B6FFF] text-sm rounded-md hover:bg-[#6347FF]/30 transition-all"
-                    title="Account Control Panel"
+                    title={t('accountList.controlPanelTitle')}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -190,7 +198,7 @@ export default function AccountList({ accounts, onRefresh, onRemove, onOpenAccou
                     onClick={() => handleRemove(account.id)}
                     className="px-3 py-1.5 bg-red-500/20 text-red-400 text-sm rounded-md hover:bg-red-500/30 transition-all"
                   >
-                    Eliminar
+                    {t('accountList.deleteButton')}
                   </button>
                 </div>
               </div>

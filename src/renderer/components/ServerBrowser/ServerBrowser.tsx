@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 // =============================================================================
 // ServerBrowser — Datos reales via IPC (roblox:games:*, roblox:servers:*)
@@ -50,6 +51,7 @@ declare global {
 }
 
 export default function ServerBrowser({ accounts }: ServerBrowserProps) {
+  const { t } = useTranslation();
   // -- state --
   const [placeId, setPlaceId] = useState('');
   const [searching, setSearching] = useState(false);
@@ -79,7 +81,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
   const handleSearch = async () => {
     if (!placeId.trim()) return;
     if (accounts.length === 0) {
-      setError('Agrega al menos una cuenta para buscar juegos');
+      setError(t('serverBrowser.searchBar.errorAddAccount'));
       return;
     }
     setSearching(true);
@@ -92,7 +94,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
       const accountId = accounts[0].id;
       const result = await window.api.roblox.searchGame(placeId.trim(), accountId);
       if (!result || !result.success) {
-        setError(result?.error || 'No se pudo encontrar el juego');
+        setError(result?.error || t('serverBrowser.searchBar.errorSearch'));
         setSearching(false);
         return;
       }
@@ -100,7 +102,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
       // Auto-load servers
       await loadServers(placeId.trim());
     } catch (e: any) {
-      setError(e.message || 'Error buscando juego');
+      setError(e.message || t('serverBrowser.searchBar.errorSearchGeneric'));
     } finally {
       setSearching(false);
     }
@@ -126,9 +128,9 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
       const accountId = accounts[0].id;
       const result = await window.api.roblox.joinServer(String(game.placeId), server.jobId, accountId);
       if (result?.success) {
-        alert(`Uniendo a ${game.name} — Server ${server.jobId.slice(0, 8)}...`);
+        alert(`${t('serverBrowser.table.joinAlert', { game: game.name, server: server.jobId.slice(0, 8) })}`);
       } else {
-        alert(result?.error || 'Error uniendose al server');
+        alert(result?.error || t('serverBrowser.table.joinError'));
       }
     } catch (e: any) {
       alert(`Error: ${e.message}`);
@@ -151,9 +153,9 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
       const result = await window.api.roblox.distributeAccounts(String(game.placeId), accountIds);
       if (result?.success) {
         const successCount = Object.values(result.data).filter(Boolean).length;
-        alert(`Distribucion completada: ${successCount}/${accountIds.length} cuentas`);
+        alert(`${t('serverBrowser.table.distributeSuccess', { success: successCount, total: accountIds.length })}`);
       } else {
-        alert(result?.error || 'Error distribuyendo cuentas');
+        alert(result?.error || t('serverBrowser.table.distributeError'));
       }
     } catch (e: any) {
       alert(`Error: ${e.message}`);
@@ -164,9 +166,9 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
 
   const getOccupancyBadge = (current: number, max: number) => {
     const pct = max > 0 ? Math.round((current / max) * 100) : 0;
-    if (pct >= 90) return { label: 'Alta', className: 'bg-red-500/20 text-red-400 border-red-500/30' };
-    if (pct >= 60) return { label: 'Media', className: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
-    return { label: 'Baja', className: 'bg-green-500/20 text-green-400 border-green-500/30' };
+    if (pct >= 90) return { label: t('serverBrowser.table.occupancyHigh'), className: 'bg-red-500/20 text-red-400 border-red-500/30' };
+    if (pct >= 60) return { label: t('serverBrowser.table.occupancyMedium'), className: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
+    return { label: t('serverBrowser.table.occupancyLow'), className: 'bg-green-500/20 text-green-400 border-green-500/30' };
   };
 
   // -- render --
@@ -181,7 +183,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
               value={placeId}
               onChange={(e) => setPlaceId(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Ingresa el PlaceId del juego..."
+              placeholder={t('serverBrowser.searchBar.placeholder')}
               className="flex-1 bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#DE350D] transition-colors"
             />
             <button
@@ -192,10 +194,10 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
               {searching ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Buscando...
+                  {t('serverBrowser.searchBar.buttonSearching')}
                 </>
               ) : (
-                <>Buscar</>
+                <>{t('serverBrowser.searchBar.buttonSearch')}</>
               )}
             </button>
           </div>
@@ -216,26 +218,26 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
               <img src={game.thumbnail} alt={game.name} className="w-24 h-24 rounded-lg object-cover bg-[#2A2A2A]" />
             ) : (
               <div className="w-24 h-24 rounded-lg bg-[#2A2A2A] flex items-center justify-center text-gray-500 text-xs">
-                Sin thumbnail
+                {t('serverBrowser.gameCard.noThumbnail')}
               </div>
             )}
             <div className="flex-1 min-w-0">
               <h3 className="text-lg font-semibold text-white truncate">{game.name}</h3>
-              <p className="text-sm text-gray-400 mt-1 line-clamp-2">{game.description || 'Sin descripcion'}</p>
+              <p className="text-sm text-gray-400 mt-1 line-clamp-2">{game.description || t('serverBrowser.gameCard.noDescription')}</p>
               <div className="flex items-center gap-4 mt-3 text-sm text-gray-300">
                 <span className="flex items-center gap-1">
                   <svg className="w-4 h-4 text-[#DE350D]" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
                   </svg>
-                  {game.playerCount.toLocaleString()} jugando
+                  {game.playerCount.toLocaleString()} {t('serverBrowser.gameCard.ratingLabel')}
                 </span>
                 <span className="flex items-center gap-1">
                   <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.26.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.55-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
-                  {game.rating > 0 ? `${game.rating.toFixed(1)} *` : 'N/A'}
+                  {game.rating > 0 ? `${game.rating.toFixed(1)} *` : t('serverBrowser.gameCard.noRating')}
                 </span>
-                <span className="text-gray-500">Max: {game.maxPlayers}</span>
+                <span className="text-gray-500">{t('serverBrowser.gameCard.maxPlayers', { max: game.maxPlayers })}</span>
               </div>
             </div>
           </div>
@@ -246,29 +248,29 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
       {game && (
         <div className="px-4 py-3 border-b border-[#2A2A2A] flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-400">Region:</label>
+            <label className="text-sm text-gray-400">{t('serverBrowser.filters.regionLabel')}</label>
             <select
               value={regionFilter}
               onChange={(e) => setRegionFilter(e.target.value as Region)}
               className="bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#DE350D]"
             >
-              <option value="ALL">Todas</option>
-              <option value="NA">North America</option>
-              <option value="EU">Europe</option>
-              <option value="ASIA">Asia</option>
-              <option value="SA">South America</option>
+              <option value="ALL">{t('serverBrowser.filters.regionAll')}</option>
+              <option value="NA">{t('serverBrowser.filters.regionNA')}</option>
+              <option value="EU">{t('serverBrowser.filters.regionEU')}</option>
+              <option value="ASIA">{t('serverBrowser.filters.regionASIA')}</option>
+              <option value="SA">{t('serverBrowser.filters.regionSA')}</option>
             </select>
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-400">Ordenar:</label>
+            <label className="text-sm text-gray-400">{t('serverBrowser.filters.sortLabel')}</label>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortBy)}
               className="bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#DE350D]"
             >
-              <option value="least-players">Menos jugadores</option>
-              <option value="most-players">Mas jugadores</option>
+              <option value="least-players">{t('serverBrowser.filters.sortLeastPlayers')}</option>
+              <option value="most-players">{t('serverBrowser.filters.sortMostPlayers')}</option>
             </select>
           </div>
 
@@ -281,7 +283,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
               </svg>
-              Auto-join menos jugadores
+              {t('serverBrowser.filters.buttonAutoJoin')}
             </button>
             <button
               onClick={handleDistribute}
@@ -291,7 +293,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
-              Distribuir cuentas
+              {t('serverBrowser.filters.buttonDistribute')}
             </button>
           </div>
         </div>
@@ -304,15 +306,15 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
             <svg className="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <p className="text-lg font-medium">Busca un juego por PlaceId</p>
-            <p className="text-sm mt-1">Ingresa el PlaceId de un juego de Roblox para ver sus servers</p>
+            <p className="text-lg font-medium">{t('serverBrowser.emptyState.title')}</p>
+            <p className="text-sm mt-1">{t('serverBrowser.emptyState.description')}</p>
           </div>
         )}
 
         {game && filteredServers.length === 0 && (
           <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-            <p className="text-lg font-medium">No hay servers disponibles</p>
-            <p className="text-sm mt-1">Intenta ajustar los filtros o buscar otro juego</p>
+            <p className="text-lg font-medium">{t('serverBrowser.noServers.title')}</p>
+            <p className="text-sm mt-1">{t('serverBrowser.noServers.description')}</p>
           </div>
         )}
 
@@ -320,18 +322,18 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
           <table className="w-full text-left">
             <thead className="sticky top-0 bg-[#0D0D0D]">
               <tr className="border-b border-[#2A2A2A]">
-                <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">JobId</th>
+                <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{t('serverBrowser.table.colJobId')}</th>
                 <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Region
-                  <span className="ml-1 text-[10px] text-gray-600" title="Region estimada basada en lat hardware de Roblox">(estimada)</span>
+                  {t('serverBrowser.table.colRegion')}
+                  <span className="ml-1 text-[10px] text-gray-600" title="Region estimada basada en lat hardware de Roblox">{t('serverBrowser.table.regionEstimated')}</span>
                 </th>
-                <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Jugadores</th>
+                <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{t('serverBrowser.table.colPlayers')}</th>
                 <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ping
-                  <span className="ml-1 text-[10px] text-gray-600" title="Ping estimado, no medido directamente">(estimado)</span>
+                  {t('serverBrowser.table.colPing')}
+                  <span className="ml-1 text-[10px] text-gray-600" title="Ping estimado, no medido directamente">{t('serverBrowser.table.pingEstimated')}</span>
                 </th>
-                <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Ocupacion</th>
-                <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Accion</th>
+                <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{t('serverBrowser.table.colOccupancy')}</th>
+                <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">{t('serverBrowser.table.colAction')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#2A2A2A]">
@@ -364,7 +366,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
                         disabled={joining}
                         className="px-3 py-1.5 bg-[#DE350D] hover:bg-[#B22A0A] disabled:opacity-50 rounded text-xs font-medium text-white transition-all"
                       >
-                        {joining ? 'Uniendo...' : 'Unirse'}
+                        {joining ? t('serverBrowser.table.joiningButton') : t('serverBrowser.table.joinButton')}
                       </button>
                     </td>
                   </tr>

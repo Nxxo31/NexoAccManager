@@ -569,11 +569,12 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 ### Sprint E6 — i18n ❌ SIGUIENTE
  [ ] Crear src/renderer/locales/es.json, en.json, pt.json con todas las traducciones ✅
  [ ] Envolver toda la UI en i18next provider ✅
-- [ ] Selector de idioma con banderas en Header
-- [ ] Selector de idioma en pantalla de Login (antes de autenticarse)
-- [ ] IPC channel: settings:language:get/set
-- [ ] Persistir idioma en SQLite tabla settings
-- [ ] Detectar idioma del SO al primer arranque con i18next-browser-languagedetector
+ [ ] Reemplazar strings hardcodeadas en App.tsx y componentes por t('key') ✅
+ [ ] Selector de idioma con banderas en Header
+ [ ] Selector de idioma en pantalla de Login (antes de autenticarse)
+ [ ] IPC channel: settings:language:get/set
+ [ ] Persistir idioma en SQLite tabla settings
+ [ ] Detectar idioma del SO al primer arranque con i18next-browser-languagedetector
 
 #### Sprint E7 — Temas personalizables ❌ pendiente
 - [ ] Instalar y configurar sistema de temas con CSS variables
@@ -697,7 +698,7 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 - ✅ Sprint E3 — Server Browser
 - ✅ Sprint E4 — Presence Dashboard
 - ✅ Sprint E5 — Integración SaaS
- - ⏳ Sprint E6 — i18n — en progreso (archivos de traducción creados, i18next configurado)
+ - ✅ Sprint E6 — i18n — E6.4 completado (strings reemplazadas en App, Header, AddAccountForm, AccountList, ServerBrowser)
  - ❌ Sprint E7 — Temas personalizables
 - ❌ Sprint E8 — Settings Panel completo
 
