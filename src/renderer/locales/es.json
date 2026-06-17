@@ -56,6 +56,11 @@
   },
   "settings": {
     "title": "Configuración",
+    "appearance": "Apariencia",
+    "language": "Idioma",
+    "account": "Cuenta",
+    "security": "Seguridad",
+    "advanced": "Avanzado",
     "multiRoblox": {
       "title": "Multi-Roblox",
       "description": "Permite tener varias instancias de Roblox abiertas simultáneamente.\nUsa el protocolo roblox:// directamente."
@@ -119,7 +124,6 @@
       "colPing": "Ping",
       "pingEstimated": "(estimado)",
       "colOccupancy": "Ocupacion",
-      "colAction": "Accion",
       "occupancyHigh": "Alta",
       "occupancyMedium": "Media",
       "occupancyLow": "Baja",
