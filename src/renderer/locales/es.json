@@ -56,7 +56,27 @@
   },
   "settings": {
     "title": "Configuración",
-    "appearance": "Apariencia",
+    "appearance": {
+      "theme": "Tema",
+      "theme.dark": "Oscuro",
+      "theme.light": "Claro",
+      "theme.robloxClassic": "Clásico Roblox",
+      "theme.custom": "Personalizado",
+      "theme.darkDesc": "Tema oscuro con fondo negro y acentos rojos",
+      "theme.lightDesc": "Tema claro con fondo blanco y acentos rojos",
+      "theme.robloxClassicDesc": "Tema inspirado en el diseño clásico de Roblox",
+      "theme.customDesc": "Colores personalizados (disponible solo en plan Enterprise)",
+      "fontSize": "Tamaño de fuente",
+      "fontSize.small": "Pequeño",
+      "fontSize.medium": "Mediano",
+      "fontSize.large": "Grande",
+      "uiDensity": "Densidad de interfaz",
+      "uiDensity.compact": "Compacta",
+      "uiDensity.normal": "Normal",
+      "uiDensity.spacious": "Espaciosa",
+      "animations": "Animaciones",
+      "animations.enabled": "Habilitar animaciones"
+    },
     "language": "Idioma",
     "account": "Cuenta",
     "security": "Seguridad",
@@ -248,7 +268,6 @@
       "optionAll": "Todos",
       "optionFriends": "Amigos",
       "optionNone": "Nadie",
-      "optionPublic": "Publico",
       "optionPrivate": "Privado",
       "sections": {
         "privateMessages": {

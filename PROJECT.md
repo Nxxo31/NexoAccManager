@@ -700,7 +700,7 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 - ✅ Sprint E4 — Presence Dashboard
 - ✅ Sprint E5 — Integración SaaS
  - ✅ Sprint E6 — i18n — completado
- - ❌ Sprint E7 — Temas personalizables
+ - ✅ Sprint E7 — Temas personalizables — completado
 - ❌ Sprint E8 — Settings Panel completo
 
 ### Landing Page (NexoAccManager-Landing)

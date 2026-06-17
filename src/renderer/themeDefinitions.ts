@@ -1,20 +1,5 @@
-// Duplicate of theme definitions from src/main/core/ThemeService.ts
-// Keep in sync with the main process version
-
-export type ThemeId = 'dark' | 'light' | 'roblox-classic' | 'custom';
-export type FontSize = 'small' | 'medium' | 'large';
-export type UiDensity = 'compact' | 'normal' | 'spacious';
-
-export interface ThemeSettings {
-  theme: ThemeId;
-  fontSize: FontSize;
-  uiDensity: UiDensity;
-  animationsEnabled: boolean;
-  primaryColor?: string;
-  accentColor?: string;
-}
-
-export const themeDefinitions: Record<ThemeId, Record<string, string>> = {
+// Definiciones de temas - Deben coincidir con ThemeService.ts en main
+export const themeDefinitions = {
   dark: {
     '--primary': '#DE350D',
     '--primary-dark': '#B22A0A',
@@ -61,7 +46,7 @@ export const themeDefinitions: Record<ThemeId, Record<string, string>> = {
     '--border': '#333333',
   },
   custom: {
-    // Only for Enterprise, colors are set dynamically
+    // Solo para Enterprise, los colores se establecen dinámicamente
     '--primary': '#DE350D',
     '--primary-dark': '#B22A0A',
     '--accent': '#6347FF',
@@ -77,36 +62,3 @@ export const themeDefinitions: Record<ThemeId, Record<string, string>> = {
     '--border': '#2A2A2A',
   },
 };
-
-export function generateThemeCSS(settings: ThemeSettings): Record<string, string> {
-  const base = themeDefinitions[settings.theme] || themeDefinitions['dark'];
-  const css: Record<string, string> = { ...base };
-
-  if (settings.theme === 'custom') {
-    if (settings.primaryColor) css['--primary'] = settings.primaryColor;
-    if (settings.accentColor) css['--accent'] = settings.accentColor;
-  }
-
-  // Font size
-  const fontSizeMap: Record<FontSize, string> = {
-    small: '13px',
-    medium: '15px',
-    large: '17px',
-  };
-  css['--font-size'] = fontSizeMap[settings.fontSize ?? 'medium'] ?? '15px';
-
-  // UI Density
-  const densityMap: Record<UiDensity, { spacing: string; cardPadding: string }> = {
-    compact: { spacing: '4px', cardPadding: '8px' },
-    normal: { spacing: '8px', cardPadding: '16px' },
-    spacious: { spacing: '16px', cardPadding: '24px' },
-  };
-  const density = densityMap[settings.uiDensity ?? 'normal'] ?? densityMap['normal'];
-  css['--spacing'] = density.spacing;
-  css['--card-padding'] = density.cardPadding;
-
-  // Animations
-  css['--transition-duration'] = settings.animationsEnabled ? '200ms' : '0ms';
-
-  return css;
-}
