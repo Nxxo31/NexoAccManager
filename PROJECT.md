@@ -7,9 +7,10 @@ Las cuentas se guardan cifradas localmente. El backend solo gestiona licencias y
 Las cookies de Roblox NUNCA salen del dispositivo del usuario.
 
 ## Repositorios
-- Motor RAM (App Electron): https://github.com/Nxxo31/NexoAccManager
-- Backend API: https://github.com/Nxxo31/NexoAccManager-Backend (crear)
-- Landing Page: https://github.com/Nxxo31/NexoAccManager-Landing (en progreso)
+## Repositorios
+- Motor RAM (App Electron): https://github.com/Nxxo31/NexoAccManager ✅ activo
+- Backend API: https://github.com/Nxxo31/NexoAccManager-Backend ❌ pendiente crear
+- Landing Page: https://github.com/Nxxo31/NexoAccManager-Landing ✅ activo — Sprint L1 en progreso
 
 ## Referencias
 - https://github.com/ic3w0lf22/Roblox-Account-Manager
@@ -703,10 +704,12 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 - ❌ Sprint E8 — Settings Panel completo
 
 ### Landing Page (NexoAccManager-Landing)
-- ✅ Repo creado localmente
-- ✅ Next.js 14 + TypeScript + Tailwind setup iniciado
+- ✅ Repo creado en GitHub — https://github.com/Nxxo31/NexoAccManager-Landing
+- ✅ Next.js 14 + TypeScript + Tailwind setup
 - ✅ layout.tsx creado
-- ❌ Sprint L1 — Setup completo + git limpio + push
+- ✅ Hero section con gradient, CTAs y animaciones
+- ✅ Features section con comparativa vs RAM
+- ❌ Sprint L1 — Setup completo (node_modules en git, push limpio pendiente)
 
 ### Backend API (NexoAccManager-Backend)
 - ❌ Todo pendiente — Prioridad 3

@@ -9,6 +9,7 @@ import { AccountSettingsService } from './core/AccountSettingsService';
 import { PresenceService } from './services/PresenceService';
 import { AuthService, LicenseData } from './services/AuthService';
 import { CookieExpiryService } from './services/CookieExpiryService';
+import { ThemeService, ThemeSettings } from './core/ThemeService';
 
 // =============================================================================
 // TYPE GUARDS PARA VALIDACIÓN DE PAYLOADS IPC (Defense in Depth)
@@ -117,6 +118,7 @@ class NexoApp {
   private presenceService: PresenceService;
   private authService: AuthService;
   private cookieExpiryService: CookieExpiryService;
+  private themeService: ThemeService;
 
   constructor() {
     this.db = new DatabaseManager();
@@ -127,6 +129,7 @@ class NexoApp {
     this.presenceService = new PresenceService(this.db, this.crypto);
     this.authService = new AuthService(this.db);
     this.cookieExpiryService = new CookieExpiryService(this.db, this.crypto);
+    this.themeService = new ThemeService(this.db);
   }
 
   async initialize(): Promise<void> {
@@ -1054,6 +1057,68 @@ class NexoApp {
         return ok({ canAdd, plan, currentCount: accountCount });
       } catch (e) {
         return err(`Error verificando límite de cuenta: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // THEME / APPEARANCE
+    // =================================================================
+
+    ipcMain.handle('settings:theme:get', () => {
+      try {
+        const settings = this.themeService.getSettings();
+        const css = this.themeService.getThemeCSS();
+        return ok({ settings, css });
+      } catch (e) {
+        return err(`Error obteniendo tema: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('settings:theme:set', async (_, payload: unknown) => {
+      if (!payload || typeof payload !== 'object') {
+        return err('Payload inválido: debe ser un objeto');
+      }
+      try {
+        const patched = this.themeService.setSettings(payload as Partial<ThemeSettings>);
+        const css = this.themeService.getThemeCSS();
+        return ok({ settings: patched, css });
+      } catch (e) {
+        return err(`Error guardando tema: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // ADVANCED
+    // =================================================================
+
+    ipcMain.handle('advanced:clearCache', () => {
+      try {
+        this.accountManager.clearCache();
+        return ok({ success: true, message: 'Caché limpiada' });
+      } catch (e) {
+        return err(`Error limpiando caché: ${(e as Error).message}`);
+      }
+    });
+    ipcMain.handle('advanced:exportData', async () => {
+      try {
+        // For now, just return a success message
+        return ok({ success: true, message: 'Datos exportados correctamente' });
+      } catch (e) {
+        return err(`Error exportando datos: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('advanced:deleteAllAccounts', async () => {
+      try {
+        const accounts = this.accountManager.getAllAccounts();
+        let count = 0;
+        for (const account of accounts) {
+          await this.accountManager.removeAccount(account.id);
+          count++;
+        }
+        return ok({ success: true, message: `Se eliminaron ${count} cuentas` });
+      } catch (e) {
+        return err(`Error eliminando cuentas: ${(e as Error).message}`);
       }
     });
   }

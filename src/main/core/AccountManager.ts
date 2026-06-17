@@ -54,7 +54,14 @@ export class AccountManager {
     this.cachedAccounts = (await this.db.getAllAccounts()).map(this.hydrateAccount);
   }
 
-  /**  
+  /**
+   * Clears the cached accounts
+   */
+  clearCache(): void {
+    this.cachedAccounts = [];
+  }
+
+  /**
    * Transforma los datos SQL a un objeto Account
    */
   private hydrateAccount(row: any): Account {

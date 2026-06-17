@@ -8,6 +8,7 @@ import AccountControlPanel from './components/AccountControlPanel/AccountControl
 import ServerBrowser from './components/ServerBrowser/ServerBrowser';
 import PresenceDashboard from './components/PresenceDashboard';
 import AuthPage from './components/auth/AuthPage';
+import { ThemeProvider } from './context/ThemeContext';
 
 interface Account {
   id: string;
@@ -21,6 +22,14 @@ interface Account {
 }
 
 export default function App() {
+  return (
+    <ThemeProvider>
+      <AppInner />
+    </ThemeProvider>
+  );
+}
+
+function AppInner() {
   const { t } = useTranslation();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,8 +42,7 @@ export default function App() {
     try {
       setLoading(true);
       setError(null);
-      // @ts-expect-error api existe en window via preload
-      const result = await window.api.account.list();
+      const result = await (window as any).api.account.list();
       if (result && result.success === false) {
         setError(result.error || t('app.errorLoadingAccounts'));
         return;
@@ -52,8 +60,7 @@ export default function App() {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        // @ts-expect-error api existe en window via preload
-        const authStatus = await window.api.auth.status();
+        const authStatus = await (window as any).api.auth.status();
         if (authStatus && authStatus.success !== false && authStatus.data && authStatus.data.authenticated) {
           // Usuario autenticado, guardar datos en localStorage para modo offline
           localStorage.setItem('nexoLicenseData', JSON.stringify(authStatus.data.license));

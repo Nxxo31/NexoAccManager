@@ -51,7 +51,6 @@ type IpcChannel =
   | 'auth:status'
   | 'auth:refresh-token'
   | 'auth:can-add-account'
-  | 'license:get'
   // Theme / Appearance
   | "settings:theme:get"
   | "settings:theme:set"
@@ -105,7 +104,6 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'auth:status',
   'auth:refresh-token',
   'auth:can-add-account',
-  'license:get',
   // Theme / Appearance
   'settings:theme:get',
   'settings:theme:set',
@@ -191,11 +189,6 @@ contextBridge.exposeInMainWorld('api', {
     getRecentGames: (accountId: string) => invoke('presence:recent-games', accountId),
     getRobuxBalance: (accountId: string) => invoke('presence:robux-balance', accountId),
   },
-  advanced: {
-    clearCache: () => invoke('advanced:clearCache'),
-    exportData: () => invoke('advanced:exportData'),
-    deleteAllAccounts: () => invoke('advanced:deleteAllAccounts'),
-  },
   // Auth y licencia (Sprint E5)
   auth: {
     login: (email: string, password: string) => invoke('auth:login', email, password),
@@ -264,11 +257,6 @@ export interface Api {
     getRecentGames: (accountId: string) => Promise<any[]>;
     getRobuxBalance: (accountId: string) => Promise<any>;
   };
-  advanced: {
-    clearCache: () => Promise<void>;
-    exportData: () => Promise<void>;
-    deleteAllAccounts: () => Promise<void>;
-  },
   // Auth y licencia (Sprint E5)
   auth: {
     login: (email: string, password: string) => Promise<any>;

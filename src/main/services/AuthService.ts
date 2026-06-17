@@ -4,8 +4,9 @@
 import * as jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { DatabaseManager } from '../storage/DatabaseManager';
+import { LicenseService } from '../core/LicenseService';
 
-/** 
+/**
  * Licencia del usuario para control de planes y límites
  */
 export interface LicenseData {
@@ -28,9 +29,11 @@ interface JwtPayload {
 export class AuthService {
   private db: DatabaseManager;
   private jwtSecret: string;
+  private licenseService: LicenseService;
 
   constructor(db: DatabaseManager) {
     this.db = db;
+    this.licenseService = new LicenseService(db);
     // In production, this should come from environment variables
     this.jwtSecret = process.env.JWT_SECRET || 'nexojwtsecretkey_' + uuidv4();
   }
@@ -66,42 +69,47 @@ export class AuthService {
 
   /**
    * Obtiene la licencia del usuario desde el almacenamiento
-   * Nota: La implementación real usará electron-store en el renderer
    */
   async getLicenseFromStorage(): Promise<LicenseData | null> {
-    // Placeholder - se implementará con electron-store en el renderer
-    return null;
+    const settings = this.licenseService.getSettings();
+    // Map LicenseSettings to LicenseData
+    return {
+      plan: settings.plan,
+      accountLimit: settings.accountLimit,
+      status: settings.status as LicenseData['status'], // Assume compatible
+      currentPeriodEnd: settings.currentPeriodEnd ?? new Date().toISOString(), // fallback
+      stripeCustomerId: settings.stripeCustomerId,
+      stripeSubscriptionId: settings.stripeSubscriptionId,
+    };
   }
 
   /**
    * Guarda la licencia del usuario en el almacenamiento
-   * Nota: La implementación real usará electron-store en el renderer
    */
   async saveLicenseToStorage(license: LicenseData): Promise<void> {
-    // Placeholder - se implementará con electron-store en el renderer
+    await this.licenseService.setSettings({
+      plan: license.plan,
+      accountLimit: license.accountLimit,
+      status: license.status,
+      currentPeriodEnd: license.currentPeriodEnd,
+      stripeCustomerId: license.stripeCustomerId,
+      stripeSubscriptionId: license.stripeSubscriptionId,
+    });
   }
 
   /**
    * Verifica si la licencia actual permite agregar más cuentas
    */
   async canAddAccount(currentAccountCount: number): Promise<boolean> {
-    const license = await this.getLicenseFromStorage();
-    if (!license) {
-      // Si no hay licencia, asumimos plan gratuito (5 cuentas)
-      return currentAccountCount < 5;
-    }
-    return currentAccountCount < license.accountLimit;
+    const settings = this.licenseService.getSettings();
+    return currentAccountCount < settings.accountLimit;
   }
 
   /**
    * Obtiene el plan actual del usuario
    */
   async getCurrentPlan(): Promise<'FREE' | 'STARTER' | 'PRO' | 'BUSINESS' | 'ENTERPRISE'> {
-    const license = await this.getLicenseFromStorage();
-    if (!license) {
-      return 'FREE';
-    }
-    return license.plan;
+    return this.licenseService.getSettings().plan;
   }
 
   /**
