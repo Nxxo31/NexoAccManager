@@ -445,7 +445,7 @@ Control completo de la cuenta Roblox desde la app, sin abrir el navegador:
 - ✅ Persistencia del tema en SQLite settings
 - ✅ Aplicación dinámica en renderer sin recargar
 
-### Fase 8 — Settings Panel completo ❌ PENDIENTE
+### Fase 8 — Settings Panel completo ✅ 2026-06-17
 - [ ] Sección "Apariencia": selector tema, tamaño fuente, densidad UI, toggle animaciones
 - [ ] Sección "Idioma": dropdown con banderas ES/EN/PT
 - [ ] Sección "Cuenta": email, plan actual, botón logout, botón upgrade

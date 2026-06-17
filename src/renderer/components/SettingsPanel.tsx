@@ -396,16 +396,14 @@ export default function SettingsPanel() {
           </p>
           <button
             onClick={() => {
-              // Open Account Control Panel for the first available account
-              // We'll need to get the list of accounts and open the first one
-              // For simplicity, we'll just show a message or try to open the ACP
-              // We'll send an event to the main window to open the ACP?
-              // Instead, we can simulate clicking on the first account in the list?
-              // Since we don't have easy access to the accounts list here, we'll just show a placeholder.
-              window.alert(t('settings.security.placeholder'));
+              if (accounts.length > 0) {
+                onSelectAccount(accounts[0]);
+              } else {
+                window.alert(t('settings.security.noAccounts'));
+              }
             }}
             className="w-full px-4 py-2 bg-[#6c5ce7]/20 text-[#6c5ce7] rounded hover:bg-[#6c5ce7]/30 transition-colors">
-            {t('settings.security.manageAccountSecurity')}
+              {t('settings.security.manageAccountSecurity')}
           </button>
         </div>
 

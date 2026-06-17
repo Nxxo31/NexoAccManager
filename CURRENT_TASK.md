@@ -25,7 +25,7 @@ Si E6 incompleta → completar E6. Si hay errores tsc → corregir primero. Lueg
 
 ## ✅ E7 Completado — Sistema de temas funcionando
 
-## Próxima tarea: E8 — Settings Panel completo
+## Próxima tarea: L1-L5 — Landing Page
 - [ ] Revisar y completar el SettingsPanel.tsx
 - [ ] Asegurar que todas las opciones guarden correctamente
 - [ ] Validar persistencia de todas las configuraciones
@@ -40,4 +40,4 @@ Si E6 incompleta → completar E6. Si hay errores tsc → corregir primero. Lueg
 5. PROJECT.md → ✅ E7 con fecha
 
 ## Siguiente
-E8 — Settings Panel completo
+L1-L5 — Landing Page

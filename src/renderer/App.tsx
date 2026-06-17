@@ -181,7 +181,7 @@ function AppInner() {
               </div>
             )}
 
-            {activeView === 'settings' && <SettingsPanel />}
+            {activeView === "settings" && (<SettingsPanel accounts={accounts} onSelectAccount={handleOpenAccountPanel} />)}
           </main>
 
           {selectedAccount && (

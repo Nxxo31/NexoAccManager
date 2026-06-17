@@ -79,7 +79,9 @@
     },
     "language": "Language",
     "account": "Account",
-    "security": "Security",
+    "security": {
+      "noAccounts": "No accounts available"
+    },
     "advanced": "Advanced",
     "multiRoblox": {
       "title": "Multi-Roblox",
