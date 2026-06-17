@@ -430,27 +430,27 @@ Control completo de la cuenta Roblox desde la app, sin abrir el navegador:
 - ❌ Ver inventario de items limitados con valor estimado
 - ❌ Mapa visual de actividad de todas las cuentas
 
-### Fase 6 — i18n + Temas ❌ Sprints E6-E8 pendientes
-- ❌ i18next + react-i18next instalado
-- ❌ Archivos de traducción: es.json, en.json, pt.json
-- ❌ Selector de idioma con banderas en Header y Login
-- ❌ Detección automática del idioma del SO
-- ❌ Persistencia de idioma en SQLite settings
-- ❌ Tema Dark / Light / Roblox Classic
-- ❌ Custom theme con color picker (Enterprise)
-- ❌ Tamaño de fuente, densidad UI, toggle animaciones
-- ❌ Settings Panel completo con todas las secciones
+### Fase 6 — i18n ✅ COMPLETADO
+- ✅ i18next + react-i18next instalado
+- ✅ Archivos de traducción: es.json, en.json, pt.json
+- ✅ Selector de idioma con banderas en Header y Login
+- ✅ Detección automática del idioma del SO
+- ✅ Persistencia de idioma en SQLite settings
 
-### Fase 7 — Features avanzadas ❌ pendientes
-- ❌ Player Finder (Pro+): buscar jugador específico en qué server está
-- ❌ Account Control via WebSocket (Business+): control en-game
-- ❌ Quick Log In: cambio rápido de cuenta en browser
-- ❌ BrowserTrackerID: prevenir instancias duplicadas
-- ❌ FPS Unlocker integrado
-- ❌ Max Instances setting
-- ❌ VIP Server support
+### Fase 7 — Temas personalizables ✅ COMPLETADO
+- ✅ Sistema de temas con CSS variables
+- ✅ ThemeService en main process
+- ✅ IPC channel: settings:theme:get/set
+- ✅ 3 temas built-in: Dark, Light, Roblox Classic
+- ✅ Persistencia del tema en SQLite settings
+- ✅ Aplicación dinámica en renderer sin recargar
 
----
+### Fase 8 — Settings Panel completo ❌ PENDIENTE
+- [ ] Sección "Apariencia": selector tema, tamaño fuente, densidad UI, toggle animaciones
+- [ ] Sección "Idioma": dropdown con banderas ES/EN/PT
+- [ ] Sección "Cuenta": email, plan actual, botón logout, botón upgrade
+- [ ] Sección "Seguridad": cambiar contraseña (delega a Account Control Panel)
+- [ ] Sección "Avanzado": limpiar caché, exportar datos, borrar cuenta local
 
 ## APIs de Roblox utilizadas
 
