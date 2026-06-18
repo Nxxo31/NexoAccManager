@@ -26,18 +26,11 @@ Si E6 incompleta → completar E6. Si hay errores tsc → corregir primero. Lueg
 ## ✅ E7 Completado — Sistema de temas funcionando
 
 ## Próxima tarea: L1-L5 — Landing Page
-- [ ] Revisar y completar el SettingsPanel.tsx
-- [ ] Asegurar que todas las opciones guarden correctamente
-- [ ] Validar persistencia de todas las configuraciones
-- [ ] Integrar con el ThemeService para aplicar cambios en tiempo real
-- [ ] Añadir validaciones y feedback visual
-- [ ] Probar con los 3 idiomas soportados
-- [ ] Commit: feat(E8): Settings Panel completo con persistencia
-1. npx tsc --noEmit → 0 errores
-2. Los 3 temas cambian sin recargar
-3. Tema persiste al cerrar/abrir
-4. Commit: feat(E7): sistema de temas con CSS variables
-5. PROJECT.md → ✅ E7 con fecha
+- [x] L1: Crear estructura base Landing Page (Next.js project scaffold)
+- [x] L2: Implementar Hero + Features + Pricing
+- [ ] L3: Implementar páginas de auth (login, register, verify-email, forgot-password, reset-password)
+- [ ] L4: Implementar Dashboard de usuario (plan, uso, descargar app)
+- [ ] L5: Integrar Stripe Checkout + SEO + deploy en Vercel
 
 ## Siguiente
 L1-L5 — Landing Page
