@@ -9,7 +9,7 @@ Las cookies de Roblox NUNCA salen del dispositivo del usuario.
 ## Repositorios
 ## Repositorios
 - Motor RAM (App Electron): https://github.com/Nxxo31/NexoAccManager ✅ activo
-- Backend API: https://github.com/Nxxo31/NexoAccManager-Backend ❌ pendiente crear
+- Backend API: https://github.com/Nxxo31/NexoAccManager-Backend ✅ activo
 - Landing Page: https://github.com/Nxxo31/NexoAccManager-Landing ✅ activo — Sprint L1 en progreso
 
 ## Referencias
