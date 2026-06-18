@@ -1,36 +1,35 @@
-# Tarea actual — Sprint E8: Settings Panel completo
+# Tarea actual — Sprint L4-L5: Landing Page (Dashboard + Stripe + Deploy)
+
+## Estado anterior completado
+- ✅ E1-E8: Motor RAM (Electron) — TODOS COMPLETADOS
+- ✅ L1: Setup Landing Page (Next.js, TypeScript, Tailwind, next-intl, Framer Motion)
+- ✅ L2: Páginas públicas (Hero, Features)
+- ✅ L3: Páginas de auth (register, login, verify-email, forgot-password, reset-password)
 
 ## Protocolo de inicio — OBLIGATORIO
 ```bash
-# 1. Leer resumen (NO el PROJECT.md completo todavía)
-cat PROJECT_SUMMARY.md
-
-# 2. Auditoría rápida
+# 1. Leer resumen
 npx tsc --noEmit 2>&1 | tail -5
 git status
 git log --oneline -5
-
-# 3. Verificar E6 antes de empezar E7
-ls src/renderer/locales/ 2>/dev/null && echo "E6 OK" || echo "COMPLETAR E6 PRIMERO"
 ```
 
-Si E6 incompleta → completar E6. Si hay errores tsc → corregir primero. Luego continuar.
+## Tarea activa: L4 — Dashboard de usuario
+- [ ] /[locale]/dashboard — plan actual, uso X/Y cuentas, próximo pago
+- [ ] /[locale]/dashboard/billing — historial, cambiar plan, cancelar
+- [ ] /[locale]/dashboard/download — descarga con instrucciones por SO
+- [ ] /[locale]/dashboard/settings — idioma, tema, notificaciones email
 
-## Tarea — E7: Temas personalizables
-- [x] ThemeService.ts en src/main/core/ — verificar que existe
-- [x] IPC: settings:theme:get / settings:theme:set
-- [x] 3 temas: Dark / Light / Roblox Classic
-- [x] Persistir en SQLite key 'theme'
-- [x] Aplicar sin recargar — CSS vars en :root via renderer
+## Próxima tarea: L5 — Stripe + i18n + Deploy
+- [ ] POST /checkout/create-session integrado
+- [ ] Páginas /success y /cancel
+- [ ] Traducir todas las páginas a ES, EN, PT
+- [ ] Deploy Vercel con variables de entorno
 
-## ✅ E7 Completado — Sistema de temas funcionando
-
-## Próxima tarea: L1-L5 — Landing Page
-- [x] L1: Crear estructura base Landing Page (Next.js project scaffold)
-- [x] L2: Implementar Hero + Features + Pricing
-- [ ] L3: Implementar páginas de auth (login, register, verify-email, forgot-password, reset-password)
-- [ ] L4: Implementar Dashboard de usuario (plan, uso, descargar app)
-- [ ] L5: Integrar Stripe Checkout + SEO + deploy en Vercel
+## Dependencias externas bloqueantes
+- Backend API (NexoAccManager-Backend) no creado todavía
+- Sin backend: no hay auth real, no hay licencias, no hay Stripe webhooks
+- Dashboard estático con mock data hasta que backend esté listo
 
 ## Siguiente
-L1-L5 — Landing Page
+Sprint B1-B5 — Backend API (Fastify + Prisma + PostgreSQL + Stripe)

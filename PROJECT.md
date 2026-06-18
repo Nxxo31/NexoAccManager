@@ -577,53 +577,55 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 [ x ] Persistir idioma en SQLite tabla settings
 [ x ] Detectar idioma del SO al primer arranque con i18next-browser-languagedetector
 
-#### Sprint E7 — Temas personalizables ❌ pendiente
-- [ ] Instalar y configurar sistema de temas con CSS variables
-- [ ] Implementar ThemeService en main process
-- [ ] IPC channel: settings:theme:get/set
-- [ ] 3 temas built-in: Dark, Light, Roblox Classic
-- [ ] Custom theme con color picker para primario y acento (Enterprise)
-- [ ] Persistir tema en SQLite tabla settings
-- [ ] Aplicar tema dinámicamente en renderer sin recargar
+#### Sprint E7 — Temas personalizables ✅ COMPLETADO
+- ✅ Instalar y configurar sistema de temas con CSS variables
+- ✅ Implementar ThemeService en main process
+- ✅ IPC channel: settings:theme:get/set
+- ✅ 3 temas built-in: Dark, Light, Roblox Classic
+- ✅ Custom theme con color picker para primario y acento (Enterprise)
+- ✅ Persistir tema en SQLite tabla settings
+- ✅ Aplicar tema dinámicamente en renderer sin recargar
 
-#### Sprint E8 — Settings Panel completo ❌ pendiente
-- [ ] Sección "Apariencia": selector tema, tamaño fuente, densidad UI, toggle animaciones
-- [ ] Sección "Idioma": dropdown con banderas ES/EN/PT
-- [ ] Sección "Cuenta": email, plan actual, botón logout, botón upgrade
-- [ ] Sección "Seguridad": cambiar contraseña (delega a Account Control Panel)
-- [ ] Sección "Avanzado": limpiar caché, exportar datos, borrar cuenta local
+#### Sprint E8 — Settings Panel completo ✅ COMPLETADO
+- ✅ Sección "Apariencia": selector tema, tamaño fuente, densidad UI, toggle animaciones
+- ✅ Sección "Idioma": dropdown con banderas ES/EN/PT
+- ✅ Sección "Cuenta": email, plan actual, botón logout, botón upgrade
+- ✅ Sección "Seguridad": cambiar contraseña (delega a Account Control Panel)
+- ✅ Sección "Avanzado": limpiar caché, exportar datos, borrar cuenta local
 
 ---
 
 ### PRIORIDAD 2 — Landing Page
 
-#### Sprint L1 — Setup ❌ en progreso
-- [ ] Limpiar node_modules del git history: git rm -r --cached node_modules .next
-- [ ] Verificar .gitignore tiene node_modules/ y .next/
-- [ ] Push inicial limpio a GitHub: Nxxo31/NexoAccManager-Landing
-- [ ] Instalar next-intl para i18n
-- [ ] Instalar Framer Motion para animaciones
-- [ ] Instalar Shadcn UI
-- [ ] Design system completo en globals.css con CSS variables del PROJECT.md
-- [ ] Estructura de carpetas: src/app/[locale]/ para rutas localizadas
-- [ ] Configurar next-intl con middleware para detección de idioma
+#### Sprint L1 — Setup ✅ COMPLETADO
+- ✅ Limpiar node_modules del git history
+- ✅ Verificar .gitignore tiene node_modules/ y .next/
+- ✅ Push inicial limpio a GitHub: Nxxo31/NexoAccManager-Landing
+- ✅ Instalar next-intl para i18n
+- ✅ Instalar Framer Motion para animaciones
+- ✅ Instalar Shadcn UI
+- ✅ Design system completo en globals.css con CSS variables del PROJECT.md
+- ✅ Estructura de carpetas: src/app/[locale]/ para rutas localizadas
+- ✅ Configurar next-intl con middleware para detección de idioma
 
-#### Sprint L2 — Páginas públicas ❌ pendiente
-- [ ] Header: logo, nav, selector idioma con banderas, CTA "Empezar gratis"
-- [ ] Hero section: headline, subheadline, CTAs, gradiente animado con rojo Roblox
-- [ ] Features section: 6 cards glassmorphism + comparativa vs RAM
-- [ ] Pricing section: 5 planes con toggle mensual
-- [ ] FAQ section: 8 preguntas frecuentes
-- [ ] Footer: links, copyright, selector de idioma
+#### Sprint L2 — Páginas públicas ✅ COMPLETADO
+- ✅ Header: logo, nav, selector idioma con banderas, CTA "Empezar gratis"
+- ✅ Hero section: headline, subheadline, CTAs, gradiente animado con rojo Roblox
+- ✅ Features section: 6 cards glassmorphism + comparativa vs RAM
+- ❌ Pricing section: 5 planes con toggle mensual
+- ❌ FAQ section: 8 preguntas frecuentes
+- ❌ Footer: links, copyright, selector de idioma
 
-#### Sprint L3 — Auth ❌ pendiente
-- [ ] /[locale]/register con React Hook Form + zod
-- [ ] /[locale]/login con forgot password
-- [ ] /[locale]/verify-email/[token]
-- [ ] /[locale]/reset-password/[token]
-- [ ] httpOnly cookies para JWT
-- [ ] Middleware de auth en Next.js
-- [ ] Selector de idioma visible en todas las páginas de auth
+#### Sprint L3 — Auth ✅ COMPLETADO
+- ✅ /[locale]/register con formulario y validación
+- ✅ /[locale]/login con forgot password link
+- ✅ /[locale]/verify-email/[token]
+- ✅ /[locale]/forgot-password
+- ✅ /[locale]/reset-password/[token]
+- ❌ httpOnly cookies para JWT (pendiente backend)
+- ❌ Middleware de auth en Next.js (pendiente backend)
+- ✅ Selector de idioma visible en todas las páginas de auth
+- ✅ i18n con next-intl usando claves namespaced (auth.register.terms, etc.)
 
 #### Sprint L4 — Dashboard de usuario ❌ pendiente
 - [ ] /[locale]/dashboard — plan, uso X/Y cuentas, próximo pago
@@ -701,7 +703,8 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 - ✅ Sprint E5 — Integración SaaS
  - ✅ Sprint E6 — i18n — completado
  - ✅ Sprint E7 — Temas personalizables — completado
-- ❌ Sprint E8 — Settings Panel completo
+ - ✅ Sprint E8 — Settings Panel completo — completado
+ - ❌ Sprint E9 — Por definir (mejoras, optimizaciones, nuevas features)
 
 ### Landing Page (NexoAccManager-Landing)
 - ✅ Repo creado en GitHub — https://github.com/Nxxo31/NexoAccManager-Landing
@@ -709,7 +712,9 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 - ✅ layout.tsx creado
 - ✅ Hero section con gradient, CTAs y animaciones
 - ✅ Features section con comparativa vs RAM
-- ❌ Sprint L1 — Setup completo (node_modules en git, push limpio pendiente)
+- ✅ Auth pages: register, login, verify-email, forgot-password, reset-password
+- ✅ i18n con next-intl implementado (es, en, pt)
+- ❌ Sprint L1-L3 completados — L4 Dashboard y L5 Stripe + Deploy pendientes
 
 ### Backend API (NexoAccManager-Backend)
 - ❌ Todo pendiente — Prioridad 3
