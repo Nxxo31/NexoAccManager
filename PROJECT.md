@@ -644,21 +644,21 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 
 ### PRIORIDAD 3 — Backend API
 
-#### Sprint B1 — Setup ❌ pendiente
-- [ ] Crear repo NexoAccManager-Backend en GitHub
-- [ ] Fastify + TypeScript + Prisma + PostgreSQL local
-- [ ] Schema Prisma (User + License + RefreshToken) con campo language en User
-- [ ] Primera migración
-- [ ] Variables de entorno: DATABASE_URL, JWT_PRIVATE_KEY, JWT_PUBLIC_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+#### Sprint B1 — Setup ✅ completado
+- [x] Crear repo NexoAccManager-Backend en GitHub
+- [x] Fastify + TypeScript + Prisma + PostgreSQL local
+- [x] Schema Prisma (User + License + RefreshToken) con campo language en User
+- [x] Primera migración
+- [x] Variables de entorno: DATABASE_URL, JWT_PRIVATE_KEY, JWT_PUBLIC_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
 
-#### Sprint B2 — Auth ❌ pendiente
-- [ ] POST /auth/register con bcrypt + License FREE automática + email verification + language
-- [ ] POST /auth/login con JWT RS256
-- [ ] POST /auth/refresh con rotación de refresh token
-- [ ] POST /auth/logout con invalidación de token
-- [ ] POST /auth/verify-email
-- [ ] POST /auth/forgot-password + /auth/reset-password
-- [ ] Middleware JWT para rutas protegidas
+#### Sprint B2 — Auth ✅ completado
+- [x] POST /auth/register con bcrypt + License FREE automática + email verification + language
+- [x] POST /auth/login con JWT RS256
+- [x] POST /auth/refresh con rotación de refresh token
+- [x] POST /auth/logout con invalidación de token
+- [x] POST /auth/verify-email
+- [x] POST /auth/forgot-password + /auth/reset-password
+- [x] Middleware JWT para rutas protegidas
 
 #### Sprint B3 — Licencias + Rate limiting ❌ pendiente
 - [ ] GET /license/verify
