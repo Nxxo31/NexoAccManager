@@ -27,9 +27,9 @@ git log --oneline -5
 - [ ] Deploy Vercel con variables de entorno
 
 ## Dependencias externas bloqueantes
-- Backend API (NexoAccManager-Backend) repositorio creado — pendiente implementar auth, licencias, Stripe, deploy
+- Backend API (NexoAccManager-Backend) repositorio creado — auth completado (B2), pendiente licencias, Stripe, deploy
 - Sin backend: no hay auth real, no hay licencias, no hay Stripe webhooks
 - Dashboard estático con mock data hasta que backend esté listo
 
 ## Siguiente
-Sprint B1-B5 — Backend API (Fastify + Prisma + PostgreSQL + Stripe)
+Sprint B3-B5 — Backend API (Licencias, Stripe, Deploy)
