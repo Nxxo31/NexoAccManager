@@ -38,7 +38,7 @@ cd ../NexoAccManager-Landing && npm run build 2>&1 | tail -5
 | T2 | F3 — i18n Landing Page (Hero/Features/FAQ/Footer) | Alta | ✅ COMPLETADO |
 | T3 | P3 — Conectar Landing Page con Backend real | Alta | ✅ COMPLETADO |
 | T4 | Preparar env vars producción (encriptar secrets, validar) | Media | Pendiente |
-| T5 | Deploy Landing Page a Vercel | Media | Pendiente |
+| T5 | Deploy Landing Page a Vercel | Media | ✅ COMPLETADO |
 | T6 | Deploy Motor RAM con electron-builder + auto-update | Alta | Pendiente |
 | T7 | Monitoreo + logs + rollback plan | Media | Pendiente |
 
