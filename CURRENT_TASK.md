@@ -6,6 +6,9 @@
 - ✅ B3: Backend Stripe checkout + webhook + customer portal
 - ✅ B3: Email verification + forgot/reset password (implementación real, no stubs)
 - ✅ T3: Landing Page conectada con Backend real (Dashboard, Billing, Settings, Login con POST /auth/login real)
+- ✅ T1: Escribir tests backend (auth, stripe, license) - unit + integration
+- ✅ T2: i18n Landing Page (Hero/Features/FAQ/Footer) - traducciones ES/EN/PT
+- ✅ T3: Deploy Backend a Railway + PostgreSQL producción
 
 ## Dependencias externas bloqueantes
 - Backend API (NexoAccManager-Backend) — Stripe completo, auth real, email funcional
@@ -35,10 +38,9 @@ cd ../NexoAccManager-Landing && npm run build 2>&1 | tail -5
 | T2 | F3 — i18n Landing Page (Hero/Features/FAQ/Footer) | Alta | ✅ COMPLETADO |
 | T3 | P3 — Conectar Landing Page con Backend real | Alta | ✅ COMPLETADO |
 | T4 | Preparar env vars producción (encriptar secrets, validar) | Media | Pendiente |
-| T5 | Deploy Backend a Railway + PostgreSQL producción | Alta | Pendiente |
-| T6 | Deploy Landing Page a Vercel | Media | Pendiente |
-| T7 | Deploy Motor RAM con electron-builder + auto-update | Alta | Pendiente |
-| T8 | Monitoreo + logs + rollback plan | Media | Pendiente |
+| T5 | Deploy Landing Page a Vercel | Media | Pendiente |
+| T6 | Deploy Motor RAM con electron-builder + auto-update | Alta | Pendiente |
+| T7 | Monitoreo + logs + rollback plan | Media | Pendiente |
 
 ## Bug pre-existente documentado — Landing build warnings
 - Tipo: Errores de pre-rendering en login/register/dashboard/etc.
@@ -47,4 +49,4 @@ cd ../NexoAccManager-Landing && npm run build 2>&1 | tail -5
 - Solución futura: refactorizar ClientLayout a Server Component o usar unstable_noStore()
 
 ## Siguiente acción
-T2 (i18n Landing Page) es la siguiente tarea prioritaria según el Kanban.
+T4 (Preparar env vars producción) es la siguiente tarea prioritaria según el Kanban.
