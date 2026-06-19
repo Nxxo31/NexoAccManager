@@ -31,7 +31,7 @@ cd ../NexoAccManager-Landing && npm run build 2>&1 | tail -5
 ## T — Tareas críticas antes de deploy
 | # | Tarea | Complejidad | Estado |
 |---|-------|------------|--------|
-| T1 | Escribir tests backend (auth, stripe, license) — P4 del Kanban | Media | Pendiente |
+| T1 | Escribir tests backend (auth, stripe, license) — P4 del Kanban | Media | ✅ COMPLETADO |
 | T2 | F3 — i18n Landing Page (Hero/Features/FAQ/Footer) | Alta | Pendiente |
 | T3 | P3 — Conectar Landing Page con Backend real | Alta | ✅ COMPLETADO |
 | T4 | Preparar env vars producción (encriptar secrets, validar) | Media | Pendiente |
@@ -47,5 +47,4 @@ cd ../NexoAccManager-Landing && npm run build 2>&1 | tail -5
 - Solución futura: refactorizar ClientLayout a Server Component o usar unstable_noStore()
 
 ## Siguiente acción
-Seleccionar entre T1-T2 según prioridad definida por usuario.
-T1 (tests backend) tiene mayor bloque-inhibiting impact para producción.
+T2 (i18n Landing Page) es la siguiente tarea prioritaria según el Kanban.
