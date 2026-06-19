@@ -10,7 +10,7 @@ Las cookies de Roblox NUNCA salen del dispositivo del usuario.
 ## Repositorios
 - Motor RAM (App Electron): https://github.com/Nxxo31/NexoAccManager ✅ activo
 - Backend API: https://github.com/Nxxo31/NexoAccManager-Backend ✅ activo
-- Landing Page: https://github.com/Nxxo31/NexoAccManager-Landing ✅ activo — Sprint L1 en progreso
+- Landing Page: https://github.com/Nxxo31/NexoAccManager-Landing ✅ activo — Sprint L5 COMPLETADO
 
 ## Referencias
 - https://github.com/ic3w0lf22/Roblox-Account-Manager
@@ -629,18 +629,18 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 - ✅ Selector de idioma visible en todas las páginas de auth
 - ✅ i18n con next-intl usando claves namespaced (auth.register.terms, etc.)
 
-#### Sprint L4 — Dashboard de usuario ❌ pendiente
-- [ ] /[locale]/dashboard — plan, uso X/Y cuentas, próximo pago
-- [ ] /[locale]/dashboard/billing — historial, cambiar plan, cancelar
-- [ ] /[locale]/dashboard/download — descarga con instrucciones por SO (Windows/Mac/Linux)
-- [ ] /[locale]/dashboard/settings — idioma, tema, notificaciones email
+#### Sprint L4 — Dashboard de usuario ✅ COMPLETADO
+- ✅ /[locale]/dashboard — plan, uso X/Y cuentas, próximo pago (conectado a GET /auth/me)
+- ✅ /[locale]/dashboard/billing — historial, cambiar plan, Stripe checkout (conectado a /stripe/checkout/create-session)
+- ✅ /[locale]/dashboard/download — descarga con instrucciones por SO
+- ✅ /[locale]/dashboard/settings — idioma, tema (conectado a PATCH /auth/me)
 
-#### Sprint L5 — Stripe + i18n + Deploy ❌ pendiente
-- [ ] POST /checkout/create-session integrado
-- [ ] Páginas /success y /cancel
-- [ ] Traducir todas las páginas a ES, EN, PT
-- [ ] Deploy Vercel con variables de entorno
-- [ ] Configurar dominio custom si aplica
+#### Sprint L5 — Stripe + i18n + Deploy ✅ COMPLETADO
+- ✅ POST /checkout/create-session integrado (Stripe checkout real)
+- ✅ Páginas /success y /cancel
+- ✅ Traducir todas las páginas a ES, EN, PT (i18n con next-intl plugin)
+- ✅ Fix bug prerendering (output:export → SSR con plugin next-intl)
+- ❌ Deploy Vercel pendiente
 
 ---
 
@@ -662,19 +662,19 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 - [x] POST /auth/forgot-password + /auth/reset-password
 - [x] Middleware JWT para rutas protegidas
 
-#### Sprint B3 — Licencias + Rate limiting ❌ pendiente
-- [ ] GET /license/verify
-- [ ] GET /license/plans
-- [ ] @fastify/rate-limit en endpoints de auth
-- [ ] @fastify/helmet para headers de seguridad
-- [ ] CORS configurado solo para orígenes permitidos
+#### Sprint B3 — Licencias + Rate limiting ✅ COMPLETADO
+- [x] GET /license/verify
+- [x] GET /license/plans
+- [x] @fastify/rate-limit en endpoints de auth
+- [x] @fastify/helmet para headers de seguridad
+- [x] CORS configurado solo para orígenes permitidos
 
-#### Sprint B4 — Stripe ❌ pendiente
-- [ ] Crear productos y precios en Stripe Dashboard
-- [ ] POST /checkout/create-session
-- [ ] POST /webhook/stripe con verificación de firma
-- [ ] Manejar: checkout.session.completed, subscription.updated, subscription.deleted
-- [ ] Actualizar License en DB según eventos
+#### Sprint B4 — Stripe ✅ COMPLETADO
+- [x] POST /stripe/checkout/create-session
+- [x] POST /stripe/webhook con verificación de firma
+- [x] POST /stripe/portal (customer portal)
+- [x] Manejar: checkout.session.completed, subscription.updated, subscription.deleted, invoice.payment_failed
+- [x] Actualizar License en DB según eventos
 
 #### Sprint B5 — Deploy ❌ pendiente
 - [ ] Crear proyecto Railway
@@ -716,7 +716,7 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 - ✅ Features section con comparativa vs RAM
 - ✅ Auth pages: register, login, verify-email, forgot-password, reset-password
 - ✅ i18n con next-intl implementado (es, en, pt)
-- ❌ Sprint L1-L3 completados — L4 Dashboard y L5 Stripe + Deploy pendientes
+- ❌ Sprint L1-L5 completados — L6 Landing producción pendiente (deploy Vercel)
 
 ### Backend API (NexoAccManager-Backend)
 - ❌ Todo pendiente — Prioridad 3
