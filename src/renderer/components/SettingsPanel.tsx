@@ -3,7 +3,20 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { themeDefinitions } from '../themeDefinitions';
 
-export default function SettingsPanel() {
+// Types
+interface Account {
+  id: string;
+  name: string;
+  username: string;
+  [key: string]: unknown;
+}
+
+interface SettingsPanelProps {
+  accounts: Account[];
+  onSelectAccount: (account: Account) => void;
+}
+
+export default function SettingsPanel({ accounts, onSelectAccount }: SettingsPanelProps) {
   const { t, i18n } = useTranslation();
   const { settings, css, setTheme } = useTheme();
 
@@ -195,9 +208,7 @@ export default function SettingsPanel() {
   // Upgrade plan handler (opens Landing page in browser)
   const handleUpgradePlan = async () => {
     try {
-      // Open the Landing page in the default browser
-      const { shell } = require('electron');
-      await shell.openExternal('https://nexoaccmanager.com'); // TODO: use actual landing page URL
+      await window.api.shell.openExternal('https://nexoaccmanager.com');
     } catch (err) {
       console.error('Failed to open landing page', err);
     }

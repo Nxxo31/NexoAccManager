@@ -59,6 +59,19 @@ Result pattern en IPC: `{ success, data }` | `{ success: false, error }` — nun
 7. `git push` → siguiente tarea inmediatamente
 8. Consultar `PROJECT.md` solo para saber qué sigue o ante ambigüedad
 
+## Edición de archivos de código (TSX/JSX/TS/JS)
+- NUNCA usar `sed -i` con regex multilínea o reemplazos de tags JSX/TSX 
+  (ej. <Link> -> <button>) en archivos .tsx, .jsx, .ts, .js.
+- Para cualquier cambio que involucre más de una línea o estructura JSX, 
+  leer el archivo completo, aplicar el cambio en memoria, y escribir el 
+  archivo completo de una sola vez.
+- Antes de escribir, hacer backup (.bak) solo si no existe ya uno reciente 
+  (no acumular backups).
+- Después de escribir, validar sintaxis (build o linter) antes de marcar 
+  la tarea como completada.
+- Si una edición falla 2 veces con el mismo enfoque, detenerse y reportar 
+  el problema en vez de reintentar con variaciones del mismo comando.
+
 ## PROJECT.md — documento vivo
 - Completar tarea → ✅ con fecha inmediatamente
 - Subtareas nuevas descubiertas → agregar al momento

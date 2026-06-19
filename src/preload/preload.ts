@@ -59,6 +59,7 @@ type IpcChannel =
   | "advanced:clearCache"
   | "advanced:exportData"
   | "advanced:deleteAllAccounts"
+  | "shell:open-external"
 const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'account:add',
   'account:remove',
@@ -112,6 +113,7 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'advanced:clearCache',
   'advanced:exportData',
   'advanced:deleteAllAccounts',
+  'shell:open-external',
 ]);
 
 // =============================================================================
@@ -196,6 +198,9 @@ contextBridge.exposeInMainWorld('api', {
     exportData: () => invoke('advanced:exportData'),
     deleteAllAccounts: () => invoke('advanced:deleteAllAccounts'),
   },
+  shell: {
+    openExternal: (url: string) => invoke('shell:open-external', url),
+  },
   // Auth y licencia (Sprint E5)
   auth: {
     login: (email: string, password: string) => invoke('auth:login', email, password),
@@ -268,7 +273,10 @@ export interface Api {
     clearCache: () => Promise<void>;
     exportData: () => Promise<void>;
     deleteAllAccounts: () => Promise<void>;
-  },
+  };
+  shell: {
+    openExternal: (url: string) => Promise<any>;
+  };
   // Auth y licencia (Sprint E5)
   auth: {
     login: (email: string, password: string) => Promise<any>;

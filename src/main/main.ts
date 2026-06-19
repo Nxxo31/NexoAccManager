@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, session } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu, session, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { AccountManager } from './core/AccountManager';
@@ -1119,6 +1119,31 @@ class NexoApp {
         return ok({ success: true, message: `Se eliminaron ${count} cuentas` });
       } catch (e) {
         return err(`Error eliminando cuentas: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // SHELL
+    // =================================================================
+
+    ipcMain.handle('shell:open-external', async (_event, url: string) => {
+      try {
+        // Whitelist de URLs válidas para evitar abuso
+        const allowedDomains = ['nexoaccmanager.com', 'www.nexoaccmanager.com', 'github.com'];
+        let valid = false;
+        for (const domain of allowedDomains) {
+          if (url.includes(domain)) {
+            valid = true;
+            break;
+          }
+        }
+        if (!valid) {
+          return err('URL no permitida');
+        }
+        await shell.openExternal(url);
+        return ok({ success: true });
+      } catch (e) {
+        return err(`Error abriendo URL: ${(e as Error).message}`);
       }
     });
   }
