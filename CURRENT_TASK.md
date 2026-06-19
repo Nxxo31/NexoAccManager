@@ -32,7 +32,7 @@ cd ../NexoAccManager-Landing && npm run build 2>&1 | tail -5
 | # | Tarea | Complejidad | Estado |
 |---|-------|------------|--------|
 | T1 | Escribir tests backend (auth, stripe, license) — P4 del Kanban | Media | ✅ COMPLETADO |
-| T2 | F3 — i18n Landing Page (Hero/Features/FAQ/Footer) | Alta | Pendiente |
+| T2 | F3 — i18n Landing Page (Hero/Features/FAQ/Footer) | Alta | ✅ COMPLETADO |
 | T3 | P3 — Conectar Landing Page con Backend real | Alta | ✅ COMPLETADO |
 | T4 | Preparar env vars producción (encriptar secrets, validar) | Media | Pendiente |
 | T5 | Deploy Backend a Railway + PostgreSQL producción | Alta | Pendiente |
