@@ -1,37 +1,40 @@
-# Tarea actual — Sprint L4-L5: Landing Page (Dashboard + Stripe + Deploy)
+# Tarea actual — Sprint P: Producción y Deploy (QA + Deploy Preparación)
 
 ## Estado anterior completado
-- ✅ E1-E8: Motor RAM (Electron) — TODOS COMPLETADOS
-- ✅ L1: Setup Landing Page (Next.js, TypeScript, Tailwind, next-intl, Framer Motion)
-- ✅ L2: Páginas públicas (Hero, Features)
-- ✅ L3: Páginas de auth (register, login, verify-email, forgot-password, reset-password)
+- ✅ E1-E8: Motor RAM (Electron) — TODOS COMPLETADOS + fixes de bugs de runtime
+- ✅ F0-F4: Fixes críticos de Motor RAM, Landing Build, Backend Build, /cancel
+- ✅ B3: Backend Stripe checkout + webhook + customer portal
+- ✅ B3: Email verification + forgot/reset password (implementación real, no stubs)
+
+## Dependencias externas bloqueantes
+- Backend API (NexoAccManager-Backend) — Stripe completo, auth real, email funcional
+- Sin producción: necesita Railway deploy + PostgreSQL + env vars reales
+- Landing Page (NexoAccManager-Landing) — conectado a backend mock, necesitaested real deploy
 
 ## Protocolo de inicio — OBLIGATORIO
 ```bash
-# 1. Leer resumen
-npx tsc --noEmit 2>&1 | tail -5
-git status
-git log --oneline -5
+# 1. Motor RAM
+npx tsc --noEmit 2>&1 | tail -5  # ✅ 0 errores
+git log --oneline -3
+
+# 2. Backend
+cd ../NexoAccManager-Backend && npx tsc --noEmit 2>&1 | tail -5  # ✅ 0 errores
+
+# 3. Landing
+cd ../NexoAccManager-Landing && npx next build 2>&1 | tail -5   # ✅ 0 errores
 ```
 
-## Tarea activa: L4 — Dashboard de usuario
-- [ ] /[locale]/dashboard — plan actual, uso X/Y cuentas, próximo pago
-- [ ] /[locale]/dashboard/billing — historial, cambiar plan, cancelar
-- [x] /[locale]/dashboard/download — descarga con instrucciones por SO
-- [ ] /[locale]/dashboard/settings — idioma, tema, notificaciones email
+## T — Tareas críticas antes de deploy
+| # | Tarea | Complejidad | Estado |
+|---|-------|------------|--------|
+| T1 | Escribir tests backend (auth, stripe, license) — P4 del Kanban | Media | Pendiente |
+| T2 | F3 — i18n Landing Page (Hero/Features/FAQ/Footer) | Alta | Pendiente |
+| T3 | P3 — Conectar Landing Page con Backend real | Alta | Pendiente |
+| T4 | Preparar env vars producción (encriptar secrets, validar) | Media | Pendiente |
+| T5 | Deploy Backend a Railway + PostgreSQL producción | Alta | Pendiente |
+| T6 | Deploy Landing Page a Vercel | Media | Pendiente |
+| T7 | Deploy Motor RAM con electron-builder + auto-update | Alta | Pendiente |
+| T8 | Monitoreo + logs + rollback plan | Media | Pendiente |
 
-## Próxima tarea: L5 — Stripe + i18n + Deploy
-- [x] POST /checkout/create-session integrado
-- [x] Páginas /success y /cancel
-- [x] Mensajes i18n creados para ES, EN, PT
-- [x] ClientLayout actualizado para cargar mensajes
-- [ ] Traducir componentes restantes (Hero, Features, Pricing, FAQ, Footer)
-- [ ] Deploy Vercel con variables de entorno
-
-## Dependencias externas bloqueantes
-- Backend API (NexoAccManager-Backend) repositorio creado — auth completado (B2), pendiente licencias, Stripe, deploy
-- Sin backend: no hay auth real, no hay licencias, no hay Stripe webhooks
-- Dashboard estático con mock data hasta que backend esté listo
-
-## Siguiente
-Sprint B3-B5 — Backend API (Licencias, Stripe, Deploy)
+## Siguiente acción
+Seleccionar entre T1-T3 según prioridad definida por usuario.

@@ -445,12 +445,14 @@ Control completo de la cuenta Roblox desde la app, sin abrir el navegador:
 - ✅ Persistencia del tema en SQLite settings
 - ✅ Aplicación dinámica en renderer sin recargar
 
-### Fase 8 — Settings Panel completo ✅ 2026-06-17
-- [ ] Sección "Apariencia": selector tema, tamaño fuente, densidad UI, toggle animaciones
-- [ ] Sección "Idioma": dropdown con banderas ES/EN/PT
-- [ ] Sección "Cuenta": email, plan actual, botón logout, botón upgrade
-- [ ] Sección "Seguridad": cambiar contraseña (delega a Account Control Panel)
-- [ ] Sección "Avanzado": limpiar caché, exportar datos, borrar cuenta local
+### Fase 8 — Settings Panel completo ✅ 2026-06-19
+- [x] Sección "Apariencia": selector tema, tamaño fuente, densidad UI, toggle animaciones
+- [x] Sección "Idioma": dropdown con banderas ES/EN/PT
+- [x] Sección "Cuenta": email, plan actual, botón logout, botón upgrade
+- [x] Sección "Seguridad": cambiar contraseña (delega a Account Control Panel)
+- [x] Sección "Avanzado": limpiar caché, exportar datos, borrar cuenta local
+- [x] Bug fix: `require('electron')` en renderer reemplazado por IPC `shell:open-external`
+- [x] Bug fix: Props `accounts` y `onSelectAccount` ya se declaran correctamente
 
 ## APIs de Roblox utilizadas
 
