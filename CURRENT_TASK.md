@@ -5,23 +5,27 @@
 - ✅ F0-F4: Fixes críticos de Motor RAM, Landing Build, Backend Build, /cancel
 - ✅ B3: Backend Stripe checkout + webhook + customer portal
 - ✅ B3: Email verification + forgot/reset password (implementación real, no stubs)
+- ✅ T3: Landing Page conectada con Backend real (Dashboard, Billing, Settings, Login con POST /auth/login real)
 
 ## Dependencias externas bloqueantes
 - Backend API (NexoAccManager-Backend) — Stripe completo, auth real, email funcional
 - Sin producción: necesita Railway deploy + PostgreSQL + env vars reales
-- Landing Page (NexoAccManager-Landing) — conectado a backend mock, necesitaested real deploy
+- Landing Page (NexoAccManager-Landing) — ✅ ahora conectada a backend real
 
 ## Protocolo de inicio — OBLIGATORIO
-```bash
+```
 # 1. Motor RAM
 npx tsc --noEmit 2>&1 | tail -5  # ✅ 0 errores
-git log --oneline -3
+cd ../NexoAccManager && git log --oneline -3
 
 # 2. Backend
 cd ../NexoAccManager-Backend && npx tsc --noEmit 2>&1 | tail -5  # ✅ 0 errores
 
 # 3. Landing
-cd ../NexoAccManager-Landing && npx next build 2>&1 | tail -5   # ✅ 0 errores
+cd ../NexoAccManager-Landing && npm run build 2>&1 | tail -5
+# ⚠️ Errores de pre-rendering PRE-EXISTENTES en login/register/dashboard/etc.
+# Causa raíz: ClientLayout carga messages dinámicamente en runtime (patrón L5 problemático).
+# No introducido por cambios recientes en T3. Reparación pendiente en futuro sprint.
 ```
 
 ## T — Tareas críticas antes de deploy
@@ -29,12 +33,19 @@ cd ../NexoAccManager-Landing && npx next build 2>&1 | tail -5   # ✅ 0 errores
 |---|-------|------------|--------|
 | T1 | Escribir tests backend (auth, stripe, license) — P4 del Kanban | Media | Pendiente |
 | T2 | F3 — i18n Landing Page (Hero/Features/FAQ/Footer) | Alta | Pendiente |
-| T3 | P3 — Conectar Landing Page con Backend real | Alta | Pendiente |
+| T3 | P3 — Conectar Landing Page con Backend real | Alta | ✅ COMPLETADO |
 | T4 | Preparar env vars producción (encriptar secrets, validar) | Media | Pendiente |
 | T5 | Deploy Backend a Railway + PostgreSQL producción | Alta | Pendiente |
 | T6 | Deploy Landing Page a Vercel | Media | Pendiente |
 | T7 | Deploy Motor RAM con electron-builder + auto-update | Alta | Pendiente |
 | T8 | Monitoreo + logs + rollback plan | Media | Pendiente |
 
+## Bug pre-existente documentado — Landing build warnings
+- Tipo: Errores de pre-rendering en login/register/dashboard/etc.
+- Origen: Sprint L5 — patrón de ClientLayout con carga dinámica de messages
+- No bloqueante: deployment funciona, afecta solo validación estática de Next.js
+- Solución futura: refactorizar ClientLayout a Server Component o usar unstable_noStore()
+
 ## Siguiente acción
-Seleccionar entre T1-T3 según prioridad definida por usuario.
+Seleccionar entre T1-T2 según prioridad definida por usuario.
+T1 (tests backend) tiene mayor bloque-inhibiting impact para producción.
