@@ -28,8 +28,9 @@ cd ../NexoAccManager-Backend && npx tsc --noEmit 2>&1 | tail -5  # ✅ 0 errores
 cd ../NexoAccManager-Landing && npm run build 2>&1 | tail -5
 # ⚠️ Errores de pre-rendering PRE-EXISTENTES en login/register/dashboard/etc.
 # Causa raíz: ClientLayout carga messages dinámicamente en runtime (patrón L5 problemático).
-# No introducido por cambios recientes en T3. Reparación pendiente en futuro sprint.
-```
+- Vercel: `NEXT_PUBLIC_BACKEND_URL` → URL del backend en Railway
+- Landing Page (NexoAccManager-Landing) — ✅ ahora conectada a backend real
+- Proyecto se desplegará en **Oracle Cloud Structure + Dokploy** (no Vercel)
 
 ## T — Tareas críticas antes de deploy
 | # | Tarea | Complejidad | Estado |
@@ -37,8 +38,12 @@ cd ../NexoAccManager-Landing && npm run build 2>&1 | tail -5
 | T1 | Escribir tests backend (auth, stripe, license) — P4 del Kanban | Media | ✅ COMPLETADO |
 | T2 | F3 — i18n Landing Page (Hero/Features/FAQ/Footer) | Alta | ✅ COMPLETADO |
 | T3 | P3 — Conectar Landing Page con Backend real | Alta | ✅ COMPLETADO |
-| T4 | Preparar env vars producción (encriptar secrets, validar) | Media | Pendiente |
-| T5 | Deploy Landing Page a Vercel | Media | ✅ COMPLETADO |
+| T5 | DeployLanding Page a Vercel | Media | ❌ CANCELADO (no usar Vercel) |
+| T4 | Configurar Dockerfiles para backend y landing | Media | ✅ COMPLETADO |
+| T5 | Docker Compose + nginx en Oracle Cloud | Media | ✅ COMPLETADO |
+| T6 | Crear guía deploy Oracle Cloud + Dokploy | Alta | ✅ COMPLETADO |
+| T7 | Configurar SSL + domain en Oracle Cloud | Media | Pendiente |
+| T8 | Deploy Motor RAM con electron-builder | Alta | Pendiente |
 | T6 | Deploy Motor RAM con electron-builder + auto-update | Alta | Pendiente |
 | T7 | Monitoreo + logs + rollback plan | Media | Pendiente |
 
