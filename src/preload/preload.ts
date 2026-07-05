@@ -187,14 +187,6 @@ contextBridge.exposeInMainWorld('api', {
   shell: {
     openExternal: (url: string) => invoke('shell:open-external', url),
   },
-  // Auth y licencia (Sprint E5)
-  auth: {
-    login: (email: string, password: string) => invoke('auth:login', email, password),
-    logout: () => invoke('auth:logout'),
-    status: () => invoke('auth:status'),
-    refreshToken: (currentToken: string) => invoke('auth:refresh-token', currentToken),
-    canAddAccount: () => invoke('auth:can-add-account'),
-  },
   // Theme / Appearance
   theme: {
     get: () => invoke('settings:theme:get'),
@@ -262,14 +254,6 @@ export interface Api {
   };
   shell: {
     openExternal: (url: string) => Promise<any>;
-  };
-  // Auth y licencia (Sprint E5)
-  auth: {
-    login: (email: string, password: string) => Promise<any>;
-    logout: () => Promise<any>;
-    status: () => Promise<any>;
-    refreshToken: (currentToken: string) => Promise<any>;
-    canAddAccount: () => Promise<any>;
   };
   theme: {
     get: () => Promise<any>;

@@ -977,153 +977,45 @@ class NexoApp {
     });
 
     // =================================================================
-    // AUTENTICACIÓN Y LICENCIA — Sprint E5
+    // =================================================================
+    // AUTENTICACIÓN — App OpenSource (sin SaaS)
     // =================================================================
 
-    // Iniciar sesión (login)
-    ipcMain.handle('auth:login', async (_, email: unknown, password: unknown) => {
+    // Login local (sin backend)
+    ipcMain.handle('auth:login', async (_, email: unknown) => {
       if (!isNonEmptyString(email)) {
         return err('Payload inválido: email debe ser un string no vacío');
       }
-      if (!isNonEmptyString(password)) {
-        return err('Payload inválido: password debe ser un string no vacío');
-      }
-      try {
-        // TODO: Implementar lógica real de login contra el backend
-        // Por ahora, simulamos un login exitoso para desarrollo
-        const mockUserId = 'dev_user_' + Math.floor(Math.random() * 10000);
-        const mockLicense: LicenseData = {
-          plan: 'PRO',
-          accountLimit: 20,
-          status: 'ACTIVE',
-          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 días desde ahora
-        };
-        const token = this.authService.generateToken(mockUserId, email.trim(), mockLicense);
-        await this.authService.saveLicenseToStorage(mockLicense);
-        return ok({ token, userId: mockUserId, email: email.trim(), license: mockLicense });
-      } catch (e) {
-        return err(`Error en login: ${(e as Error).message}`);
-      }
+      // App local: sin backend, siempre válido
+      return ok({ userId: email, email: email.trim(), authenticated: true });
     });
 
-    // Cerrar sesión (logout)
+    // Logout local
     ipcMain.handle('auth:logout', async () => {
-      try {
-        await this.authService.saveLicenseToStorage(null as any); // Limpiar licencia almacenada
-        return ok({ loggedOut: true });
-      } catch (e) {
-        return err(`Error en logout: ${(e as Error).message}`);
-      }
+      return ok({ loggedOut: true });
     });
 
-    // Verificar estado de autenticación
+    // Estado de autenticación (siempre true para app local)
     ipcMain.handle('auth:status', async () => {
-      try {
-        const license = await this.authService.getLicenseFromStorage();
-        if (!license) {
-          return ok({ authenticated: false, license: null });
-        }
-        // Aquí podríamos verificar el token almacenado también
-        return ok({ authenticated: true, license });
-      } catch (e) {
-        return err(`Error verificando estado de auth: ${(e as Error).message}`);
-      }
+      return ok({ authenticated: true });
     });
 
-    // Renovar token si es necesario
-    ipcMain.handle('auth:refresh-token', async (_, currentToken: unknown) => {
-      if (!isNonEmptyString(currentToken)) {
-        return err('Payload inválido: currentToken debe ser un string no vacío');
-      }
-      try {
-        const newToken = await this.authService.refreshTokenIfNeeded(currentToken as string);
-        if (newToken) {
-          return ok({ token: newToken, refreshed: true });
-        } else {
-          return ok({ token: currentToken, refreshed: false }); // No necesitaba renovación
-        }
-      } catch (e) {
-        return err(`Error renovando token: ${(e as Error).message}`);
-      }
+    // Refresh token (no-op, app local sin tokens)
+    ipcMain.handle('auth:refresh-token', async () => {
+      return ok({ refreshed: false });
     });
 
-    // Verificar si se puede agregar una cuenta según la licencia
+    // Verificar si se puede agregar una cuenta (límite: 50)
     ipcMain.handle('auth:can-add-account', async () => {
       try {
         const accountCount = this.accountManager.getAllAccounts().length;
-        const canAdd = await this.authService.canAddAccount(accountCount);
-        const plan = await this.authService.getCurrentPlan();
-        return ok({ canAdd, plan, currentCount: accountCount });
+        return ok({ canAdd: accountCount < MAX_ACCOUNTS, currentCount: accountCount, maxAccounts: MAX_ACCOUNTS });
       } catch (e) {
-        return err(`Error verificando límite de cuenta: ${(e as Error).message}`);
+        return err(`Error verificando límite de cuentas: ${(e as Error).message}`);
       }
     });
 
-    // =================================================================
-    // THEME / APPEARANCE
-    // =================================================================
-
-    ipcMain.handle('settings:theme:get', () => {
-      try {
-        const settings = this.themeService.getSettings();
-        const css = this.themeService.getThemeCSS();
-        return ok({ settings, css });
-      } catch (e) {
-        return err(`Error obteniendo tema: ${(e as Error).message}`);
-      }
-    });
-
-    ipcMain.handle('settings:theme:set', async (_, payload: unknown) => {
-      if (!payload || typeof payload !== 'object') {
-        return err('Payload inválido: debe ser un objeto');
-      }
-      try {
-        const patched = this.themeService.setSettings(payload as Partial<ThemeSettings>);
-        const css = this.themeService.getThemeCSS();
-        return ok({ settings: patched, css });
-      } catch (e) {
-        return err(`Error guardando tema: ${(e as Error).message}`);
-      }
-    });
-
-    // =================================================================
-    // ADVANCED
-    // =================================================================
-
-    ipcMain.handle('advanced:clearCache', () => {
-      try {
-        this.accountManager.clearCache();
-        return ok({ success: true, message: 'Caché limpiada' });
-      } catch (e) {
-        return err(`Error limpiando caché: ${(e as Error).message}`);
-      }
-    });
-    ipcMain.handle('advanced:exportData', async () => {
-      try {
-        // For now, just return a success message
-        return ok({ success: true, message: 'Datos exportados correctamente' });
-      } catch (e) {
-        return err(`Error exportando datos: ${(e as Error).message}`);
-      }
-    });
-
-    ipcMain.handle('advanced:deleteAllAccounts', async () => {
-      try {
-        const accounts = this.accountManager.getAllAccounts();
-        let count = 0;
-        for (const account of accounts) {
-          await this.accountManager.removeAccount(account.id);
-          count++;
-        }
-        return ok({ success: true, message: `Se eliminaron ${count} cuentas` });
-      } catch (e) {
-        return err(`Error eliminando cuentas: ${(e as Error).message}`);
-      }
-    });
-
-    // =================================================================
-    // SHELL
-    // =================================================================
+// =================================================================
 
     ipcMain.handle('shell:open-external', async (_event, url: string) => {
       try {
