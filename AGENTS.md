@@ -1,17 +1,20 @@
-# NexoAccManager — Contexto del proyecto
+# NexoAccManager -- Herramienta OpenSource
 
 ## Proyecto
-SaaS gestor de cuentas Roblox. Clon moderno de RAM (ic3w0lf22) con modelo freemium.
+Gestor de cuentas multiplataforma open-source bajo MIT License.
+Evoluci?n moderna y segura de RAM (ic3w0lf22) enfocada en privacidad.
 Repositorio: https://github.com/Nxxo31/NexoAccManager
+Maximo de cuentas: 50 por usuario (sin restricciones de plan)
 
 ## Stack
 - **App**: Electron + React + TypeScript + Zustand
-- **Main process**: Node.js + Fastify + better-sqlite3
+- **Main process**: Node.js + better-sqlite3
 - **Cifrado**: AES-256-GCM derivado del hardware
-- **IPC**: contextBridge tipado — invoke/handle únicamente
+- **IPC**: contextBridge tipado -- invoke/handle ?nicamente
 - **i18n**: i18next + react-i18next (ES/EN/PT)
-- **Temas**: CSS variables en :root via IPC theme:set
+- **Temas**: CSS variables en :root via IPC theme:set (todos libres)
 - **Build**: electron-builder
+- **Sin backend**: 100% local, sin servidores, sin nube
 
 ## Reglas críticas — NUNCA violar
 - Cookies Roblox NUNCA salen del PC del usuario
@@ -24,29 +27,30 @@ Repositorio: https://github.com/Nxxo31/NexoAccManager
 
 ## Arquitectura IPC — namespacing obligatorio
 ```
-account:*   → gestión de cuentas Roblox
-roblox:*    → llamadas a APIs de Roblox
-settings:*  → preferencias y configuración
-license:*   → validación de plan SaaS
+account:*   → gesti?n de cuentas (CRUD + cifrado)
+roblox:*    → llamadas a APIs de plataformas
+settings:*  → preferencias y configuraci?n local
 theme:*     → sistema de temas
-i18n:*      → internacionalización
-advanced:*  → caché, export, datos
+i18n:*      → internacionalizaci?n
+advanced:*  → cach?, export, datos
 ```
-Patrón: invoke/handle (Promise-based) — nunca send/on para request-response
+Patr?n: invoke/handle (Promise-based) — nunca send/on para request-response
 Result pattern en IPC: `{ success, data }` | `{ success: false, error }` — nunca throw sin catch
 
-## Estado actual — junio 2026
+## L?mite de cuentas
+- M?ximo 50 cuentas por usuario
+- Sin restricciones por plan o pago
+- L?mite hardcoded en el contador de accounts
+
+## Estado actual — Julio 2026 (Migraci?n OpenSource)
 ```
-✅ E1 — Seguridad IPC
-✅ E2 — Account Control Panel
-✅ E3 — Server Browser
-✅ E4 — Presence Dashboard
-✅ E5 — Integración SaaS
-✅ E6 — i18n
-❌ E7 — Temas personalizables   ← SIGUIENTE
-❌ E8 — Settings Panel completo
-❌ L1-L5 — Landing Page
-❌ B1-B5 — Backend API
+✅ Migraci?n OpenSource — Eliminado SaaS backend y licencias
+✅ Licencia MIT — Establecida con disclaimers legales
+✅ PROJECT.md, README.md, CONTRIBUTING.md — Actualizados
+✅ LICENSE — Creado
+❌ Limpieza de c?digo — Eliminar AuthService, referencias license ← EN PROGRESO
+❌ Testeo con cuentas reales usando Computer-use ← SIGUIENTE
+❌ Deployment en Oracle Cloud + Dokploy
 ```
 
 ## Loop de desarrollo para este proyecto
@@ -142,17 +146,15 @@ games.roblox.com              → servers, player count
 thumbnails.roblox.com         → avatares
 economy.roblox.com            → Robux balance
 ```
-Cache LRU 60s en main process — respetar rate limits de Roblox
+Cache LRU 60s en main process -- respetar rate limits
 
-## Planes SaaS — límites de cuentas
+## Temas — todos disponibles (sin restricci?n)
 ```
-Free:       5 cuentas  — $0/mes
-Starter:    10 cuentas — $5/mes
-Pro:        20 cuentas — $10/mes
-Business:   30 cuentas — $20/mes
-Enterprise: ∞ cuentas  — $50/mes
+Dark (default)  → bg: #0D0D0D
+Light           → bg: #F5F5F5, texto oscuro
+Roblox Classic  → rojo dominante #DE350D con negro
+Custom          → color picker primario + acento (todos los usuarios)
 ```
-Custom themes solo disponibles en Enterprise.
 
 ## Intervención humana — solo si
 - Riesgo de pérdida de datos permanente

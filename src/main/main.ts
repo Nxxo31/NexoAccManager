@@ -7,7 +7,6 @@ import { WebServer } from './server/WebServer';
 import { DatabaseManager } from './storage/DatabaseManager';
 import { AccountSettingsService } from './core/AccountSettingsService';
 import { PresenceService } from './services/PresenceService';
-import { AuthService, LicenseData } from './services/AuthService';
 import { CookieExpiryService } from './services/CookieExpiryService';
 import { ThemeService, ThemeSettings } from './core/ThemeService';
 
@@ -95,18 +94,20 @@ const ALLOWED_CHANNELS = new Set([
   'presence:stop-polling',
   'presence:recent-games',
   'presence:robux-balance',
-  // Auth y licencia (Sprint E5)
+  // Auth local — siempre autenticado (app local sin SaaS)
   'auth:login',
   'auth:logout',
   'auth:status',
-  'auth:refresh-token',
   'auth:can-add-account',
 ]);
 
-// SoluciÃ³n para __dirname en ESM
+// Solución para __dirname en ESM
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Límite máximo de cuentas para app local (sin SaaS)
+const MAX_ACCOUNTS = 50;
 
 class NexoApp {
   private mainWindow: BrowserWindow | null = null;
@@ -116,7 +117,6 @@ class NexoApp {
   private crypto: CryptoService;
   private accountSettingsService: AccountSettingsService;
   private presenceService: PresenceService;
-  private authService: AuthService;
   private cookieExpiryService: CookieExpiryService;
   private themeService: ThemeService;
 
@@ -127,7 +127,6 @@ class NexoApp {
     this.webServer = new WebServer(this.accountManager);
     this.accountSettingsService = new AccountSettingsService();
     this.presenceService = new PresenceService(this.db, this.crypto);
-    this.authService = new AuthService(this.db);
     this.cookieExpiryService = new CookieExpiryService(this.db, this.crypto);
     this.themeService = new ThemeService(this.db);
   }

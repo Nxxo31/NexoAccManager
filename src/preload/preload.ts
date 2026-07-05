@@ -45,13 +45,6 @@ type IpcChannel =
   | 'presence:stop-polling'
   | 'presence:recent-games'
   | 'presence:robux-balance'
-  // Auth y licencia (Sprint E5)
-  | 'auth:login'
-  | 'auth:logout'
-  | 'auth:status'
-  | 'auth:refresh-token'
-  | 'auth:can-add-account'
-  | 'license:get'
   // Theme / Appearance
   | "settings:theme:get"
   | "settings:theme:set"
@@ -100,13 +93,6 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'presence:stop-polling',
   'presence:recent-games',
   'presence:robux-balance',
-  // Auth y licencia (Sprint E5)
-  'auth:login',
-  'auth:logout',
-  'auth:status',
-  'auth:refresh-token',
-  'auth:can-add-account',
-  'license:get',
   // Theme / Appearance
   'settings:theme:get',
   'settings:theme:set',

@@ -1,16 +1,29 @@
-# NexoAccManager — Ecosistema SaaS
+# NexoAccManager -- Herramienta OpenSource de Gesti?n de Cuentas
 
-## Descripción
-Gestor de cuentas Roblox con modelo SaaS freemium. Clon moderno, seguro y con valor
-añadido sustancial sobre Roblox Account Manager (RAM) de ic3w0lf22.
-Las cuentas se guardan cifradas localmente. El backend solo gestiona licencias y pagos.
-Las cookies de Roblox NUNCA salen del dispositivo del usuario.
+## Descripci?n
+**Migraci?n completada a modelo OpenSource (Julio 2026).**
+Herramienta libre y de c?digo abierto para la gesti?n de m?ltiples cuentas e instancias
+de plataformas de juego. Evoluci?n moderna y segura del Roblox Account Manager (RAM)
+de ic3w0lf22, enfocada en la privacidad y el control del usuario.
+
+**Naturaleza del proyecto:**
+- **C?digo abierto bajo licencia MIT:** Libre uso, modificaci?n y distribuci?n.
+- **Sin fines de lucro:** Sin modelos de suscripci?n, pagos ni publicidad.
+- **100% Local:** Todas las credenciales y datos se almacenan y procesan ?nicamente
+  en el dispositivo del usuario mediante cifrado AES-256-GCM.
+- **Independiente:** No requiere servidores, backend ni conexi?n a internet para funcionar.
+- **Sin afiliaci?n:** Este proyecto no est? afiliado, respaldado ni patrocinado por
+  ninguna plataforma de juego ni empresa relacionada.
 
 ## Repositorios
-## Repositorios
-- Motor RAM (App Electron): https://github.com/Nxxo31/NexoAccManager ✅ activo
-- Backend API: https://github.com/Nxxo31/NexoAccManager-Backend ✅ activo
-- Landing Page: https://github.com/Nxxo31/NexoAccManager-Landing ✅ activo — Sprint L5 COMPLETADO
+- **Aplicaci?n Principal (Electron):** https://github.com/Nxxo31/NexoAccManager ? activo
+- **Landing Page:** https://github.com/Nxxo31/NexoAccManager-Landing ? activo
+
+## Historial de Cambios Clave
+- **2026-07-04:** Decisi?n estrat?gica de migrar de modelo SaaS a OpenSource
+despu?s de evaluaci?n de riesgos legales y t?cnicos.
+- **2026-07-04:** Eliminaci?n de backend propietario, sistema de licencias,
+  integraci?n con Stripe y autenticaci?n centralizada.
 
 ## Referencias
 - https://github.com/ic3w0lf22/Roblox-Account-Manager
@@ -38,25 +51,26 @@ Las cookies de Roblox NUNCA salen del dispositivo del usuario.
 | **Rate limiting** | ❌ No | ✅ En Backend y llamadas a Roblox API |
 | **Auto Cookie Refresh** | ✅ Básico | ✅ Avanzado con retry y notificaciones |
 | **Player Finder** | ✅ Básico | ✅ Con región y distribución multi-cuenta |
-| **Soporte activo** | ❌ Abandonado | ✅ Incentivo financiero por SaaS |
-| **Descarga** | GitHub releases | Landing page con checkout y onboarding |
-| **Inventario desde app** | ❌ No | ✅ Ver items, Robux balance desde dashboard |
-| **Idiomas** | ❌ Solo inglés | ✅ ES, EN, PT con i18n completo |
-| **Temas personalizables** | ❌ No | ✅ Dark, Light, Roblox Classic, Custom |
+| **Soporte activo** | ❌ Abandonado | ✅ Comunidad activa, c?digo abierto |
+| **Descarga** | GitHub releases | GitHub releases + Landing page |
+| **Inventario desde app** | ❌ No | ✅ Ver items, Robux balance |
+| **Idiomas** | ❌ Solo ingl?s | ✅ ES, EN, PT con i18n completo |
+| **Temas personalizables** | ❌ No | ✅ Dark, Light, Roblox Classic, Custom (todos libres) |
 
 ---
 
-## Modelo de negocio freemium
+## Modelo OpenSource
 
-| Plan | Cuentas | Precio/mes | Features incluidas |
-|---|---|---|---|
-| Free | 5 | $0 | Core features + Server Browser |
-| Starter | 10 | $5 | + Auto Cookie Refresh + Presence Dashboard |
-| Pro | 20 | $10 | + Smart Server Selection + Player Finder |
-| Business | 30 | $20 | + Account Control Panel completo + Dashboard Web |
-| Enterprise | ∞ | $50 | Todo + soporte prioritario + temas custom |
+**Este proyecto es completamente gratuito y de c?digo abierto bajo Licencia MIT.**
 
----
+Sin planes de pago, suscripciones ni l?mites de funcionalidad. Todos los usuarios
+tienen acceso completo a todas las caracter?sticas sin restricci?n alguna.
+
+Principios del proyecto:
+- **Libre uso:** Descarga, usa y modifica el software sin costo.
+- **Sin l?mites de cuentas:** Gestiona tantas cuentas como necesites.
+- **Sin recolecci?n de datos:** Tu informaci?n nunca sale de tu dispositivo.
+- **100% local:** Sin servidores, sin backend, sin tracking.
 
 ## Design System
 
@@ -137,36 +151,31 @@ Aplicación: CSS variables en `:root` actualizadas dinámicamente via IPC `theme
 
 ---
 
-## Arquitectura del ecosistema
+## Arquitectura del ecosistema (OpenSource)
 
 ```
 Usuario
   │
   ▼
-NexoAccManager-Landing (Vercel)
-  ├── Hero + Features + Pricing
-  ├── Login / Registro / Verificación email
-  ├── Dashboard de usuario (plan, uso, descarga)
+NexoAccManager-Landing (Vercel / GitHub Pages)
+  ├── Hero + Features
+  ├── Descarga desde GitHub Releases
+  ├── Documentaci?n y gu?as
   ├── Selector de idioma (next-intl)
-  └── Stripe Checkout
+  └── Links al c?digo fuente
           │
           ▼
-NexoAccManager-Backend (Railway)
-  ├── Auth: register, login, JWT RS256, refresh tokens
-  ├── License: verify, plans, accountLimit
-  ├── Stripe: checkout sessions, webhooks
-  ├── Rate limiting + Helmet + CORS
-  └── PostgreSQL + Prisma
-          │
-          ▼
-Motor RAM — App Electron (local en PC del usuario)
-  ├── Login con JWT del Backend
-  ├── GET /license/verify → plan + accountLimit
-  ├── SQLite AES-256-GCM → cuentas Roblox (NUNCA salen del PC)
+NexoAccManager — App Electron (100% local en PC del usuario)
+  ├── Autenticaci?n local (sin servidor)
+  ├── Gesti?n de m?ltiples cuentas sin l?mites
+  ├── SQLite AES-256-GCM → cuentas (NUNCA salen del PC)
   ├── i18n con i18next (ES/EN/PT)
-  ├── Temas personalizables con CSS variables
+  ├── Temas personalizables con CSS variables (todos disponibles)
   └── Roblox API calls con cookie local
 ```
+
+**Nota:** No hay backend. No hay servidor. No hay cloud.
+Todo funciona localmente en el dispositivo del usuario.
 
 ---
 
@@ -206,7 +215,7 @@ Motor RAM — App Electron (local en PC del usuario)
 ### Motor RAM — Electron
 ```
 BrowserWindow config obligatoria:
-  contextIsolation: true    ✅ aísla preload del renderer
+  contextIsolation: true    ✅ a?sla preload del renderer
   nodeIntegration: false    ✅ sin Node.js en renderer
   sandbox: true             ✅ Chromium sandbox activo
   webSecurity: true         ✅ same-origin policy
@@ -215,28 +224,22 @@ BrowserWindow config obligatoria:
 CSP en BrowserWindow:
   default-src 'self'
   script-src 'self'
-  connect-src 'self' https://*.roblox.com https://api.tu-backend.com
+  connect-src 'self' https://*.roblox.com
 
 IPC Security:
-  - contextBridge expone SOLO funciones específicas, nunca ipcRenderer raw
+  - contextBridge expone SOLO funciones espec?ficas, nunca ipcRenderer raw
   - Whitelist de canales en preload
-  - Validación de tipos en main process handlers (defense in depth)
+  - Validaci?n de tipos en main process handlers (defense in depth)
   - Nunca shell.openExternal() sin validar la URL primero
 
 Almacenamiento:
-  - JWT en electron-store con encryptionKey derivado del hardware
   - Cookies Roblox en SQLite con AES-256-GCM
   - Nunca localStorage para datos sensibles
   - Preferencias de tema e idioma en SQLite (no sensibles, sin cifrado)
 ```
 
-### Backend API
-```
-Auth:
-  - JWT RS256 (asimétrico) — nunca HS256
-  - Access token: 15 minutos
-  - Refresh token: 30 días, rotación en cada uso, invalidación en logout
-  - bcrypt salt rounds: 12
+**Nota relevante:** Este proyecto no tiene backend, no recopila datos y no
+se comunica con servidores propios. Toda la operaci?n es local.
 
 Rate limiting (@fastify/rate-limit):
   - POST /auth/login     → 5 intentos / IP / 15 minutos
@@ -262,37 +265,32 @@ Secrets:
   - Nunca loguear passwords, tokens, cookies o datos de tarjeta
 ```
 
-### Landing Page
+### Landing Page (Informativo)
 ```
-- HTTPS only — redirect automático de HTTP
-- httpOnly + SameSite=Strict + Secure en cookies de sesión
-- CSRF tokens en formularios
-- Input validation con zod en cliente Y servidor
-- Stripe Checkout hosted — cero contacto con datos de tarjeta
-- Next.js escapa HTML por defecto — nunca dangerouslySetInnerHTML con datos externos
-- next-intl no expone datos sensibles por idioma
+- HTTPS only — conexi?n segura obligatoria
+- Sin autenticaci?n de usuario ni manejo de sesiones
+- Sin procesamiento de pagos ni datos financieros
+- Links directos a GitHub Releases para descargas
+- Documentaci?n p?blica con instrucciones de compilaci?n
 ```
 
 ---
 
-## Schema de base de datos — Backend (Prisma)
+## Licencia
 
-```prisma
-model User {
-  id               String         @id @default(cuid())
-  email            String         @unique
-  passwordHash     String
-  emailVerified    Boolean        @default(false)
-  emailVerifyToken String?
-  language         String         @default("es")
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  license          License?
-  refreshTokens    RefreshToken[]
-}
+**MIT License** — Ver archivo [LICENSE](LICENSE) para detalles completos.
 
-model License {
-  id                   String        @id @default(cuid())
+Este software se proporciona "tal cual", sin garant?a de ning?n tipo.
+El uso de este software es bajo su propia responsabilidad.
+
+**Disclaimer Legal:**
+Este proyecto no est? afiliado, respaldado ni patrocinado por ninguna
+plataforma de juego, empresa de tecnolog?a ni marca registrada. El uso de
+este software es responsabilidad exclusiva del usuario final, quien debe
+asegurarse de cumplir con los t?rminos de servicio de cualquier plataforma
+con la que interact?e.
+
+---
   userId               String        @unique
   plan                 Plan          @default(FREE)
   accountLimit         Int           @default(5)
@@ -323,12 +321,16 @@ enum Plan {
   ENTERPRISE
 }
 
-enum LicenseStatus {
-  ACTIVE
-  CANCELLED
-  PAST_DUE
-  TRIALING
-}
+## Estado del Proyecto
+
+### Roadmap actualizado (Julio 2026)
+
+| Sprint | Estado | Descripci?n |
+|--------|--------|-------------|
+| ? Migraci?n OpenSource | ? En progreso | Eliminaci?n de backend, licencias y monetizaci?n |
+| ? Rebranding | ? Pendiente | Cambio de nombre y eliminaci?n de referencias de marca |
+| ? Documentaci?n | ? Pendiente | README, CONTRIBUTING, gu?as de compilaci?n |
+| ? Limpieza de c?digo | ? Pendiente | Eliminar LicenseService, AuthContext, validaciones de plan |
 ```
 
 ### SQLite Motor RAM — tabla settings
@@ -343,11 +345,8 @@ CREATE TABLE settings (
 -- fontSize          → 'small' | 'medium' | 'large'
 -- uiDensity         → 'compact' | 'normal' | 'spacious'
 -- animationsEnabled → 'true' | 'false'
--- primaryColor      → '#DE350D' (solo Enterprise)
--- accentColor       → '#6347FF' (solo Enterprise)
--- licenseStatus     → último estado conocido (modo offline)
--- lastPlanKnown     → último plan conocido (modo offline)
--- accountLimit      → último límite conocido (modo offline)
+-- primaryColor      → '#DE350D' (personalizable por usuario)
+-- accentColor       → '#6347FF' (personalizable por usuario)
 ```
 
 ---
@@ -768,3 +767,68 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 - Temas: Dark como tema por defecto
 - Custom themes solo disponibles para plan Enterprise
 - NUNCA usar dangerouslySetInnerHTML con datos externos en React/Next.js
+
+---
+
+## Estado Operativo
+
+*Actualizado: 2026-07-02 | Fusionado desde CURRENT_TASK.md (archivo obsoleto)*
+
+- ✅ E1-E8: Motor RAM (Electron) — TODOS COMPLETADOS + fixes de bugs de runtime
+- ✅ F0-F4: Fixes críticos de Motor RAM, Landing Build, Backend Build, /cancel
+- ✅ B3: Backend Stripe checkout + webhook + customer portal
+- ✅ B3: Email verification + forgot/reset password (implementación real, no stubs)
+- ✅ T3: Landing Page conectada con Backend real (Dashboard, Billing, Settings, Login con POST /auth/login real)
+- ✅ T1: Escribir tests backend (auth, stripe, license) - unit + integration
+- ✅ T2: i18n Landing Page (Hero/Features/FAQ/Footer) - traducciones ES/EN/PT
+- ✅ T3: Deploy Backend a Railway + PostgreSQL producción
+
+## Dependencias externas bloqueantes
+- Backend API (NexoAccManager-Backend) — Stripe completo, auth real, email funcional
+- Sin producción: necesita Railway deploy + PostgreSQL + env vars reales
+- Landing Page (NexoAccManager-Landing) — ✅ ahora conectada a backend real
+
+## Protocolo de inicio — OBLIGATORIO
+```
+# 1. Motor RAM
+npx tsc --noEmit 2>&1 | tail -5  # ✅ 0 errores
+cd ../NexoAccManager && git log --oneline -3
+
+# 2. Backend
+cd ../NexoAccManager-Backend && npx tsc --noEmit 2>&1 | tail -5  # ✅ 0 errores
+
+# 3. Landing
+cd ../NexoAccManager-Landing && npm run build 2>&1 | tail -5
+# ⚠️ Errores de pre-rendering PRE-EXISTENTES en login/register/dashboard/etc.
+# Causa raíz: ClientLayout carga messages dinámicamente en runtime (patrón L5 problemático).
+- Vercel: `NEXT_PUBLIC_BACKEND_URL` → URL del backend en Railway
+- Landing Page (NexoAccManager-Landing) — ✅ ahora conectada a backend real
+- Proyecto se desplegará en **Oracle Cloud Structure + Dokploy** (no Vercel)
+
+## T — Tareas críticas antes de deploy
+| # | Tarea | Complejidad | Estado |
+|---|-------|------------|--------|
+| T1 | Escribir tests backend (auth, stripe, license) — P4 del Kanban | Media | ✅ COMPLETADO |
+| T2 | F3 — i18n Landing Page (Hero/Features/FAQ/Footer) | Alta | ✅ COMPLETADO |
+| T3 | P3 — Conectar Landing Page con Backend real | Alta | ✅ COMPLETADO |
+| T5 | DeployLanding Page a Vercel | Media | ❌ CANCELADO (no usar Vercel) |
+| T4 | Configurar Dockerfiles para backend y landing | Media | ✅ COMPLETADO |
+| T5 | Docker Compose + nginx en Oracle Cloud | Media | ✅ COMPLETADO |
+| T6 | Crear guía deploy Oracle Cloud + Dokploy | Alta | ✅ COMPLETADO |
+| T7 | Configurar SSL + domain en Oracle Cloud | Media | Pendiente |
+| T8 | Deploy Motor RAM con electron-builder | Alta | Pendiente |
+| T6 | Deploy Motor RAM con electron-builder + auto-update | Alta | Pendiente |
+| T7 | Monitoreo + logs + rollback plan | Media | Pendiente |
+
+## Bug pre-existente documentado — Landing build warnings
+- Tipo: Errores de pre-rendering en login/register/dashboard/etc.
+- Origen: Sprint L5 — patrón de ClientLayout con carga dinámica de messages
+- No bloqueante: deployment funciona, afecta solo validación estática de Next.js
+- Solución futura: refactorizar ClientLayout a Server Component o usar unstable_noStore()
+
+## Siguiente acción
+T4 (Preparar env vars producción) es la siguiente tarea prioritaria según el Kanban.
+
+---
+
+*Nota: Para actualizar estado operativo, editar esta sección de PROJECT.md directamente.*
