@@ -19,11 +19,14 @@ Maximo de cuentas: 50 por usuario (sin restricciones de plan)
 ## Reglas críticas — NUNCA violar
 - Cookies Roblox NUNCA salen del PC del usuario
 - contextIsolation: true + nodeIntegration: false + sandbox: true — nunca deshabilitar
-- JWT RS256 asimétrico — nunca HS256
+- 100% local — sin backend, sin servidor, sin nube
 - Nunca dangerouslySetInnerHTML con datos externos
 - Nunca exponer ipcRenderer raw — solo contextBridge
 - Nunca commitear con errores tsc sin resolver
 - Nunca debilitar tests para que pasen
+
+> **Nota:** JWT RS256, bcrypt, Stripe y rate limiting son responsabilidades del
+> backend SaaS (`../NexoAccManager-Backend/`), no de esta app Electron.
 
 ## Arquitectura IPC — namespacing obligatorio
 ```
@@ -58,14 +61,13 @@ Result pattern en IPC: `{ success, data }` | `{ success: false, error }` — nun
 ```
 
 ## Loop de desarrollo para este proyecto
-1. `cat CURRENT_TASK.md` → ejecutar tarea activa
+1. `cat PROJECT.md` → verificar fase activa
 2. Leer solo los archivos necesarios — no escanear el proyecto completo
 3. `npm run typecheck && npm run lint && npm run build`
 4. Actualizar `PROJECT.md` primero — marcar ✅ con fecha
-5. Actualizar `CURRENT_TASK.md` con la siguiente tarea
-6. `git add -A && git commit -m "tipo(scope): descripción en español"`
-7. `git push` → siguiente tarea inmediatamente
-8. Consultar `PROJECT.md` solo para saber qué sigue o ante ambigüedad
+5. `git add -A && git commit -m "tipo(scope): descripción en español"`
+6. `git push` → siguiente tarea inmediatamente
+7. Consultar `PROJECT.md` solo para saber qué sigue o ante ambigüedad
 
 ## Edición de archivos de código (TSX/JSX/TS/JS)
 - NUNCA usar `sed -i` con regex multilínea o reemplazos de tags JSX/TSX 
@@ -99,7 +101,7 @@ src/
     ipc/                       → handlers IPC por namespace
   renderer/
     App.tsx                    → raíz del renderer
-    context/                   → React contexts (tema, i18n, auth)
+    context/                   → React contexts (tema, i18n)
     components/                → componentes UI
     locales/                   → es.json, en.json, pt.json
   preload/
@@ -124,12 +126,12 @@ src/
 - Animaciones: 200ms ease-in-out
 - Iconos: Lucide Icons
 
-## Temas — Sprint E7 pendiente
+## Temas — Sprint E7 COMPLETADO
 ```
 Dark (default)  → bg: #0D0D0D
 Light           → bg: #F5F5F5, texto oscuro
 Roblox Classic  → rojo dominante #DE350D con negro
-Custom          → solo Enterprise — color picker primario + acento
+Custom          → color picker primario + acento (todos los usuarios)
 ```
 
 ## i18n — implementado en E6

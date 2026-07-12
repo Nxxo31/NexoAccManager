@@ -226,9 +226,11 @@ class NexoApp {
     ipcMain.handle('account:list', async () => {
       try {
         const accounts = this.accountManager.getAllAccounts();
-        return ok(accounts);
+        // Retornar el array directamente — el renderer espera un array, no un wrapper { success, data }
+        return accounts;
       } catch (e) {
-        return err(`Error listando cuentas: ${(e as Error).message}`);
+        console.error('Error listando cuentas:', e);
+        return [];
       }
     });
 
@@ -817,17 +819,20 @@ class NexoApp {
     // El preload expone 'settings:theme:get' como canal de consulta
     ipcMain.handle('settings:theme:get', async () => {
       try {
-        const theme = this.themeService.getSettings();
-        return ok(theme);
+        const settings = this.themeService.getSettings();
+        const css = this.themeService.getThemeCSS();
+        // Retornar directamente { settings, css } — sin wrapper ok()
+        return { settings, css };
       } catch (e) {
-        return err(`Error obteniendo tema: ${(e as Error).message}`);
+        console.error('Error obteniendo tema:', e);
+        return null;
       }
     });
 
     // El preload expone 'settings:theme:set' con un objeto settings
     ipcMain.handle('settings:theme:set', async (_, settings: unknown) => {
       if (!settings || typeof settings !== 'object') {
-        return err('Payload inválido: settings debe ser un objeto');
+        return null;
       }
       try {
         const s = settings as Record<string, unknown>;
@@ -835,19 +840,19 @@ class NexoApp {
         if (typeof s.theme === 'string') {
           const validThemes: ThemeId[] = ['dark', 'light', 'roblox-classic', 'custom'];
           if (!validThemes.includes(s.theme as ThemeId)) {
-            return err(`theme inválido: debe ser uno de ${validThemes.join(', ')}`);
+            return null;
           }
           patch.theme = s.theme as ThemeId;
         }
         if (typeof s.fontSize === 'string') {
           if (!['small', 'medium', 'large'].includes(s.fontSize)) {
-            return err('fontSize inválido: debe ser small, medium o large');
+            return null;
           }
           patch.fontSize = s.fontSize as ThemeSettings['fontSize'];
         }
         if (typeof s.uiDensity === 'string') {
           if (!['compact', 'normal', 'spacious'].includes(s.uiDensity)) {
-            return err('uiDensity inválido: debe ser compact, normal o spacious');
+            return null;
           }
           patch.uiDensity = s.uiDensity as ThemeSettings['uiDensity'];
         }
@@ -861,9 +866,12 @@ class NexoApp {
           patch.accentColor = s.accentColor;
         }
         const merged = this.themeService.setSettings(patch);
-        return ok(merged);
+        const css = this.themeService.getThemeCSS();
+        // Retornar { settings, css } — sin wrapper
+        return { settings: merged, css };
       } catch (e) {
-        return err(`Error configurando tema: ${(e as Error).message}`);
+        console.error('Error configurando tema:', e);
+        return null;
       }
     });
 

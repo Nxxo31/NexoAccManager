@@ -1,31 +1,46 @@
-# NexoAccManager -- Herramienta OpenSource de Gesti?n de Cuentas
+# NexoAccManager — Herramienta OpenSource de Gestión de Cuentas
 
-## Descripci?n
-**Migraci?n completada a modelo OpenSource (Julio 2026).**
-Herramienta libre y de c?digo abierto para la gesti?n de m?ltiples cuentas e instancias
-de plataformas de juego. Evoluci?n moderna y segura del Roblox Account Manager (RAM)
+## Descripción
+
+**Migración completada a modelo OpenSource (Julio 2026).**
+
+Herramienta libre y de código abierto para la gestión de múltiples cuentas e instancias
+de plataformas de juego. Evolución moderna y segura del Roblox Account Manager (RAM)
 de ic3w0lf22, enfocada en la privacidad y el control del usuario.
 
 **Naturaleza del proyecto:**
-- **C?digo abierto bajo licencia MIT:** Libre uso, modificaci?n y distribuci?n.
-- **Sin fines de lucro:** Sin modelos de suscripci?n, pagos ni publicidad.
-- **100% Local:** Todas las credenciales y datos se almacenan y procesan ?nicamente
+- **Código abierto bajo licencia MIT:** Libre uso, modificación y distribución.
+- **Sin fines de lucro:** Sin modelos de suscripción, pagos ni publicidad.
+- **100% Local:** Todas las credenciales y datos se almacenan y procesan únicamente
   en el dispositivo del usuario mediante cifrado AES-256-GCM.
-- **Independiente:** No requiere servidores, backend ni conexi?n a internet para funcionar.
-- **Sin afiliaci?n:** Este proyecto no est? afiliado, respaldado ni patrocinado por
+- **Independiente:** No requiere servidores, backend ni conexión a internet para funcionar.
+- **Sin afiliación:** Este proyecto no está afiliado, respaldado ni patrocinado por
   ninguna plataforma de juego ni empresa relacionada.
 
-## Repositorios
-- **Aplicaci?n Principal (Electron):** https://github.com/Nxxo31/NexoAccManager ? activo
-- **Landing Page:** https://github.com/Nxxo31/NexoAccManager-Landing ? activo
+## Repositorios del ecosistema
+
+| Repo | Descripción | URL |
+|------|-------------|-----|
+| **NexoAccManager** (este repo) | App Electron — Motor RAM, 100% local | https://github.com/Nxxo31/NexoAccManager |
+| **NexoAccManager-Backend** | API REST SaaS (Fastify + Prisma + Stripe) — repositorio independiente | Ver `../NexoAccManager-Backend/PROJECT.md` |
+| **NexoAccManager-Landing** | Landing page Next.js — repositorio independiente | Ver `../NexoAccManager-Landing/PROJECT.md` |
+
+> **Nota:** El backend y la landing page son repositorios SaaS separados que coexisten
+> como hermanos en el sistema de archivos (`../NexoAccManager-Backend/`, `../NexoAccManager-Landing/`).
+> La app Electron (este repositorio) es 100% local y OpenSource — no depende del backend ni de la landing.
 
 ## Historial de Cambios Clave
-- **2026-07-04:** Decisi?n estrat?gica de migrar de modelo SaaS a OpenSource
-despu?s de evaluaci?n de riesgos legales y t?cnicos.
-- **2026-07-04:** Eliminaci?n de backend propietario, sistema de licencias,
-  integraci?n con Stripe y autenticaci?n centralizada.
+
+- **2026-07-04:** Decisión estratégica de migrar de modelo SaaS a OpenSource
+  después de evaluación de riesgos legales y técnicos.
+- **2026-07-04:** Eliminación de backend propietario, sistema de licencias,
+  integración con Stripe y autenticación centralizada de la app Electron.
+- **2026-07-12:** Limpieza de PROJECT.md — todo el contenido SaaS (Prisma schema,
+  endpoints backend, secciones de landing, JWT/Stripe/referencias a planes) movido
+  a los PROJECT.md de los repositorios correspondientes.
 
 ## Referencias
+
 - https://github.com/ic3w0lf22/Roblox-Account-Manager
 - https://ic3w0lf22.gitbook.io/roblox-account-manager/
 
@@ -38,43 +53,45 @@ despu?s de evaluaci?n de riesgos legales y t?cnicos.
 | **Stack** | WinForms C# (.NET) | Electron + React + TypeScript |
 | **Plataforma** | Solo Windows | Windows (Mac/Linux futuro) |
 | **UI/UX** | UI básica de 2015 | Design system moderno, glassmorphism |
-| **Modelo de negocio** | Gratis, sin soporte | SaaS freemium con Stripe |
-| **Autenticación de usuario** | ❌ Sin login | ✅ Email + password + JWT RS256 |
-| **Backend** | ❌ Solo local | ✅ API en Railway + PostgreSQL |
-| **Dashboard web** | ❌ No existe | ✅ Control completo desde browser/móvil |
+| **Modelo de negocio** | Gratis, sin soporte | OpenSource MIT — gratis y libre |
+| **Autenticación de usuario** | ❌ Sin login | ❌ Sin login — 100% local, sin servidor |
+| **Backend** | ❌ Solo local | ❌ Sin backend — todo en el dispositivo |
+| **Dashboard web** | ❌ No existe | ❌ No aplica — app de escritorio local |
 | **Account Control Panel** | ❌ Básico | ✅ Completo — privacidad, bloqueos, sesiones, contraseña |
 | **Server Browser** | ✅ Lista básica | ✅ Con región, ping, filtro por menos jugadores |
 | **Smart Server Selection** | ❌ Manual | ✅ Auto-join least populated + multi-account split |
 | **Presence Dashboard** | ❌ No existe | ✅ Estado en tiempo real de todas las cuentas |
 | **Cifrado** | Básico | AES-256-GCM derivado del hardware |
 | **IPC Security** | N/A (.NET) | contextBridge + contextIsolation + sandbox |
-| **Rate limiting** | ❌ No | ✅ En Backend y llamadas a Roblox API |
 | **Auto Cookie Refresh** | ✅ Básico | ✅ Avanzado con retry y notificaciones |
 | **Player Finder** | ✅ Básico | ✅ Con región y distribución multi-cuenta |
-| **Soporte activo** | ❌ Abandonado | ✅ Comunidad activa, c?digo abierto |
-| **Descarga** | GitHub releases | GitHub releases + Landing page |
+| **Soporte activo** | ❌ Abandonado | ✅ Comunidad activa, código abierto |
+| **Descarga** | GitHub releases | GitHub releases |
 | **Inventario desde app** | ❌ No | ✅ Ver items, Robux balance |
-| **Idiomas** | ❌ Solo ingl?s | ✅ ES, EN, PT con i18n completo |
+| **Idiomas** | ❌ Solo inglés | ✅ ES, EN, PT con i18n completo |
 | **Temas personalizables** | ❌ No | ✅ Dark, Light, Roblox Classic, Custom (todos libres) |
 
 ---
 
 ## Modelo OpenSource
 
-**Este proyecto es completamente gratuito y de c?digo abierto bajo Licencia MIT.**
+**Este proyecto es completamente gratuito y de código abierto bajo Licencia MIT.**
 
-Sin planes de pago, suscripciones ni l?mites de funcionalidad. Todos los usuarios
-tienen acceso completo a todas las caracter?sticas sin restricci?n alguna.
+Sin planes de pago, suscripciones ni límites de funcionalidad. Todos los usuarios
+tienen acceso completo a todas las características sin restricción alguna.
 
 Principios del proyecto:
 - **Libre uso:** Descarga, usa y modifica el software sin costo.
-- **Sin l?mites de cuentas:** Gestiona tantas cuentas como necesites.
-- **Sin recolecci?n de datos:** Tu informaci?n nunca sale de tu dispositivo.
+- **Sin límites de cuentas:** Gestiona tantas cuentas como necesites.
+- **Sin recolección de datos:** Tu información nunca sale de tu dispositivo.
 - **100% local:** Sin servidores, sin backend, sin tracking.
+
+---
 
 ## Design System
 
 ### Paleta de colores (inspirada en Roblox)
+
 ```css
 :root {
   --primary:        #DE350D;  /* Rojo Roblox — CTAs principales */
@@ -94,12 +111,17 @@ Principios del proyecto:
 ```
 
 ### Temas disponibles
+
 - **Dark (default)** — fondo #0D0D0D, el tema actual
 - **Light** — fondo #F5F5F5, texto oscuro, mismo accent
 - **Roblox Classic** — rojo dominante #DE350D con negro
-- **Custom** — usuario define colores primario y acento (solo Enterprise)
+- **Custom** — usuario define colores primario y acento
+
+> **Nota:** Todos los temas están disponibles para todos los usuarios. No hay
+> restricciones por plan — el proyecto es OpenSource MIT.
 
 ### Estilo visual
+
 - Dark theme exclusivo por defecto
 - Glassmorphism en cards: `backdrop-filter: blur(12px)`, bordes translúcidos
 - Gradientes de fondo con rojo Roblox sutil
@@ -107,40 +129,39 @@ Principios del proyecto:
 - Border radius: 8px cards, 4px inputs
 - Animaciones: 200ms ease-in-out
 - Iconografía: Lucide Icons
-- Inspiración: Linear.app + Vercel Dashboard + Stripe Dashboard
+- Inspiración: Linear.app + Vercel Dashboard
 
 ---
 
 ## Internacionalización (i18n)
 
 ### Idiomas soportados
+
 - 🇪🇸 Español (es) — idioma por defecto
 - 🇺🇸 English (en)
 - 🇧🇷 Português (pt)
 
 ### Implementación Motor RAM (Electron)
+
 - Librería: `i18next` + `react-i18next`
 - Archivos: `src/renderer/locales/es.json`, `en.json`, `pt.json`
-- Selector: dropdown con banderas en Header y en pantalla de Login
+- Selector: dropdown con banderas en Header
 - Persistencia: guardado en SQLite tabla `settings` con key `language`
 - Detección automática: usa el idioma del sistema operativo al primer arranque
 - IPC channel: `settings:language:get/set`
 
-### Implementación Landing Page (Next.js)
-- Librería: `next-intl`
-- Rutas localizadas: `/es/`, `/en/`, `/pt/`
-- Selector: dropdown con banderas en Header
-- Detección: `Accept-Language` header del browser
-- SEO: `hreflang` tags por idioma en `<head>`
+> **Nota:** La landing page usa `next-intl` con rutas localizadas `/es/`, `/en/`, `/pt/`.
+> Ver `../NexoAccManager-Landing/PROJECT.md` para detalles.
 
 ---
 
 ## Personalización y Temas
 
 ### Motor RAM — Settings Panel de Apariencia
-- **Selector de tema**: Dark / Light / Roblox Classic / Custom (Enterprise)
-- **Color primario custom**: color picker (solo Enterprise)
-- **Color acento custom**: color picker (solo Enterprise)
+
+- **Selector de tema**: Dark / Light / Roblox Classic / Custom
+- **Color primario custom**: color picker (todos los usuarios)
+- **Color acento custom**: color picker (todos los usuarios)
 - **Tamaño de fuente**: Small / Medium (default) / Large
 - **Densidad de UI**: Compacta / Normal / Espaciosa
 - **Animaciones**: On / Off (para PCs con recursos limitados)
@@ -157,35 +178,34 @@ Aplicación: CSS variables en `:root` actualizadas dinámicamente via IPC `theme
 Usuario
   │
   ▼
-NexoAccManager-Landing (Vercel / GitHub Pages)
+NexoAccManager-Landing (servidor externo — repositorio independiente)
   ├── Hero + Features
   ├── Descarga desde GitHub Releases
-  ├── Documentaci?n y gu?as
+  ├── Documentación y guías
   ├── Selector de idioma (next-intl)
-  └── Links al c?digo fuente
+  └── Links al código fuente
           │
           ▼
 NexoAccManager — App Electron (100% local en PC del usuario)
-  ├── Autenticaci?n local (sin servidor)
-  ├── Gesti?n de m?ltiples cuentas sin l?mites
+  ├── Gestión de múltiples cuentas sin límites
   ├── SQLite AES-256-GCM → cuentas (NUNCA salen del PC)
   ├── i18n con i18next (ES/EN/PT)
   ├── Temas personalizables con CSS variables (todos disponibles)
   └── Roblox API calls con cookie local
 ```
 
-**Nota:** No hay backend. No hay servidor. No hay cloud.
-Todo funciona localmente en el dispositivo del usuario.
+**Nota:** La app Electron no requiere backend ni servidor. Todo funciona
+localmente en el dispositivo del usuario. La landing page y el backend
+son repositorios SaaS separados que coexisten como hermanos.
 
 ---
 
-## Patrones de arquitectura y diseño
+## Patrones de arquitectura y diseño — Motor RAM (Electron)
 
-### Motor RAM — Electron
 - **Patrón principal**: Two-process model (Main + Renderer) con IPC tipado
 - **IPC**: invoke/handle (Promise-based) — nunca send/on para request-response
 - **Seguridad IPC**: contextBridge con whitelist explícita de canales, validación en ambos lados
-- **Namespacing IPC**: `account:*`, `roblox:*`, `settings:*`, `license:*`, `i18n:*`, `theme:*`
+- **Namespacing IPC**: `account:*`, `roblox:*`, `settings:*`, `theme:*`, `i18n:*`, `advanced:*`
 - **Estado**: Zustand en renderer — nunca estado en main process
 - **Servicios**: Repository pattern para SQLite, Service layer para Roblox API
 - **Cache**: LRU cache en main process para responses de Roblox API (TTL 60s)
@@ -193,86 +213,49 @@ Todo funciona localmente en el dispositivo del usuario.
 - **i18n**: i18next inicializado en renderer, idioma guardado via `settings:language:set`
 - **Temas**: CSS variables en `:root` actualizadas via IPC `theme:set`
 
-### Backend API
-- **Patrón**: Layered Architecture — Routes → Controllers → Services → Repositories
-- **Auth**: JWT RS256 asimétrico — access token 15min + refresh token 30 días con rotación
-- **Passwords**: bcrypt salt rounds 12
-- **Validación**: zod en cada endpoint — nunca confiar en datos del cliente
-- **Stripe**: webhook signature verification — nunca procesar sin verificar
-- **Errores**: HTTP errors semánticos con body estructurado `{ code, message, details }`
-
-### Landing Page
-- **Patrón**: Next.js App Router con Server Components donde sea posible
-- **i18n**: next-intl con rutas localizadas `/[locale]/`
-- **Auth state**: React Context + httpOnly cookies para JWT
-- **Forms**: React Hook Form + zod validation
-- **Pagos**: Stripe Checkout hosted — cero manejo de datos de tarjeta
+> **Patrones del Backend y Landing:** Ver `../NexoAccManager-Backend/PROJECT.md` y
+> `../NexoAccManager-Landing/PROJECT.md` respectivamente.
 
 ---
 
-## Seguridad — Implementación completa
+## Seguridad — Motor RAM (Electron)
 
-### Motor RAM — Electron
+### BrowserWindow config obligatoria
+
 ```
-BrowserWindow config obligatoria:
-  contextIsolation: true    ✅ a?sla preload del renderer
-  nodeIntegration: false    ✅ sin Node.js en renderer
-  sandbox: true             ✅ Chromium sandbox activo
-  webSecurity: true         ✅ same-origin policy
-  enableRemoteModule: false ✅ remote module deshabilitado
-
-CSP en BrowserWindow:
-  default-src 'self'
-  script-src 'self'
-  connect-src 'self' https://*.roblox.com
-
-IPC Security:
-  - contextBridge expone SOLO funciones espec?ficas, nunca ipcRenderer raw
-  - Whitelist de canales en preload
-  - Validaci?n de tipos en main process handlers (defense in depth)
-  - Nunca shell.openExternal() sin validar la URL primero
-
-Almacenamiento:
-  - Cookies Roblox en SQLite con AES-256-GCM
-  - Nunca localStorage para datos sensibles
-  - Preferencias de tema e idioma en SQLite (no sensibles, sin cifrado)
+contextIsolation: true    ✅ aísla preload del renderer
+nodeIntegration: false    ✅ sin Node.js en renderer
+sandbox: true             ✅ Chromium sandbox activo
+webSecurity: true         ✅ same-origin policy
+enableRemoteModule: false ✅ remote module deshabilitado
 ```
 
-**Nota relevante:** Este proyecto no tiene backend, no recopila datos y no
-se comunica con servidores propios. Toda la operaci?n es local.
+### CSP en BrowserWindow
 
-Rate limiting (@fastify/rate-limit):
-  - POST /auth/login     → 5 intentos / IP / 15 minutos
-  - POST /auth/register  → 3 intentos / IP / hora
-  - Global              → 100 req / IP / minuto
-
-Headers (Helmet):
-  - X-Content-Type-Options: nosniff
-  - X-Frame-Options: DENY
-  - Strict-Transport-Security: max-age=31536000; includeSubDomains
-  - Content-Security-Policy configurado
-
-Database:
-  - Prisma con queries parametrizadas — nunca string concatenation
-  - Nunca exponer stack traces en producción
-
-Stripe:
-  - Verificar firma en cada webhook con stripe.webhooks.constructEvent()
-  - Nunca actualizar plan sin verificar evento de Stripe
-
-Secrets:
-  - Nunca en código — solo variables de entorno
-  - Nunca loguear passwords, tokens, cookies o datos de tarjeta
+```
+default-src 'self'
+script-src 'self'
+connect-src 'self' https://*.roblox.com
 ```
 
-### Landing Page (Informativo)
-```
-- HTTPS only — conexi?n segura obligatoria
-- Sin autenticaci?n de usuario ni manejo de sesiones
-- Sin procesamiento de pagos ni datos financieros
-- Links directos a GitHub Releases para descargas
-- Documentaci?n p?blica con instrucciones de compilaci?n
-```
+### IPC Security
+
+- contextBridge expone SOLO funciones específicas, nunca ipcRenderer raw
+- Whitelist de canales en preload
+- Validación de tipos en main process handlers (defense in depth)
+- Nunca shell.openExternal() sin validar la URL primero
+
+### Almacenamiento
+
+- Cookies Roblox en SQLite con AES-256-GCM
+- Nunca localStorage para datos sensibles
+- Preferencias de tema e idioma en SQLite (no sensibles, sin cifrado)
+
+**Nota:** Este proyecto no tiene backend, no recopila datos y no se comunica con
+servidores propios. Toda la operación es local.
+
+> **Seguridad del Backend y Landing:** Ver `../NexoAccManager-Backend/PROJECT.md` y
+> `../NexoAccManager-Landing/PROJECT.md`.
 
 ---
 
@@ -280,60 +263,33 @@ Secrets:
 
 **MIT License** — Ver archivo [LICENSE](LICENSE) para detalles completos.
 
-Este software se proporciona "tal cual", sin garant?a de ning?n tipo.
+Este software se proporciona "tal cual", sin garantía de ningún tipo.
 El uso de este software es bajo su propia responsabilidad.
 
 **Disclaimer Legal:**
-Este proyecto no est? afiliado, respaldado ni patrocinado por ninguna
-plataforma de juego, empresa de tecnolog?a ni marca registrada. El uso de
+Este proyecto no está afiliado, respaldado ni patrocinado por ninguna
+plataforma de juego, empresa de tecnología ni marca registrada. El uso de
 este software es responsabilidad exclusiva del usuario final, quien debe
-asegurarse de cumplir con los t?rminos de servicio de cualquier plataforma
-con la que interact?e.
+asegurarse de cumplir con los términos de servicio de cualquier plataforma
+con la que interactúe.
 
 ---
-  userId               String        @unique
-  plan                 Plan          @default(FREE)
-  accountLimit         Int           @default(5)
-  stripeCustomerId     String?
-  stripeSubscriptionId String?
-  status               LicenseStatus @default(ACTIVE)
-  currentPeriodEnd     DateTime?
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
-  user                 User          @relation(fields: [userId], references: [id])
-}
-
-model RefreshToken {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  used      Boolean  @default(false)
-  user      User     @relation(fields: [userId], references: [id])
-}
-
-enum Plan {
-  FREE
-  STARTER
-  PRO
-  BUSINESS
-  ENTERPRISE
-}
 
 ## Estado del Proyecto
 
 ### Roadmap actualizado (Julio 2026)
 
-| Sprint | Estado | Descripci?n |
+| Sprint | Estado | Descripción |
 |--------|--------|-------------|
-| ? Migraci?n OpenSource | ? En progreso | Eliminaci?n de backend, licencias y monetizaci?n |
-| ? Rebranding | ? Pendiente | Cambio de nombre y eliminaci?n de referencias de marca |
-| ? Documentaci?n | ? Pendiente | README, CONTRIBUTING, gu?as de compilaci?n |
-| ? Limpieza de c?digo | ? Pendiente | Eliminar LicenseService, AuthContext, validaciones de plan |
-```
+| ✅ Migración OpenSource | ✅ Completado | Eliminación de backend, licencias y monetización de la app Electron |
+| ✅ Rebranding | ✅ Completado | Cambio de nombre y eliminación de referencias de marca |
+| ✅ Documentación | ✅ Completado | README, CONTRIBUTING, guías de compilación |
+| ✅ Limpieza de código | ✅ Completado | Eliminar LicenseService, AuthContext, validaciones de plan |
+| ❌ Testeo con cuentas reales | 🔄 En progreso | Usando Computer-use |
+| ❌ Subir a GitHub releases | ⏳ Pendiente | |
 
 ### SQLite Motor RAM — tabla settings
+
 ```sql
 CREATE TABLE settings (
   key   TEXT PRIMARY KEY,
@@ -354,6 +310,7 @@ CREATE TABLE settings (
 ## Features del Motor RAM — App Electron
 
 ### Core MVP v1.0 (ya implementado)
+
 - ✅ Agregar cuentas por cookie .ROBLOSECURITY
 - ✅ Verificación de cookie contra auth.roblox.com
 - ✅ Cifrado AES-256-GCM local derivado del hardware
@@ -363,17 +320,8 @@ CREATE TABLE settings (
 - ✅ Import/Export JSON
 - ✅ API REST local en puerto 8080
 
-### Fase 2 — Integración SaaS ✅ Sprint E5 completado
-- ✅ Pantalla de login/registro con design system
-- ✅ JWT en electron-store cifrado
-- ✅ Validación de licencia al arrancar (GET /license/verify)
-- ✅ Bloqueo por accountLimit con UI clara y CTA de upgrade
-- ✅ Botón "Mejorar plan" → abre Landing en browser
-- ✅ Modo offline con último plan conocido localmente
-- ✅ Indicador de estado de licencia (online/offline/expirada)
-- ✅ Auto Cookie Refresh: renovar cookie 24h antes de expirar
-
 ### Fase 3 — Account Control Panel ✅ Sprint E2 completado
+
 Control completo de la cuenta Roblox desde la app, sin abrir el navegador:
 
 **Perfil:**
@@ -409,6 +357,7 @@ Control completo de la cuenta Roblox desde la app, sin abrir el navegador:
 - ✅ Toggle notificaciones de mensajes
 
 ### Fase 4 — Server Browser ✅ Sprint E3 completado
+
 - ✅ IPC channels: roblox:games:search, roblox:servers:list, roblox:servers:join
 - ✅ Integración con games.roblox.com
 - ✅ UI: buscar juego por PlaceId o nombre
@@ -420,6 +369,7 @@ Control completo de la cuenta Roblox desde la app, sin abrir el navegador:
 - ❌ Unirse a server específico por JobId directamente desde URL
 
 ### Fase 5 — Presence Dashboard ✅ Sprint E4 completado
+
 - ✅ Integración con presence.roblox.com (polling cada 30s)
 - ✅ UI: grid de cuentas con estado en tiempo real
 - ✅ UI: thumbnail del juego actual
@@ -430,28 +380,37 @@ Control completo de la cuenta Roblox desde la app, sin abrir el navegador:
 - ❌ Mapa visual de actividad de todas las cuentas
 
 ### Fase 6 — i18n ✅ COMPLETADO
+
 - ✅ i18next + react-i18next instalado
 - ✅ Archivos de traducción: es.json, en.json, pt.json
-- ✅ Selector de idioma con banderas en Header y Login
+- ✅ Selector de idioma con banderas en Header
 - ✅ Detección automática del idioma del SO
 - ✅ Persistencia de idioma en SQLite settings
 
 ### Fase 7 — Temas personalizables ✅ COMPLETADO
+
 - ✅ Sistema de temas con CSS variables
 - ✅ ThemeService en main process
 - ✅ IPC channel: settings:theme:get/set
-- ✅ 3 temas built-in: Dark, Light, Roblox Classic
+- ✅ 4 temas: Dark, Light, Roblox Classic, Custom (todos disponibles)
 - ✅ Persistencia del tema en SQLite settings
 - ✅ Aplicación dinámica en renderer sin recargar
 
 ### Fase 8 — Settings Panel completo ✅ 2026-06-19
+
 - [x] Sección "Apariencia": selector tema, tamaño fuente, densidad UI, toggle animaciones
 - [x] Sección "Idioma": dropdown con banderas ES/EN/PT
-- [x] Sección "Cuenta": email, plan actual, botón logout, botón upgrade
+- [x] Sección "Cuenta": gestionar cuenta local
 - [x] Sección "Seguridad": cambiar contraseña (delega a Account Control Panel)
 - [x] Sección "Avanzado": limpiar caché, exportar datos, borrar cuenta local
 - [x] Bug fix: `require('electron')` en renderer reemplazado por IPC `shell:open-external`
 - [x] Bug fix: Props `accounts` y `onSelectAccount` ya se declaran correctamente
+
+### Fase 9 — Por definir
+
+Mejoras, optimizaciones, nuevas features.
+
+---
 
 ## APIs de Roblox utilizadas
 
@@ -470,71 +429,19 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 
 ---
 
-## Landing Page — Secciones
+## Plan de desarrollo — Motor RAM (App Electron)
 
-### Páginas públicas
-1. **Hero** — "El gestor de cuentas Roblox que los pros usan" + CTA + mockup
-2. **Features** — comparativa visual vs RAM con iconos
-3. **Pricing** — tabla 5 planes con toggle mensual
-4. **FAQ** — preguntas frecuentes
-5. **Footer** — links, copyright, términos + selector de idioma
+### Sprint E1 — Seguridad IPC ✅ completado
 
-### Páginas de auth
-6. **/[locale]/register** — email + password + confirm + verificación email + selector idioma
-7. **/[locale]/login** — email + password + forgot password + selector idioma
-8. **/[locale]/verify-email/[token]** — confirmar email
-9. **/[locale]/forgot-password** — solicitar reset
-10. **/[locale]/reset-password/[token]** — nueva contraseña
-
-### Dashboard de usuario (post-login)
-11. **/[locale]/dashboard** — plan actual, uso (X/Y cuentas), próximo pago
-12. **/[locale]/dashboard/billing** — historial pagos, cambiar plan, cancelar
-13. **/[locale]/dashboard/download** — descargar app con instrucciones de instalación
-14. **/[locale]/dashboard/settings** — idioma, tema, notificaciones email
-15. **/success** — confirmación de pago exitoso
-16. **/cancel** — usuario canceló el checkout
-
----
-
-## Endpoints Backend API
-
-### Auth
-- POST /auth/register → crear User + License FREE + tokens (incluye language preference)
-- POST /auth/login → validar credenciales → tokens
-- POST /auth/refresh → rotar refresh token → nuevo access token
-- POST /auth/logout → invalidar refresh token
-- POST /auth/verify-email → verificar token de email
-- POST /auth/forgot-password → enviar email de reset
-- POST /auth/reset-password → cambiar password con token
-
-### Licencias
-- GET /license/verify → JWT → { plan, accountLimit, status, currentPeriodEnd }
-- GET /license/plans → lista planes con precios y features
-
-### Stripe
-- POST /checkout/create-session → plan → Stripe Checkout Session URL
-- POST /webhook/stripe → checkout.session.completed, subscription.updated, subscription.deleted
-
-### Usuario
-- GET /user/me → perfil autenticado (incluye language)
-- PATCH /user/me → actualizar email o language
-- DELETE /user/me → cancelar cuenta y suscripción en Stripe
-
----
-
-## Plan de desarrollo — Orden de ejecución
-
-### PRIORIDAD 1 — Motor RAM (App Electron)
-
-#### Sprint E1 — Seguridad IPC ✅ completado
 - ✅ Auditar preload.ts — contextIsolation y sandbox activos
 - ✅ Whitelist de canales IPC en preload
-- ✅ Namespacing de canales: account:*, roblox:*, settings:*, license:*
+- ✅ Namespacing de canales: account:*, roblox:*, settings:*, theme:*, i18n:*, advanced:*
 - ✅ Validación de tipos en todos los ipcMain.handle()
 - ✅ CSP en BrowserWindow
 - ✅ shell.openExternal() solo acepta URLs roblox-player://
 
-#### Sprint E2 — Account Control Panel ✅ completado
+### Sprint E2 — Account Control Panel ✅ completado
+
 - ✅ IPC channels: settings:privacy:get/set, settings:security:sessions, settings:security:password
 - ✅ Integración con accountsettings.roblox.com y accountinformation.roblox.com
 - ✅ UI Panel de Perfil: display name, descripción
@@ -543,7 +450,8 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 - ✅ UI Panel de Amigos: lista, solicitudes, bloquear/desbloquear
 - ✅ UI Panel de Notificaciones: toggles
 
-#### Sprint E3 — Server Browser ✅ completado
+### Sprint E3 — Server Browser ✅ completado
+
 - ✅ IPC channels: roblox:games:search, roblox:servers:list, roblox:servers:join
 - ✅ Integración con games.roblox.com
 - ✅ UI: buscar juego por PlaceId o nombre
@@ -552,7 +460,8 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 - ✅ Auto-join least populated
 - ✅ Multi-account server split
 
-#### Sprint E4 — Presence Dashboard ✅ completado
+### Sprint E4 — Presence Dashboard ✅ completado
+
 - ✅ Integración con presence.roblox.com (polling cada 30s)
 - ✅ UI: grid de cuentas con estado en tiempo real
 - ✅ UI: thumbnail del juego actual
@@ -560,134 +469,47 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 - ✅ Robux balance por cuenta
 - ✅ Historial de juegos recientes
 
-#### Sprint E5 — Integración SaaS ✅ completado
-- ✅ Pantalla de login/registro en la app con design system
-- ✅ electron-store cifrado para JWT
-- ✅ Validación de licencia al arrancar
-- ✅ Bloqueo por accountLimit con UI y CTA de upgrade
-- ✅ Modo offline con último plan conocido
-- ✅ Auto Cookie Refresh (cookie 24h antes de expirar)
+### Sprint E5 — Auto Cookie Refresh ✅ completado
+
+- ✅ Auto Cookie Refresh: renovar cookie 24h antes de expirar
+- ✅ Retry con notificaciones
 
 ### Sprint E6 — i18n ✅ COMPLETADO
-[ x ] Crear src/renderer/locales/es.json, en.json, pt.json con todas las traducciones ✅
-[ x ] Envolver toda la UI en i18next provider ✅
-[ x ] Reemplazar strings hardcodeadas en App.tsx y componentes por t('key') ✅
-[ x ] Selector de idioma con banderas en Header
-[ x ] Selector de idioma en pantalla de Login (antes de autenticarse)
-[ x ] IPC channel: settings:language:get/set
-[ x ] Persistir idioma en SQLite tabla settings
-[ x ] Detectar idioma del SO al primer arranque con i18next-browser-languagedetector
 
-#### Sprint E7 — Temas personalizables ✅ COMPLETADO
+- [x] Crear src/renderer/locales/es.json, en.json, pt.json con todas las traducciones ✅
+- [x] Envolver toda la UI en i18next provider ✅
+- [x] Reemplazar strings hardcodeadas en App.tsx y componentes por t('key') ✅
+- [x] Selector de idioma con banderas en Header
+- [x] IPC channel: settings:language:get/set
+- [x] Persistir idioma en SQLite tabla settings
+- [x] Detectar idioma del SO al primer arranque con i18next-browser-languagedetector
+
+### Sprint E7 — Temas personalizables ✅ COMPLETADO
+
 - ✅ Instalar y configurar sistema de temas con CSS variables
 - ✅ Implementar ThemeService en main process
 - ✅ IPC channel: settings:theme:get/set
-- ✅ 3 temas built-in: Dark, Light, Roblox Classic
-- ✅ Custom theme con color picker para primario y acento (Enterprise)
+- ✅ 4 temas: Dark, Light, Roblox Classic, Custom
 - ✅ Persistir tema en SQLite tabla settings
 - ✅ Aplicar tema dinámicamente en renderer sin recargar
 
-#### Sprint E8 — Settings Panel completo ✅ COMPLETADO
+### Sprint E8 — Settings Panel completo ✅ COMPLETADO
+
 - ✅ Sección "Apariencia": selector tema, tamaño fuente, densidad UI, toggle animaciones
 - ✅ Sección "Idioma": dropdown con banderas ES/EN/PT
-- ✅ Sección "Cuenta": email, plan actual, botón logout, botón upgrade
+- ✅ Sección "Cuenta": gestionar cuenta local
 - ✅ Sección "Seguridad": cambiar contraseña (delega a Account Control Panel)
 - ✅ Sección "Avanzado": limpiar caché, exportar datos, borrar cuenta local
 
----
-
-### PRIORIDAD 2 — Landing Page
-
-#### Sprint L1 — Setup ✅ COMPLETADO
-- ✅ Limpiar node_modules del git history
-- ✅ Verificar .gitignore tiene node_modules/ y .next/
-- ✅ Push inicial limpio a GitHub: Nxxo31/NexoAccManager-Landing
-- ✅ Instalar next-intl para i18n
-- ✅ Instalar Framer Motion para animaciones
-- ✅ Instalar Shadcn UI
-- ✅ Design system completo en globals.css con CSS variables del PROJECT.md
-- ✅ Estructura de carpetas: src/app/[locale]/ para rutas localizadas
-- ✅ Configurar next-intl con middleware para detección de idioma
-
-#### Sprint L2 — Páginas públicas ✅ COMPLETADO
-- ✅ Header: logo, nav, selector idioma con banderas, CTA "Empezar gratis"
-- ✅ Hero section: headline, subheadline, CTAs, gradiente animado con rojo Roblox
-- ✅ Features section: 6 cards glassmorphism + comparativa vs RAM
-- ❌ Pricing section: 5 planes con toggle mensual
-- ❌ FAQ section: 8 preguntas frecuentes
-- ❌ Footer: links, copyright, selector de idioma
-
-#### Sprint L3 — Auth ✅ COMPLETADO
-- ✅ /[locale]/register con formulario y validación
-- ✅ /[locale]/login con forgot password link
-- ✅ /[locale]/verify-email/[token]
-- ✅ /[locale]/forgot-password
-- ✅ /[locale]/reset-password/[token]
-- ❌ httpOnly cookies para JWT (pendiente backend)
-- ❌ Middleware de auth en Next.js (pendiente backend)
-- ✅ Selector de idioma visible en todas las páginas de auth
-- ✅ i18n con next-intl usando claves namespaced (auth.register.terms, etc.)
-
-#### Sprint L4 — Dashboard de usuario ✅ COMPLETADO
-- ✅ /[locale]/dashboard — plan, uso X/Y cuentas, próximo pago (conectado a GET /auth/me)
-- ✅ /[locale]/dashboard/billing — historial, cambiar plan, Stripe checkout (conectado a /stripe/checkout/create-session)
-- ✅ /[locale]/dashboard/download — descarga con instrucciones por SO
-- ✅ /[locale]/dashboard/settings — idioma, tema (conectado a PATCH /auth/me)
-
-#### Sprint L5 — Stripe + i18n + Deploy ✅ COMPLETADO
-- ✅ POST /checkout/create-session integrado (Stripe checkout real)
-- ✅ Páginas /success y /cancel
-- ✅ Traducir todas las páginas a ES, EN, PT (i18n con next-intl plugin)
-- ✅ Fix bug prerendering (output:export → SSR con plugin next-intl)
-- ❌ Deploy Vercel pendiente
+> **Sprints del Backend y Landing:** Ver `../NexoAccManager-Backend/PROJECT.md` y
+> `../NexoAccManager-Landing/PROJECT.md` respectivamente.
 
 ---
 
-### PRIORIDAD 3 — Backend API
+## Estado actual REAL — Julio 2026
 
-#### Sprint B1 — Setup ✅ completado
-- [x] Crear repo NexoAccManager-Backend en GitHub
-- [x] Fastify + TypeScript + Prisma + PostgreSQL local
-- [x] Schema Prisma (User + License + RefreshToken) con campo language en User
-- [x] Primera migración
-- [x] Variables de entorno: DATABASE_URL, JWT_PRIVATE_KEY, JWT_PUBLIC_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+### Motor RAM (App Electron — este repositorio)
 
-#### Sprint B2 — Auth ✅ completado
-- [x] POST /auth/register con bcrypt + License FREE automática + email verification + language
-- [x] POST /auth/login con JWT RS256
-- [x] POST /auth/refresh con rotación de refresh token
-- [x] POST /auth/logout con invalidación de token
-- [x] POST /auth/verify-email
-- [x] POST /auth/forgot-password + /auth/reset-password
-- [x] Middleware JWT para rutas protegidas
-
-#### Sprint B3 — Licencias + Rate limiting ✅ COMPLETADO
-- [x] GET /license/verify
-- [x] GET /license/plans
-- [x] @fastify/rate-limit en endpoints de auth
-- [x] @fastify/helmet para headers de seguridad
-- [x] CORS configurado solo para orígenes permitidos
-
-#### Sprint B4 — Stripe ✅ COMPLETADO
-- [x] POST /stripe/checkout/create-session
-- [x] POST /stripe/webhook con verificación de firma
-- [x] POST /stripe/portal (customer portal)
-- [x] Manejar: checkout.session.completed, subscription.updated, subscription.deleted, invoice.payment_failed
-- [x] Actualizar License en DB según eventos
-
-#### Sprint B5 — Deploy ❌ pendiente
-- [ ] Crear proyecto Railway
-- [ ] PostgreSQL en Railway
-- [ ] Variables de entorno en Railway
-- [ ] Deploy y verificar endpoints
-- [ ] Configurar webhook URL en Stripe Dashboard
-- [ ] Generar par de claves RS256 para JWT
-
----
-
-## Estado actual REAL — junio 2026
-
-### Motor RAM (App Electron)
 - ✅ Backend Electron completo
 - ✅ Preload corregido + IPC seguro (Sprint E1)
 - ✅ Dependencias corregidas
@@ -701,28 +523,32 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 - ✅ Sprint E2 — Account Control Panel
 - ✅ Sprint E3 — Server Browser
 - ✅ Sprint E4 — Presence Dashboard
-- ✅ Sprint E5 — Integración SaaS
- - ✅ Sprint E6 — i18n — completado
- - ✅ Sprint E7 — Temas personalizables — completado
- - ✅ Sprint E8 — Settings Panel completo — completado
- - ❌ Sprint E9 — Por definir (mejoras, optimizaciones, nuevas features)
+- ✅ Sprint E5 — Auto Cookie Refresh
+- ✅ Sprint E6 — i18n
+- ✅ Sprint E7 — Temas personalizables
+- ✅ Sprint E8 — Settings Panel completo
+- ✅ Migración OpenSource — Eliminado SaaS backend y licencias de la app
+- ✅ Licencia MIT — Establecida con disclaimers legales
+- ✅ Limpieza de código — AuthService, LicenseService, WebServer eliminados
+- ✅ Locales limpios — claves auth/license/plan eliminadas (es/en/pt)
+- ✅ tsc compila limpio — 0 errores
+- ✅ Build exitoso — AppImage + .snap generados
+- ✅ README.md — Guía de instalación completa
+- ❌ Testeo con cuentas reales usando Computer-use — EN PROGRESO
+- ❌ Subir a GitHub releases — Pendiente
 
-### Landing Page (NexoAccManager-Landing)
-- ✅ Repo creado en GitHub — https://github.com/Nxxo31/NexoAccManager-Landing
-- ✅ Next.js 14 + TypeScript + Tailwind setup
-- ✅ layout.tsx creado
-- ✅ Hero section con gradient, CTAs y animaciones
-- ✅ Features section con comparativa vs RAM
-- ✅ Auth pages: register, login, verify-email, forgot-password, reset-password
-- ✅ i18n con next-intl implementado (es, en, pt)
-- ❌ Sprint L1-L5 completados — L6 Landing producción pendiente (deploy Vercel)
+### Backend API (NexoAccManager-Backend — repositorio independiente)
 
-### Backend API (NexoAccManager-Backend)
-- ❌ Todo pendiente — Prioridad 3
+- Ver `../NexoAccManager-Backend/PROJECT.md` para estado completo
+
+### Landing Page (NexoAccManager-Landing — repositorio independiente)
+
+- Ver `../NexoAccManager-Landing/PROJECT.md` para estado completo
 
 ---
 
 ## Commits Motor RAM realizados
+
 - 9a1138b — Estructura inicial: backend Electron + crypto + DB + API REST
 - 1695243 — fix: importar ipcRenderer y contextBridge desde electron en preload
 - 7d2ae79 — deps: agregar better-sqlite3 y @fastify/cors, eliminar sqlite3 obsoleto
@@ -730,7 +556,7 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 - ac4c3b8 — fix: usar @fastify/cors en lugar de fastify-cors (deprecado)
 - 68e5702 — feat: implementar launchRoblox con protocolo roblox-player
 - 260dbe7 — feat: UI completa con modal de lanzamiento e IPC completa
-- [Sprints E1-E5 — ejecutar git log --oneline para ver commits completos]
+- [Sprints E1-E8 — ejecutar git log --oneline para ver commits completos]
 
 ---
 
@@ -750,85 +576,79 @@ thumbnails.roblox.com         → avatares, thumbnails de juegos
 
 ---
 
-## Decisiones técnicas globales — NO cambiar sin aprobación de Sebastián
+## Decisiones técnicas globales — Motor RAM (Electron) — NO cambiar sin aprobación
 
 - Cookies Roblox NUNCA salen del PC del usuario — principio irrenunciable
-- JWT con RS256 asimétrico — nunca HS256
-- Access token 15 minutos + Refresh token 30 días con rotación en cada uso
-- bcrypt salt rounds 12 para passwords
-- Stripe Checkout hosted — nunca procesar tarjetas en nuestros servidores
-- Plan Free se asigna automáticamente al registrarse sin tarjeta
-- Precios definidos en Stripe — nunca hardcodeados en frontend
-- Rate limiting en todos los endpoints de auth
-- contextIsolation: true + nodeIntegration: false + sandbox: true en Electron — nunca deshabilitar
-- Modo offline usa el último plan conocido localmente — nunca bloquear sin conexión
+- contextIsolation: true + nodeIntegration: false + sandbox: true — nunca deshabilitar
+- Modo 100% local — sin backend, sin servidor, sin nube
 - Roblox API calls con cache LRU de 60s para respetar rate limits
 - i18n: español como idioma por defecto en toda la plataforma
 - Temas: Dark como tema por defecto
-- Custom themes solo disponibles para plan Enterprise
-- NUNCA usar dangerouslySetInnerHTML con datos externos en React/Next.js
+- Todos los temas disponibles para todos los usuarios — sin restricciones
+- NUNCA usar dangerouslySetInnerHTML con datos externos en React
+- Límite de cuentas: máximo 50 por usuario (hardcoded, sin restricciones de plan)
+
+> **Decisiones técnicas del Backend y Landing:** Ver sus respectivos PROJECT.md.
 
 ---
 
-## Estado Operativo
+## Despliegue
 
-*Actualizado: 2026-07-02 | Fusionado desde CURRENT_TASK.md (archivo obsoleto)*
+### Motor RAM (App Electron — este repositorio)
 
-- ✅ E1-E8: Motor RAM (Electron) — TODOS COMPLETADOS + fixes de bugs de runtime
-- ✅ F0-F4: Fixes críticos de Motor RAM, Landing Build, Backend Build, /cancel
-- ✅ B3: Backend Stripe checkout + webhook + customer portal
-- ✅ B3: Email verification + forgot/reset password (implementación real, no stubs)
-- ✅ T3: Landing Page conectada con Backend real (Dashboard, Billing, Settings, Login con POST /auth/login real)
-- ✅ T1: Escribir tests backend (auth, stripe, license) - unit + integration
-- ✅ T2: i18n Landing Page (Hero/Features/FAQ/Footer) - traducciones ES/EN/PT
-- ✅ T3: Deploy Backend a Railway + PostgreSQL producción
+- **Distribución:** GitHub Releases
+- **Build:** `electron-builder` genera AppImage + .snap (Linux), instaladores Windows
+- **100% local:** No requiere servidor, no requiere deploy en la nube
+- **Auto-update:** Configurado via `app-update.yml` en GitHub Releases
 
-## Dependencias externas bloqueantes
-- Backend API (NexoAccManager-Backend) — Stripe completo, auth real, email funcional
-- Sin producción: necesita Railway deploy + PostgreSQL + env vars reales
-- Landing Page (NexoAccManager-Landing) — ✅ ahora conectada a backend real
+### Backend API y Landing Page (repositorios independientes)
 
-## Protocolo de inicio — OBLIGATORIO
+- Ver `../NexoAccManager-Backend/PROJECT.md` y `../NexoAccManager-Landing/PROJECT.md`
+  para información de despliegue de los repositorios SaaS hermanos.
+
+---
+
+## Estructura de archivos clave
+
 ```
-# 1. Motor RAM
-npx tsc --noEmit 2>&1 | tail -5  # ✅ 0 errores
-cd ../NexoAccManager && git log --oneline -3
-
-# 2. Backend
-cd ../NexoAccManager-Backend && npx tsc --noEmit 2>&1 | tail -5  # ✅ 0 errores
-
-# 3. Landing
-cd ../NexoAccManager-Landing && npm run build 2>&1 | tail -5
-# ⚠️ Errores de pre-rendering PRE-EXISTENTES en login/register/dashboard/etc.
-# Causa raíz: ClientLayout carga messages dinámicamente en runtime (patrón L5 problemático).
-- Vercel: `NEXT_PUBLIC_BACKEND_URL` → URL del backend en Railway
-- Landing Page (NexoAccManager-Landing) — ✅ ahora conectada a backend real
-- Proyecto se desplegará en **Oracle Cloud Structure + Dokploy** (no Vercel)
-
-## T — Tareas críticas antes de deploy
-| # | Tarea | Complejidad | Estado |
-|---|-------|------------|--------|
-| T1 | Escribir tests backend (auth, stripe, license) — P4 del Kanban | Media | ✅ COMPLETADO |
-| T2 | F3 — i18n Landing Page (Hero/Features/FAQ/Footer) | Alta | ✅ COMPLETADO |
-| T3 | P3 — Conectar Landing Page con Backend real | Alta | ✅ COMPLETADO |
-| T5 | DeployLanding Page a Vercel | Media | ❌ CANCELADO (no usar Vercel) |
-| T4 | Configurar Dockerfiles para backend y landing | Media | ✅ COMPLETADO |
-| T5 | Docker Compose + nginx en Oracle Cloud | Media | ✅ COMPLETADO |
-| T6 | Crear guía deploy Oracle Cloud + Dokploy | Alta | ✅ COMPLETADO |
-| T7 | Configurar SSL + domain en Oracle Cloud | Media | Pendiente |
-| T8 | Deploy Motor RAM con electron-builder | Alta | Pendiente |
-| T6 | Deploy Motor RAM con electron-builder + auto-update | Alta | Pendiente |
-| T7 | Monitoreo + logs + rollback plan | Media | Pendiente |
-
-## Bug pre-existente documentado — Landing build warnings
-- Tipo: Errores de pre-rendering en login/register/dashboard/etc.
-- Origen: Sprint L5 — patrón de ClientLayout con carga dinámica de messages
-- No bloqueante: deployment funciona, afecta solo validación estática de Next.js
-- Solución futura: refactorizar ClientLayout a Server Component o usar unstable_noStore()
-
-## Siguiente acción
-T4 (Preparar env vars producción) es la siguiente tarea prioritaria según el Kanban.
+src/
+  main/
+    main.ts                    → proceso principal Electron
+    core/
+      AccountManager.ts        → gestión de cuentas + cifrado
+      CryptoService.ts         → cifrado AES-256-GCM
+      ThemeService.ts          → sistema de temas CSS
+      AccountSettingsService.ts → settings de cuenta Roblox
+      MultiRobloxService.ts    → múltiples instancias
+    ipc/                       → handlers IPC por namespace (en main.ts)
+    services/
+      CookieExpiryService.ts   → auto-refresh de cookies
+      GamesService.ts          → búsqueda de juegos y servers
+      PresenceService.ts       → estado online en tiempo real
+    storage/
+      DatabaseManager.ts       → SQLite local
+  renderer/
+    App.tsx                    → raíz del renderer
+    context/
+      ThemeContext.tsx         → React context para temas
+    components/
+      AccountList.tsx
+      AddAccountForm.tsx
+      Header.tsx
+      SettingsPanel.tsx
+      AccountControlPanel/     → perfil, seguridad, privacidad, amigos, notificaciones
+      PresenceDashboard/       → grid de estado en tiempo real
+      ServerBrowser/           → búsqueda y lista de servers
+    locales/                   → es.json, en.json, pt.json
+    themeDefinitions.ts
+    index.css
+    main.tsx
+  preload/
+    preload.ts                 → contextBridge — whitelist de canales
+  types/
+    Account.ts
+```
 
 ---
 
-*Nota: Para actualizar estado operativo, editar esta sección de PROJECT.md directamente.*
+*Actualizado: 2026-07-12 — Limpieza de contenido SaaS stale, expansión de sub-projects.*

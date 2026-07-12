@@ -47,11 +47,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       try {
         const result = await (window as any).api.theme.get();
         if (cancelled) return;
-        if (result && result.data) {
-          setSettings(result.data.settings);
-          setCss(result.data.css);
-          if (result.data.css) {
-            applyCss(result.data.css);
+        // El handler retorna { settings, css } directamente (sin wrapper ok())
+        if (result && result.settings) {
+          setSettings(result.settings);
+          if (result.css) {
+            setCss(result.css);
+            applyCss(result.css);
           }
         }
       } catch (e) {
@@ -65,11 +66,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setTheme = async (partial: Partial<ThemeSettings>) => {
     const result = await (window as any).api.theme.set(partial);
-    if (result && result.data) {
-      setSettings(result.data.settings);
-      setCss(result.data.css);
-      if (result.data.css) {
-        applyCss(result.data.css);
+    if (result && result.settings) {
+      setSettings(result.settings);
+      if (result.css) {
+        setCss(result.css);
+        applyCss(result.css);
       }
     }
   };
