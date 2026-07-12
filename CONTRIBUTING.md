@@ -1,17 +1,17 @@
-# Guia de Contribucion — NexoAccManager
+# Contributing Guide — NexoAccManager
 
-?Gracias por tu interes en contribuir a NexoAccManager! Este documento explica como colaborar efectivamente.
+Thank you for your interest in contributing to NexoAccManager! This document explains how to collaborate effectively.
 
-## ? Filosofia del Proyecto
+## Project Philosophy
 
-- **OpenSource primero** — Todo el codigo es publico, auditable y modificable
-- **Privacidad del usuario** — Sin telemetria, sin tracking, sin servidores
-- **Seguridad ante todo** — Cifrado AES-256-GCM, contextIsolation, sandbox
-- **Multi-plataforma** — Electron permite Windows, Mac y Linux
+- **OpenSource first** — All code is public, auditable, and modifiable
+- **User privacy** — No telemetry, no tracking, no servers
+- **Security first** — AES-256-GCM encryption, contextIsolation, sandbox
+- **Cross-platform** — Electron supports Windows, Mac, and Linux
 
-## ? Como Contribuir
+## How to Contribute
 
-### 1. Configurar el Entorno
+### 1. Set Up Your Environment
 
 ```bash
 git clone https://github.com/Nxxo31/NexoAccManager.git
@@ -20,70 +20,71 @@ npm install
 npm run dev
 ```
 
-### 2. Encontrar Algo en que Trabajar
+### 2. Find Something to Work On
 
-- Revisa [Issues](https://github.com/Nxxo31/NexoAccManager/issues) con label `good first issue`
-- Comenta en el issue para que sepamos que estas trabajando en el
-- Si tienes una idea nueva, abre un [Discussion](https://github.com/Nxxo31/NexoAccManager/discussions) primero
+- Check [Issues](https://github.com/Nxxo31/NexoAccManager/issues) with the `good first issue` label
+- Comment on the issue so we know you're working on it
+- If you have a new idea, open a [Discussion](https://github.com/Nxxo31/NexoAccManager/discussions) first
 
-### 3. Flujo de Trabajo
+### 3. Workflow
 
 ```bash
-# Crear branch
-git checkout -b feature/mi-feature
+# Create a branch
+git checkout -b feature/my-feature
 
-# Desarrollar siguiendo las reglas del proyecto
-# - Usar IPC tipado con invoke/handle
-# - Validar datos en ambos lados (main + renderer)
-# - Seguir el design system (colores, glassmorphism)
-# - Documentar en espanol preferiblemente
+# Develop following project rules:
+# - Use typed IPC with invoke/handle
+# - Validate data on both sides (main + renderer)
+# - Follow the design system (colors, glassmorphism)
+# - Write commit messages in Spanish
 
-# Verificar que compila
-npm run typecheck && npm run lint && npm run build
+# Verify it compiles
+npx tsc --noEmit
+npm run lint
+npm run build
 
-# Commitear
+# Commit
 git add -A
-git commit -m "tipo(scope): descripcion en espanol"
+git commit -m "tipo(scope): descripcion en español"
 
-# Subir y crear PR
-git push origin feature/mi-feature
-# Crear Pull Request en GitHub
+# Push and create PR
+git push origin feature/my-feature
+# Create Pull Request on GitHub
 ```
 
-### 4. Convenciones
+### 4. Commit Conventions
 
-| Tipo de commit | Descripcion              | Ejemplo                    |
-|----------------|-------------------------|----------------------------|
-| feat           | Nueva funcionalidad      | feat(account): agregar soporte multi-idioma |
-| fix            | Correccion de bug        | fix(ipc): validar cookies antes de guardar |
-| refactor       | Refactorizacion          | refactor(theme): simplificar ThemeService |
-| docs           | Documentacion            | docs: actualizar README    |
-| style          | Cambios de UI/UX         | style(panel): ajustar glassmorphism |
-| chore          | Tareas de mantenimiento  | chore: actualizar dependencias |
+| Commit type | Description              | Example                    |
+|--------------|--------------------------|----------------------------|
+| feat         | New feature              | feat(account): agregar soporte multi-idioma |
+| fix          | Bug fix                  | fix(ipc): validar cookies antes de guardar |
+| refactor     | Refactoring              | refactor(theme): simplificar ThemeService |
+| docs         | Documentation            | docs: actualizar README    |
+| style        | UI/UX changes            | style(panel): ajustar glassmorphism |
+| chore        | Maintenance tasks        | chore: actualizar dependencias |
 
-### 5. Guias de Codigo
+### 5. Code Guidelines
 
-- **TypeScript estricto** — No usar `any`, tipar todo
+- **Strict TypeScript** — No `any`, type everything
 - **IPC namespacing** — `account:*`, `roblox:*`, `settings:*`, `theme:*`, `i18n:*`, `advanced:*`
 - **Result pattern** — `{ success, data }` | `{ success: false, error }`
-- **Seguridad** — contextBridge solo expone funciones especificas, nunca ipcRenderer raw
-- **Estilo visual** — Usar las variables CSS del design system, glassmorphism, Inter/JetBrains Mono
+- **Security** — contextBridge only exposes specific functions, never raw ipcRenderer
+- **Visual style** — Use CSS variables from the design system, glassmorphism, Inter/JetBrains Mono
+- **i18n** — All user-facing strings must use `t('key')` from react-i18next
 
-### 6. Antes de Enviar PR
+### 6. Before Submitting a PR
 
-- [ ] `npm run typecheck` pasa sin errores
-- [ ] `npm run lint` pasa sin warnings
-- [ ] `npm run build` genera binarios correctamente
-- [ ] Si es funcionalidad nueva: ?tiene tests?
-- [ ] Si es UI: ?respeta el design system?
-- [ ] Si es IPC: ?usa invoke/handle y validacion de tipos?
+- [ ] `npx tsc --noEmit` passes without errors
+- [ ] `npm run lint` passes without warnings
+- [ ] `npm run build` generates binaries correctly
+- [ ] If new feature: does it have tests?
+- [ ] If UI: does it respect the design system?
+- [ ] If IPC: does it use invoke/handle and type validation?
 
-## ? Soporte
+## Support
 
-- **Issues** para bugs y features requests
-- **Discussions** para ideas y preguntas generales
-- **PRs** para contribuciones de codigo
+- **Issues** for bugs and feature requests
+- **Discussions** for ideas and general questions
+- **PRs** for code contributions
 
-?Gracias por ayudar a construir NexoAccManager!
-
----
+Thank you for helping build NexoAccManager!
