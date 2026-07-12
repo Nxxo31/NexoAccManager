@@ -46,7 +46,7 @@ export const themeDefinitions = {
     '--border': '#333333',
   },
   custom: {
-    // Solo para Enterprise, los colores se establecen dinámicamente
+    // Tema custom — colores se establecen dinámicamente
     '--primary': '#DE350D',
     '--primary-dark': '#B22A0A',
     '--accent': '#6347FF',

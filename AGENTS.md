@@ -1,170 +1,178 @@
-# NexoAccManager -- Herramienta OpenSource
+# NexoAccManager — OpenSource Account Manager
 
-## Proyecto
-Gestor de cuentas multiplataforma open-source bajo MIT License.
-Evoluci?n moderna y segura de RAM (ic3w0lf22) enfocada en privacidad.
-Repositorio: https://github.com/Nxxo31/NexoAccManager
-Maximo de cuentas: 50 por usuario (sin restricciones de plan)
+## Project
+Open-source multi-account manager for gaming platforms.
+Modern, secure evolution of RAM (ic3w0lf22) focused on privacy.
+Repository: https://github.com/Nxxo31/NexoAccManager
+Max accounts: 50 per user
 
 ## Stack
 - **App**: Electron + React + TypeScript + Zustand
 - **Main process**: Node.js + better-sqlite3
-- **Cifrado**: AES-256-GCM derivado del hardware
-- **IPC**: contextBridge tipado -- invoke/handle ?nicamente
+- **Encryption**: AES-256-GCM hardware-derived
+- **IPC**:Typed contextBridge — invoke/handle only
 - **i18n**: i18next + react-i18next (ES/EN/PT)
-- **Temas**: CSS variables en :root via IPC theme:set (todos libres)
+- **Themes**: CSS variables in :root via IPC theme:set
 - **Build**: electron-builder
-- **Sin backend**: 100% local, sin servidores, sin nube
+- **No backend**: 100% local, no servers, no cloud
 
-## Reglas críticas — NUNCA violar
-- Cookies Roblox NUNCA salen del PC del usuario
-- contextIsolation: true + nodeIntegration: false + sandbox: true — nunca deshabilitar
-- 100% local — sin backend, sin servidor, sin nube
-- Nunca dangerouslySetInnerHTML con datos externos
-- Nunca exponer ipcRenderer raw — solo contextBridge
-- Nunca commitear con errores tsc sin resolver
-- Nunca debilitar tests para que pasen
+## Critical rules — NEVER violate
+- Roblox cookies NEVER leave the user's PC
+- contextIsolation: true + nodeIntegration: false + sandbox: true — never disable
+- 100% local — no backend, no server, no cloud
+- Never dangerouslySetInnerHTML with external data
+- Never expose raw ipcRenderer — only contextBridge
+- Never commit with unresolved tsc errors
+- Never weaken tests to make them pass
 
-> **Nota:** JWT RS256, bcrypt, Stripe y rate limiting son responsabilidades del
-> backend SaaS (`../NexoAccManager-Backend/`), no de esta app Electron.
-
-## Arquitectura IPC — namespacing obligatorio
+## IPC Architecture — mandatory namespacing
 ```
-account:*   → gesti?n de cuentas (CRUD + cifrado)
-roblox:*    → llamadas a APIs de plataformas
-settings:*  → preferencias y configuraci?n local
-theme:*     → sistema de temas
-i18n:*      → internacionalizaci?n
-advanced:*  → cach?, export, datos
+account:*   → account management (CRUD + encryption)
+roblox:*    → platform API calls
+settings:*  → local preferences and config
+theme:*     → theme system
+i18n:*      → internationalization
+advanced:*  → cache, export, data
 ```
-Patr?n: invoke/handle (Promise-based) — nunca send/on para request-response
-Result pattern en IPC: `{ success, data }` | `{ success: false, error }` — nunca throw sin catch
+Pattern: invoke/handle (Promise-based) — never send/on for request-response
+Result pattern in IPC: `{ success, data }` | `{ success: false, error }` — never throw without catch
 
-## L?mite de cuentas
-- M?ximo 50 cuentas por usuario
-- Sin restricciones por plan o pago
-- L?mite hardcoded en el contador de accounts
+## Account limit
+- Maximum 50 accounts per user
+- Hardcoded in the account counter
 
-## Estado actual — Julio 2026 (Migración OpenSource COMPLETADA)
+## Current status — July 2026 (OpenSource migration COMPLETED)
 ```
-✅ Migración OpenSource — Eliminado SaaS backend y licencias
-✅ Licencia MIT — Establecida con disclaimers legales
-✅ PROJECT.md, README.md, CONTRIBUTING.md — Actualizados
-✅ LICENSE — Creado
-✅ Limpieza de código — AuthService, LicenseService, WebServer eliminados
-✅ Locales limpios — claves auth/license/plan eliminadas (es/en/pt)
-✅ tsc compila limpio — 0 errores
-✅ Build exitoso — AppImage + .snap generados
-✅ README.md — Guía de instalación completa
-❌ Testeo con cuentas reales usando Computer-use ← EN PROGRESO
-❌ Subir a GitHub releases
+✅ OpenSource migration — SaaS backend and licenses removed
+✅ MIT License — established with legal disclaimers
+✅ PROJECT.md, README.md, CONTRIBUTING.md — updated
+✅ LICENSE — created
+✅ Code cleanup — AuthService, LicenseService, WebServer removed
+✅ Locales cleaned — auth/license/plan keys removed (es/en/pt)
+✅ tsc compiles clean — 0 errors
+✅ Successful build — AppImage + .snap generated
+✅ README.md — complete installation guide
+✅ Residual SaaS references removed from locales and code comments
+❌ UI testing with Playwright — IN PROGRESS
+❌ Upload to GitHub releases
 ```
 
-## Loop de desarrollo para este proyecto
-1. `cat PROJECT.md` → verificar fase activa
-2. Leer solo los archivos necesarios — no escanear el proyecto completo
+## Development loop for this project
+1. `cat PROJECT.md` → check active phase
+2. Read only necessary files — do not scan the entire project
 3. `npm run typecheck && npm run lint && npm run build`
-4. Actualizar `PROJECT.md` primero — marcar ✅ con fecha
-5. `git add -A && git commit -m "tipo(scope): descripción en español"`
-6. `git push` → siguiente tarea inmediatamente
-7. Consultar `PROJECT.md` solo para saber qué sigue o ante ambigüedad
+4. Update `PROJECT.md` first — mark ✅ with date
+5. `git add -A && git commit -m "tipo(scope): descripcion en español"`
+6. `git push` → next task immediately
+7. Check `PROJECT.md` only to see what's next or on ambiguity
 
-## Edición de archivos de código (TSX/JSX/TS/JS)
-- NUNCA usar `sed -i` con regex multilínea o reemplazos de tags JSX/TSX 
-  (ej. <Link> -> <button>) en archivos .tsx, .jsx, .ts, .js.
-- Para cualquier cambio que involucre más de una línea o estructura JSX, 
-  leer el archivo completo, aplicar el cambio en memoria, y escribir el 
-  archivo completo de una sola vez.
-- Antes de escribir, hacer backup (.bak) solo si no existe ya uno reciente 
-  (no acumular backups).
-- Después de escribir, validar sintaxis (build o linter) antes de marcar 
-  la tarea como completada.
-- Si una edición falla 2 veces con el mismo enfoque, detenerse y reportar 
-  el problema en vez de reintentar con variaciones del mismo comando.
+## Editing code files (TSX/JSX/TS/JS)
+- NEVER use `sed -i` with multiline regex or JSX/TSX tag replacements
+  (e.g. <Link> -> <button>) in .tsx, .jsx, .ts, .js files.
+- For any change involving more than one line or JSX structure,
+  read the full file, apply the change in memory, and write the
+  entire file at once.
+- Before writing, make a backup (.bak) only if a recent one doesn't exist.
+- After writing, validate syntax (build or linter) before marking
+  the task as complete.
+- If an edit fails 2 times with the same approach, stop and report
+  instead of retrying variations of the same command.
 
-## PROJECT.md — documento vivo
-- Completar tarea → ✅ con fecha inmediatamente
-- Subtareas nuevas descubiertas → agregar al momento
-- Decisiones técnicas → documentar en el momento
-- Inconsistencia PROJECT.md vs código → el código manda, actualizar PROJECT.md
-- Nunca desactualizado más de un commit
+## PROJECT.md — living document
+- Complete task → ✅ with date immediately
+- New subtasks discovered → add them immediately
+- Technical decisions → document immediately
+- PROJECT.md vs code inconsistency → code wins, update PROJECT.md
+- Never outdated by more than one commit
 
-## Estructura de archivos clave
+## Key file structure
 ```
 src/
   main/
-    main.ts                    → proceso principal Electron
+    main.ts                    → Electron main process
     core/
-      AccountManager.ts        → gestión de cuentas + cifrado
-      ThemeService.ts          → sistema de temas CSS
-      LicenseService.ts          → ELIMINADO (migración OpenSource)
-    ipc/                       → handlers IPC por namespace
+      AccountManager.ts        → account management + encryption
+      CryptoService.ts         → AES-256-GCM encryption
+      ThemeService.ts          → CSS theme system
+      AccountSettingsService.ts → Roblox account settings
+      MultiRobloxService.ts    → multiple instances
+    services/
+      CookieExpiryService.ts   → auto-refresh cookies
+      GamesService.ts          → game and server search
+      PresenceService.ts       → real-time online status
+    storage/
+      DatabaseManager.ts       → local SQLite
   renderer/
-    App.tsx                    → raíz del renderer
-    context/                   → React contexts (tema, i18n)
-    components/                → componentes UI
+    App.tsx                    → renderer root
+    context/
+      ThemeContext.tsx         → React context for themes
+    components/
+      AccountList.tsx
+      AddAccountForm.tsx
+      Header.tsx
+      SettingsPanel.tsx
+      AccountControlPanel/     → profile, security, privacy, friends, notifications
+      PresenceDashboard/       → real-time status grid
+      ServerBrowser/           → server search and list
     locales/                   → es.json, en.json, pt.json
+    themeDefinitions.ts
+    index.css
+    main.tsx
   preload/
-    preload.ts                 → contextBridge — whitelist de canales
+    preload.ts                 → contextBridge — channel whitelist
+  types/
+    Account.ts
 ```
 
-## Design system — no improvisar
+## Design system — do not improvise
 ```css
---primary:        #DE350D;  /* Rojo Roblox — CTAs */
---accent:         #6347FF;  /* Púrpura — secundarios */
---bg-dark:        #0D0D0D;  /* Fondo principal */
+--primary:        #DE350D;  /* Roblox Red — CTAs */
+--accent:         #6347FF;  /* Purple — secondaries */
+--bg-dark:        #0D0D0D;  /* Main background */
 --bg-card:        #161616;  /* Cards */
---bg-surface:     #1E1E1E;  /* Superficies elevadas */
+--bg-surface:     #1E1E1E;  /* Elevated surfaces */
 --success:        #2ED573;
 --warning:        #FFA502;
 --error:          #FF4757;
 --border:         #2A2A2A;
 ```
-- Glassmorphism: `backdrop-filter: blur(12px)` en cards
-- Tipografía: Inter (UI) + JetBrains Mono (datos)
+- Glassmorphism: `backdrop-filter: blur(12px)` on cards
+- Typography: Inter (UI) + JetBrains Mono (data)
 - Border radius: 8px cards / 4px inputs
-- Animaciones: 200ms ease-in-out
-- Iconos: Lucide Icons
+- Animations: 200ms ease-in-out
+- Icons: Lucide Icons
 
-## Temas — Sprint E7 COMPLETADO
+## Themes — all available (no restrictions)
 ```
 Dark (default)  → bg: #0D0D0D
-Light           → bg: #F5F5F5, texto oscuro
-Roblox Classic  → rojo dominante #DE350D con negro
-Custom          → color picker primario + acento (todos los usuarios)
+Light           → bg: #F5F5F5, dark text
+Roblox Classic  → dominant red #DE350D with black
+Custom          → primary + accent color picker (all users)
 ```
 
-## i18n — implementado en E6
-- Idioma default: español (es)
+## i18n — implemented in E6
+- Default language: Spanish (es)
 - IPC: `settings:language:get` / `settings:language:set`
-- Persistencia: SQLite tabla `settings` key `language`
-- Detección: i18next-browser-languagedetector al primer arranque
+- Persistence: SQLite `settings` table, key `language`
+- Detection: i18next-browser-languagedetector on first launch
 
-## APIs Roblox utilizadas
+## Roblox APIs used
 ```
-auth.roblox.com               → verificar cookie, auth ticket
-accountsettings.roblox.com    → privacidad, notificaciones
-accountinformation.roblox.com → perfil
-users.roblox.com              → info usuarios
-friends.roblox.com            → amigos, solicitudes
-presence.roblox.com           → estado online (polling 30s)
+auth.roblox.com               → verify cookie, auth ticket
+accountsettings.roblox.com    → privacy, notifications
+accountinformation.roblox.com → profile
+users.roblox.com              → user info
+friends.roblox.com            → friends, requests
+presence.roblox.com           → online status (polling 30s)
 games.roblox.com              → servers, player count
-thumbnails.roblox.com         → avatares
+thumbnails.roblox.com         → avatars
 economy.roblox.com            → Robux balance
 ```
-Cache LRU 60s en main process -- respetar rate limits
+LRU cache 60s in main process — respect rate limits
 
-## Temas — todos disponibles (sin restricci?n)
-```
-Dark (default)  → bg: #0D0D0D
-Light           → bg: #F5F5F5, texto oscuro
-Roblox Classic  → rojo dominante #DE350D con negro
-Custom          → color picker primario + acento (todos los usuarios)
-```
-
-## Intervención humana — solo si
-- Riesgo de pérdida de datos permanente
-- Decisión de producto ausente en PROJECT.md
-- Contradicción con sección "Decisiones técnicas globales" de PROJECT.md
-- Faltan credenciales o accesos externos
-- Cambio arquitectónico que afecta más de un módulo core
+## Human intervention — only if
+- Risk of permanent data loss
+- Product decision missing from PROJECT.md
+- Contradiction with "Global technical decisions" section of PROJECT.md
+- Missing credentials or external access
+- Architectural change affecting more than one core module

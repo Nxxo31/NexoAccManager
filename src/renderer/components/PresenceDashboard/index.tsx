@@ -42,7 +42,7 @@ const PresenceDashboard: React.FC = () => {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [expandedAccountId, setExpandedAccountId] = useState<string | null>(null);
 
-  // Fetch accounts from backend
+  // Fetch accounts from local store
   const fetchAccounts = useCallback(async () => {
     try {
       setLoading(true);

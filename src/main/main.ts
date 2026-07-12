@@ -100,7 +100,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Límite máximo de cuentas — 50, hardcoded, sin restricción de plan
+// Límite máximo de cuentas — 50, hardcoded
 const MAX_ACCOUNTS = 50;
 
 class NexoApp {

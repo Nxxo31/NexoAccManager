@@ -41,7 +41,7 @@ export default function AddAccountForm({ onSuccess }: AddAccountFormProps) {
       return;
     }
 
-    // Verificar límite local (50 cuentas, sin restricciones de plan)
+    // Verificar límite local (50 cuentas)
     if (accountCount >= MAX_ACCOUNTS) {
       setError(t('addAccount.limitReachedText', { current: accountCount, limit: MAX_ACCOUNTS }));
       return;

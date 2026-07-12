@@ -62,7 +62,7 @@
       "theme.darkDesc": "Dark theme with black background and red accents",
       "theme.lightDesc": "Light theme with white background and red accents",
       "theme.robloxClassicDesc": "Theme inspired by classic Roblox design",
-      "theme.customDesc": "Custom colors (available only in Enterprise plan)",
+      "theme.customDesc": "Custom colors",
       "fontSize": "Font Size",
       "fontSize.small": "Small",
       "fontSize.medium": "Medium",
