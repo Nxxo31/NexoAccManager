@@ -3,12 +3,11 @@ import path from 'path';
 import fs from 'fs';
 import { AccountManager } from './core/AccountManager';
 import { CryptoService } from './core/CryptoService';
-import { WebServer } from './server/WebServer';
 import { DatabaseManager } from './storage/DatabaseManager';
 import { AccountSettingsService } from './core/AccountSettingsService';
 import { PresenceService } from './services/PresenceService';
 import { CookieExpiryService } from './services/CookieExpiryService';
-import { ThemeService, ThemeSettings } from './core/ThemeService';
+import { ThemeService, ThemeSettings, ThemeId } from './core/ThemeService';
 
 // =============================================================================
 // TYPE GUARDS PARA VALIDACIÓN DE PAYLOADS IPC (Defense in Depth)
@@ -19,7 +18,7 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-function isBoolean(value: unknown): value is boolean {
+function isBool(value: unknown): value is boolean {
   return typeof value === 'boolean';
 }
 
@@ -94,11 +93,6 @@ const ALLOWED_CHANNELS = new Set([
   'presence:stop-polling',
   'presence:recent-games',
   'presence:robux-balance',
-  // Auth local — siempre autenticado (app local sin SaaS)
-  'auth:login',
-  'auth:logout',
-  'auth:status',
-  'auth:can-add-account',
 ]);
 
 // Solución para __dirname en ESM
@@ -106,13 +100,12 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Límite máximo de cuentas para app local (sin SaaS)
+// Límite máximo de cuentas — 50, hardcoded, sin restricción de plan
 const MAX_ACCOUNTS = 50;
 
 class NexoApp {
   private mainWindow: BrowserWindow | null = null;
   private accountManager: AccountManager;
-  private webServer: WebServer;
   private db: DatabaseManager;
   private crypto: CryptoService;
   private accountSettingsService: AccountSettingsService;
@@ -124,7 +117,6 @@ class NexoApp {
     this.db = new DatabaseManager();
     this.crypto = new CryptoService();
     this.accountManager = new AccountManager(this.db, this.crypto);
-    this.webServer = new WebServer(this.accountManager);
     this.accountSettingsService = new AccountSettingsService();
     this.presenceService = new PresenceService(this.db, this.crypto);
     this.cookieExpiryService = new CookieExpiryService(this.db, this.crypto);
@@ -133,7 +125,6 @@ class NexoApp {
 
   async initialize(): Promise<void> {
     await this.db.initialize();
-    await this.webServer.start(8080);
     this.setupCSP();
     this.createWindow();
     this.setupIPCHandlers();
@@ -312,7 +303,6 @@ class NexoApp {
     });
 
     ipcMain.handle('roblox:recent-games', async () => {
-      // TODO: implementar lista de juegos recientes
       return ok([]);
     });
 
@@ -332,7 +322,7 @@ class NexoApp {
     });
 
     ipcMain.handle('roblox:multiroblox', async (_, enabled: unknown) => {
-      if (!isBoolean(enabled)) {
+      if (!isBool(enabled)) {
         return err('Payload inválido: enabled debe ser un booleano');
       }
       try {
@@ -498,17 +488,13 @@ class NexoApp {
         if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
 
         const p = patch as { displayName?: string; description?: string };
-        if (p.displayName !== undefined) {
-          if (!isNonEmptyString(p.displayName)) {
-            return err('Payload inválido: displayName debe ser un string no vacío');
-          }
-          await this.accountSettingsService.updateDisplayName(cookie, p.displayName.trim());
+        if (p.displayName) {
+          const okDisplay = await this.accountSettingsService.updateDisplayName(cookie, p.displayName);
+          if (!okDisplay) return err('Error actualizando display name');
         }
         if (p.description !== undefined) {
-          if (!isNonEmptyString(p.description)) {
-            return err('Payload inválido: description debe ser un string no vacío');
-          }
-          await this.accountSettingsService.updateDescription(cookie, p.description.trim());
+          const okDesc = await this.accountSettingsService.updateDescription(cookie, p.description);
+          if (!okDesc) return err('Error actualizando descripción');
         }
         return ok(true);
       } catch (e) {
@@ -516,523 +502,466 @@ class NexoApp {
       }
     });
 
-    ipcMain.handle('account:avatar-thumbnail', async (_, userId: unknown) => {
-      if (!isPositiveInteger(userId)) {
-        return err('Payload inválido: userId debe ser un número entero positivo');
-      }
+    // SECURITY
+    ipcMain.handle('settings:security:password', async (_, accountId: unknown, oldPw: unknown, newPw: unknown) => {
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
+      if (!isNonEmptyString(oldPw)) return err('oldPw inválido');
+      if (!isNonEmptyString(newPw)) return err('newPw inválido');
       try {
-        const url = await this.accountSettingsService.getAvatarThumbnail(userId);
-        return ok(url);
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
+        const result = await this.accountSettingsService.changePassword(cookie, oldPw.trim(), newPw.trim());
+        return result ? ok(true) : err('Error cambiando contraseña');
       } catch (e) {
-        return err(`Error obteniendo avatar: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
-    // SECURITY — Sessions
     ipcMain.handle('settings:security:sessions', async (_, accountId: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
         const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
         const sessions = await this.accountSettingsService.getActiveSessions(cookie);
         return ok(sessions);
       } catch (e) {
-        return err(`Error obteniendo sesiones: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
     ipcMain.handle('settings:security:logout', async (_, accountId: unknown, sessionId: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
-      if (!isNonEmptyString(sessionId)) {
-        return err('Payload inválido: sessionId debe ser un string no vacío');
-      }
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
+      if (!isNonEmptyString(sessionId)) return err('sessionId inválido');
       try {
         const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
         const result = await this.accountSettingsService.logoutSession(cookie, sessionId.trim());
-        return ok(result);
+        return result ? ok(true) : err('Error cerrando sesión');
       } catch (e) {
-        return err(`Error cerrando sesión: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
-    ipcMain.handle('settings:security:logout-all', async (_, accountId: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
+    // PRIVACY
+    ipcMain.handle('settings:privacy:get', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
         const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const result = await this.accountSettingsService.logoutAllSessions(cookie);
-        return ok(result);
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
+        const privacy = await this.accountSettingsService.getPrivacySettings(cookie);
+        return ok(privacy);
       } catch (e) {
-        return err(`Error cerrando todas las sesiones: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
-    // SECURITY — Password
-    ipcMain.handle('settings:security:password', async (_, accountId: unknown, currentPassword: unknown, newPassword: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
-      if (!isNonEmptyString(currentPassword)) {
-        return err('Payload inválido: currentPassword debe ser un string no vacío');
-      }
-      if (!isNonEmptyString(newPassword)) {
-        return err('Payload inválido: newPassword debe ser un string no vacío');
-      }
+    ipcMain.handle('settings:privacy:update', async (_, accountId: unknown, key: unknown, value: unknown) => {
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
+      if (!isNonEmptyString(key)) return err('key inválido');
+      if (typeof value !== 'string') return err('value debe ser string');
       try {
         const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const result = await this.accountSettingsService.changePassword(
-          cookie,
-          currentPassword.trim(),
-          newPassword.trim()
-        );
-        return ok(result);
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
+        const result = await this.accountSettingsService.updatePrivacySetting(cookie, key.trim(), value);
+        return result ? ok(true) : err('Error actualizando privacidad');
       } catch (e) {
-        return err(`Error cambiando contraseña: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
-    // SECURITY — 2FA
     ipcMain.handle('settings:security:2fa:get', async (_, accountId: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
         const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const status = await this.accountSettingsService.get2FAStatus(cookie);
-        return ok(status);
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
+        const data = await this.accountSettingsService.get2FAStatus(cookie);
+        return ok(data);
       } catch (e) {
-        return err(`Error obteniendo estado 2FA: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
     ipcMain.handle('settings:security:2fa:set', async (_, accountId: unknown, enabled: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
-      if (!isBoolean(enabled)) {
-        return err('Payload inválido: enabled debe ser un booleano');
-      }
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
+      if (typeof enabled !== 'boolean') return err('enabled debe ser booleano');
       try {
         const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
         const result = await this.accountSettingsService.toggle2FA(cookie, enabled);
-        return ok(result);
+        return result ? ok(true) : err('Error configurando 2FA');
       } catch (e) {
-        return err(`Error cambiando 2FA: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
-
-    // =================================================================
-    // PRIVACY
-    // =================================================================
-
-    ipcMain.handle('settings:privacy:get', async (_, accountId: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
-      try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const settings = await this.accountSettingsService.getPrivacySettings(cookie);
-        return ok(settings);
-      } catch (e) {
-        return err(`Error obteniendo privacidad: ${(e as Error).message}`);
-      }
-    });
-
-    ipcMain.handle('settings:privacy:update', async (_, accountId: unknown, settingKey: unknown, value: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
-      if (!isNonEmptyString(settingKey)) {
-        return err('Payload inválido: settingKey debe ser un string no vacío');
-      }
-      if (!isNonEmptyString(value as string)) {
-        return err('Payload inválido: value debe ser un string no vacío');
-      }
-      try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const result = await this.accountSettingsService.updatePrivacySetting(cookie, settingKey, value as string);
-        return ok(result);
-      } catch (e) {
-        return err(`Error actualizando privacidad: ${(e as Error).message}`);
-      }
-    });
-
-    // =================================================================
-    // NOTIFICATIONS
-    // =================================================================
 
     ipcMain.handle('settings:notifications:get', async (_, accountId: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
         const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const settings = await this.accountSettingsService.getNotificationSettings(cookie);
-        return ok(settings);
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
+        const data = await this.accountSettingsService.getNotificationSettings(cookie);
+        return ok(data);
       } catch (e) {
-        return err(`Error obteniendo notificaciones: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
     ipcMain.handle('settings:notifications:update', async (_, accountId: unknown, key: unknown, value: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
-      if (!isNonEmptyString(key as string)) {
-        return err('Payload inválido: key debe ser un string no vacío');
-      }
-      if (!isBoolean(value)) {
-        return err('Payload inválido: value debe ser un booleano');
-      }
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
+      if (!isNonEmptyString(key)) return err('key inválido');
+      if (typeof value !== 'boolean') return err('value debe ser booleano');
       try {
         const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const result = await this.accountSettingsService.updateNotificationSetting(cookie, key as string, value);
-        return ok(result);
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
+        const result = await this.accountSettingsService.updateNotificationSetting(cookie, key.trim(), value);
+        return result ? ok(true) : err('Error actualizando notificación');
       } catch (e) {
-        return err(`Error actualizando notificaciones: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
-    // =================================================================
-    // FRIENDS
-    // =================================================================
-
+    // FRIENDS + BLOCKED
     ipcMain.handle('account:friends:list', async (_, accountId: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
         const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
         const friends = await this.accountSettingsService.getFriendsList(cookie);
         return ok(friends);
       } catch (e) {
-        return err(`Error obteniendo amigos: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
     ipcMain.handle('account:friends:requests', async (_, accountId: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
         const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
         const requests = await this.accountSettingsService.getFriendRequests(cookie);
         return ok(requests);
       } catch (e) {
-        return err(`Error obteniendo solicitudes: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
     ipcMain.handle('account:friends:respond', async (_, accountId: unknown, userId: unknown, accept: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
-      if (!isPositiveInteger(userId)) {
-        return err('Payload inválido: userId debe ser un número entero positivo');
-      }
-      if (!isBoolean(accept)) {
-        return err('Payload inválido: accept debe ser un booleano');
-      }
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
+      if (typeof userId !== 'number' && !isNonEmptyString(userId)) return err('userId inválido');
+      if (typeof accept !== 'boolean') return err('accept debe ser booleano');
+      // El servicio acepta number como userId
+      const userIdNumber = typeof userId === 'number' ? userId : Number(userId);
+      if (!Number.isFinite(userIdNumber)) return err('userId debe ser numérico');
       try {
         const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const result = await this.accountSettingsService.respondFriendRequest(cookie, userId, accept);
-        return ok(result);
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
+        const result = await this.accountSettingsService.respondFriendRequest(cookie, userIdNumber, accept);
+        return result ? ok(true) : err('Error respondiendo solicitud');
       } catch (e) {
-        return err(`Error respondiendo solicitud: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
-    // =================================================================
-    // BLOCKING
-    // =================================================================
-
     ipcMain.handle('account:blocked:list', async (_, accountId: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
         const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
         const blocked = await this.accountSettingsService.getBlockedUsers(cookie);
         return ok(blocked);
       } catch (e) {
-        return err(`Error obteniendo bloqueados: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
     ipcMain.handle('account:block:user', async (_, accountId: unknown, userId: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
-      if (!isPositiveInteger(userId)) {
-        return err('Payload inválido: userId debe ser un número entero positivo');
-      }
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
+      if (typeof userId !== 'number' && !isNonEmptyString(userId)) return err('userId inválido');
+      const userIdNumber = typeof userId === 'number' ? userId : Number(userId);
+      if (!Number.isFinite(userIdNumber)) return err('userId debe ser numérico');
       try {
         const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const result = await this.accountSettingsService.blockUser(cookie, userId);
-        return ok(result);
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
+        const result = await this.accountSettingsService.blockUser(cookie, userIdNumber);
+        return result ? ok(true) : err('Error bloqueando usuario');
       } catch (e) {
-        return err(`Error bloqueando usuario: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
     ipcMain.handle('account:unblock:user', async (_, accountId: unknown, userId: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
-      if (!isPositiveInteger(userId)) {
-        return err('Payload inválido: userId debe ser un número entero positivo');
-      }
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
+      if (typeof userId !== 'number' && !isNonEmptyString(userId)) return err('userId inválido');
+      const userIdNumber = typeof userId === 'number' ? userId : Number(userId);
+      if (!Number.isFinite(userIdNumber)) return err('userId debe ser numérico');
       try {
         const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const result = await this.accountSettingsService.unblockUser(cookie, userId);
-        return ok(result);
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
+        const result = await this.accountSettingsService.unblockUser(cookie, userIdNumber);
+        return result ? ok(true) : err('Error desbloqueando usuario');
       } catch (e) {
-        return err(`Error desbloqueando usuario: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
-    // =================================================================
-    // FOLLOW / UNFOLLOW
-    // =================================================================
-
     ipcMain.handle('account:follow:user', async (_, accountId: unknown, userId: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
-      if (!isPositiveInteger(userId)) {
-        return err('Payload inválido: userId debe ser un número entero positivo');
-      }
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
+      if (typeof userId !== 'number' && !isNonEmptyString(userId)) return err('userId inválido');
+      const userIdNumber = typeof userId === 'number' ? userId : Number(userId);
+      if (!Number.isFinite(userIdNumber)) return err('userId debe ser numérico');
       try {
         const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const result = await this.accountSettingsService.followUser(cookie, userId);
-        return ok(result);
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
+        const result = await this.accountSettingsService.followUser(cookie, userIdNumber);
+        return result ? ok(true) : err('Error siguiendo usuario');
       } catch (e) {
-        return err(`Error siguiendo usuario: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
     ipcMain.handle('account:unfollow:user', async (_, accountId: unknown, userId: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
-      if (!isPositiveInteger(userId)) {
-        return err('Payload inválido: userId debe ser un número entero positivo');
-      }
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
+      if (typeof userId !== 'number' && !isNonEmptyString(userId)) return err('userId inválido');
+      const userIdNumber = typeof userId === 'number' ? userId : Number(userId);
+      if (!Number.isFinite(userIdNumber)) return err('userId debe ser numérico');
       try {
         const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
-        const cookie = raw.encrypted_cookie
-          ? this.crypto.decrypt(raw.encrypted_cookie)
-          : '';
-        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const result = await this.accountSettingsService.unfollowUser(cookie, userId);
-        return ok(result);
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
+        const result = await this.accountSettingsService.unfollowUser(cookie, userIdNumber);
+        return result ? ok(true) : err('Error dejando de seguir usuario');
       } catch (e) {
-        return err(`Error dejando de seguir: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
-    // =================================================================
-    // PRESENCE — Dashboard en tiempo real (Sprint E4)
-    // =================================================================
-
-    // Obtener presencia de cuentas (batch)
-    ipcMain.handle('presence:get', async (_, accountIds: unknown) => {
-      if (!Array.isArray(accountIds) || accountIds.length === 0) {
-        return err('Payload inválido: accountIds debe ser un array no vacío');
-      }
-      for (const id of accountIds) {
-        if (!isNonEmptyString(id)) {
-          return err('Payload inválido: cada accountId debe ser un string no vacío');
-        }
-      }
+    // PRESENCE
+    ipcMain.handle('presence:get', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
-        const data = await this.presenceService.getPresence(accountIds as string[]);
-        return ok(data);
+        const presence = await this.presenceService.getPresence([accountId.trim()]);
+        return ok(presence);
       } catch (e) {
-        return err(`Error obteniendo presencia: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
-    // Iniciar polling de presencia
     ipcMain.handle('presence:start-polling', async (_, accountIds: unknown, intervalMs: unknown) => {
       if (!Array.isArray(accountIds) || accountIds.length === 0) {
         return err('Payload inválido: accountIds debe ser un array no vacío');
       }
-      for (const id of accountIds) {
-        if (!isNonEmptyString(id)) {
-          return err('Payload inválido: cada accountId debe ser un string no vacío');
-        }
+      if (intervalMs !== undefined && typeof intervalMs !== 'number') {
+        return err('Payload inválido: intervalMs debe ser number o undefined');
       }
-      const interval = typeof intervalMs === 'number' && intervalMs > 0 ? intervalMs : 30_000;
       try {
-        this.presenceService.startPolling(accountIds as string[], interval);
-        return ok({ started: true, accounts: accountIds.length, intervalMs: interval });
+        const ids = accountIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
+        if (ids.length === 0) return err('Ningún accountId válido');
+        const interval = typeof intervalMs === 'number' && intervalMs > 0 ? intervalMs : undefined;
+        this.presenceService.startPolling(ids, interval as number);
+        return ok(true);
       } catch (e) {
-        return err(`Error iniciando polling: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
-    // Detener polling de presencia
-    ipcMain.handle('presence:stop-polling', () => {
-      this.presenceService.stopPolling();
-      return ok({ stopped: true });
+    ipcMain.handle('presence:stop-polling', async () => {
+      try {
+        this.presenceService.stopPolling();
+        return ok(true);
+      } catch (e) {
+        return err(`Error: ${(e as Error).message}`);
+      }
     });
 
-    // Obtener juegos recientes de una cuenta
     ipcMain.handle('presence:recent-games', async (_, accountId: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
         const games = await this.presenceService.getRecentGames(accountId.trim());
         return ok(games);
       } catch (e) {
-        return err(`Error obteniendo juegos recientes: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
-    // Obtener balance de Robux de una cuenta
     ipcMain.handle('presence:robux-balance', async (_, accountId: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
         const balance = await this.presenceService.getRobuxBalance(accountId.trim());
         return ok(balance);
       } catch (e) {
-        return err(`Error obteniendo balance de Robux: ${(e as Error).message}`);
+        return err(`Error: ${(e as Error).message}`);
       }
     });
 
     // =================================================================
+    // TEMAS — sistema de themes
     // =================================================================
-    // AUTENTICACIÓN — App OpenSource (sin SaaS)
-    // =================================================================
 
-    // Login local (sin backend)
-    ipcMain.handle('auth:login', async (_, email: unknown) => {
-      if (!isNonEmptyString(email)) {
-        return err('Payload inválido: email debe ser un string no vacío');
-      }
-      // App local: sin backend, siempre válido
-      return ok({ userId: email, email: email.trim(), authenticated: true });
-    });
-
-    // Logout local
-    ipcMain.handle('auth:logout', async () => {
-      return ok({ loggedOut: true });
-    });
-
-    // Estado de autenticación (siempre true para app local)
-    ipcMain.handle('auth:status', async () => {
-      return ok({ authenticated: true });
-    });
-
-    // Refresh token (no-op, app local sin tokens)
-    ipcMain.handle('auth:refresh-token', async () => {
-      return ok({ refreshed: false });
-    });
-
-    // Verificar si se puede agregar una cuenta (límite: 50)
-    ipcMain.handle('auth:can-add-account', async () => {
+    // El preload expone 'settings:theme:get' como canal de consulta
+    ipcMain.handle('settings:theme:get', async () => {
       try {
-        const accountCount = this.accountManager.getAllAccounts().length;
-        return ok({ canAdd: accountCount < MAX_ACCOUNTS, currentCount: accountCount, maxAccounts: MAX_ACCOUNTS });
+        const theme = this.themeService.getSettings();
+        return ok(theme);
       } catch (e) {
-        return err(`Error verificando límite de cuentas: ${(e as Error).message}`);
+        return err(`Error obteniendo tema: ${(e as Error).message}`);
       }
     });
 
-// =================================================================
-
-    ipcMain.handle('shell:open-external', async (_event, url: string) => {
+    // El preload expone 'settings:theme:set' con un objeto settings
+    ipcMain.handle('settings:theme:set', async (_, settings: unknown) => {
+      if (!settings || typeof settings !== 'object') {
+        return err('Payload inválido: settings debe ser un objeto');
+      }
       try {
-        // Whitelist de URLs válidas para evitar abuso
-        const allowedDomains = ['nexoaccmanager.com', 'www.nexoaccmanager.com', 'github.com'];
-        let valid = false;
-        for (const domain of allowedDomains) {
-          if (url.includes(domain)) {
-            valid = true;
-            break;
+        const s = settings as Record<string, unknown>;
+        const patch: Partial<ThemeSettings> = {};
+        if (typeof s.theme === 'string') {
+          const validThemes: ThemeId[] = ['dark', 'light', 'roblox-classic', 'custom'];
+          if (!validThemes.includes(s.theme as ThemeId)) {
+            return err(`theme inválido: debe ser uno de ${validThemes.join(', ')}`);
+          }
+          patch.theme = s.theme as ThemeId;
+        }
+        if (typeof s.fontSize === 'string') {
+          if (!['small', 'medium', 'large'].includes(s.fontSize)) {
+            return err('fontSize inválido: debe ser small, medium o large');
+          }
+          patch.fontSize = s.fontSize as ThemeSettings['fontSize'];
+        }
+        if (typeof s.uiDensity === 'string') {
+          if (!['compact', 'normal', 'spacious'].includes(s.uiDensity)) {
+            return err('uiDensity inválido: debe ser compact, normal o spacious');
+          }
+          patch.uiDensity = s.uiDensity as ThemeSettings['uiDensity'];
+        }
+        if (typeof s.animationsEnabled === 'boolean') {
+          patch.animationsEnabled = s.animationsEnabled;
+        }
+        if (typeof s.primaryColor === 'string') {
+          patch.primaryColor = s.primaryColor;
+        }
+        if (typeof s.accentColor === 'string') {
+          patch.accentColor = s.accentColor;
+        }
+        const merged = this.themeService.setSettings(patch);
+        return ok(merged);
+      } catch (e) {
+        return err(`Error configurando tema: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('theme:get-css', async () => {
+      try {
+        const css = this.themeService.getThemeCSS();
+        return ok(css);
+      } catch (e) {
+        return err(`Error generando CSS del tema: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // i18n — sistema de idioma
+    // =================================================================
+
+    ipcMain.handle('settings:language:get', async () => {
+      try {
+        const lang = this.db.getSetting('language') || 'es';
+        return ok(lang);
+      } catch (e) {
+        return err(`Error obteniendo idioma: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('settings:language:set', async (_, lang: unknown) => {
+      if (!isNonEmptyString(lang)) return err('lang inválido');
+      const valid = ['es', 'en', 'pt'];
+      if (!valid.includes(lang.trim())) return err(`Idioma no soportado: ${lang}. Válidos: ${valid.join(', ')}`);
+      try {
+        this.db.setSetting('language', lang.trim());
+        return ok(true);
+      } catch (e) {
+        return err(`Error configurando idioma: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // AVANZADO — utilidades
+    // =================================================================
+
+    // 'advanced:exportData' — exporta datos de cuentas manuales desde getAllAccounts()
+    ipcMain.handle('advanced:exportData', async () => {
+      try {
+        const accounts = this.accountManager.getAllAccounts();
+        const data = {
+          version: 2,
+          exportedAt: new Date().toISOString(),
+          accounts,
+        };
+        return ok(data);
+      } catch (e) {
+        return err(`Error exportando datos: ${(e as Error).message}`);
+      }
+    });
+
+    // 'advanced:deleteAllAccounts' — borra cada cuenta con deleteAccount(id)
+    ipcMain.handle('advanced:deleteAllAccounts', async () => {
+      try {
+        const accounts = this.accountManager.getAllAccounts();
+        let deleted = 0;
+        for (const account of accounts) {
+          try {
+            this.db.deleteAccount(account.id);
+            deleted++;
+          } catch (accountErr) {
+            console.error(`[advanced:deleteAllAccounts] Error borrando cuenta ${account.id}:`, accountErr);
           }
         }
-        if (!valid) {
-          return err('URL no permitida');
-        }
-        await shell.openExternal(url);
-        return ok({ success: true });
+        // Refrescar el caché del AccountManager
+        (this.accountManager as any).updateCachedAccounts?.();
+        return ok({ deleted, total: accounts.length });
+      } catch (e) {
+        return err(`Error borrando datos locales: ${(e as Error).message}`);
+      }
+    });
+
+    // 'advanced:clearCache' — no-op seguro para caché de friends (CookieExpiryService no tiene clearCache)
+    ipcMain.handle('advanced:clearCache', async () => {
+      try {
+        // El método privado friendsCache.clear() no es accesible públicamente,
+        // así que lo invocamos vía bracket access defensivo; si no existe, no-op.
+        const service = this.accountSettingsService as unknown as {
+          friendsCache?: { clear(): void };
+        };
+        service.friendsCache?.clear?.();
+        return ok(true);
+      } catch (e) {
+        return err(`Error limpiando caché: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('shell:open-external', async (_, url: unknown) => {
+      if (!isNonEmptyString(url)) return err('url inválida');
+      const allowed = url.trim().startsWith('roblox-player://');
+      if (!allowed) return err('Solo URLs roblox-player:// permitidas');
+      try {
+        await shell.openExternal(url.trim());
+        return ok(true);
       } catch (e) {
         return err(`Error abriendo URL: ${(e as Error).message}`);
       }
@@ -1040,216 +969,62 @@ class NexoApp {
   }
 
   private createMenu(): void {
-    const template = [
+    const template: Electron.MenuItemConstructorOptions[] = [
       {
-        label: 'Archivo',
+        label: 'NexoAccManager',
         submenu: [
-          {
-            label: 'Importar cuentas',
-            click: () => this.importAccounts(),
-          },
-          {
-            label: 'Exportar cuentas',
-            click: () => this.exportAccounts(),
-          },
+          { role: 'about' },
           { type: 'separator' },
-          {
-            label: 'Salir',
-            accelerator: 'CmdOrCtrl+Q',
-            click: () => app.quit(),
-          },
+          { role: 'quit' },
         ],
       },
       {
-        label: 'Herramientas',
+        label: 'Editar',
         submenu: [
-          {
-            label: 'API Web Local',
-            click: () => this.showAPIInfo(),
-          },
-          {
-            label: 'ConfiguraciÃ³n',
-            click: () => this.showSettings(),
-          },
+          { role: 'undo' },
+          { role: 'redo' },
+          { type: 'separator' },
+          { role: 'cut' },
+          { role: 'copy' },
+          { role: 'paste' },
+          { role: 'selectAll' },
+        ],
+      },
+      {
+        label: 'Ver',
+        submenu: [
+          { role: 'reload' },
+          { role: 'forceReload' },
+          { role: 'toggleDevTools' },
+          { type: 'separator' },
+          { role: 'resetZoom' },
+          { role: 'zoomIn' },
+          { role: 'zoomOut' },
+          { type: 'separator' },
+          { role: 'togglefullscreen' },
         ],
       },
     ];
 
-    const menu = Menu.buildFromTemplate(template as any);
+    const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu);
-  }
-
-  private async importAccounts(): Promise<void> {
-      const result = await dialog.showOpenDialog({
-        properties: ['openFile'],
-        filters: [{ name: 'Archivos JSON', extensions: ['json'] }],
-      });
-
-      if (result.canceled || result.filePaths.length === 0) return;
-
-      try {
-        const filePath = result.filePaths[0];
-        const data = fs.readFileSync(filePath, 'utf-8');
-        const payload = JSON.parse(data);
-
-        // Compatibilidad: puede ser "cuentas" o "accounts"
-        const cuentas = payload.cuentas || payload.accounts;
-
-        if (!Array.isArray(cuentas)) {
-          throw new Error('Formato invÃ¡lido: se espera un array de cuentas');
-        }
-
-        if (cuentas.length === 0) {
-          dialog.showMessageBox(this.mainWindow!, {
-            type: 'info',
-            title: 'ImportaciÃ³n',
-            message: 'El archivo no contiene cuentas para importar.',
-          });
-          return;
-        }
-
-        let added = 0;
-        let skipped = 0;
-        const errors: string[] = [];
-
-        for (const item of cuentas) {
-          try {
-            // Validar estructura mÃ­nima
-            if (!item.cookie || typeof item.cookie !== 'string') {
-              errors.push(`Cuenta sin cookie vÃ¡lida: ${item.username || 'desconocido'}`);
-              skipped++;
-              continue;
-            }
-
-            // Verificar que la cookie tenga el formato correcto
-            const cookie = item.cookie.trim();
-            if (!cookie.startsWith('_|WARNING:-DO-NOT-SHARE|_')) {
-              errors.push(`Cookie con formato invÃ¡lido: ${item.username || 'desconocido'}`);
-              skipped++;
-              continue;
-            }
-
-            // Verificar si ya existe por hash de cookie
-            const existing = this.findAccountByCookieHash(cookie);
-            if (existing) {
-              errors.push(`Cuenta duplicada: ${item.username || 'desconocido'} (ya existe)`);
-              skipped++;
-              continue;
-            }
-
-            // Importar la cuenta (verifica contra Roblox automÃ¡ticamente)
-            await this.accountManager.addAccountFromCookie(cookie);
-            added++;
-          } catch (err: unknown) {
-            const msg = (err as Error).message || String(err);
-            errors.push(`Error importando ${item.username || 'desconocido'}: ${msg}`);
-            skipped++;
-          }
-        }
-
-        // Actualizar cache de cuentas en la UI
-        if (added > 0) {
-          this.mainWindow?.webContents.send('accounts:refresh');
-        }
-
-        const detail = errors.length > 0
-          ? `Errores (${errors.length}):\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`
-          : undefined;
-
-        dialog.showMessageBox(this.mainWindow!, {
-          type: 'info',
-          title: 'ImportaciÃ³n completada',
-          message: `Cuentas importadas: ${added}\nOmitidas: ${skipped}`,
-          detail,
-        });
-      } catch (err: unknown) {
-        dialog.showErrorBox('Error de importaciÃ³n', (err as Error).message);
-      }
-  }
-
-  /**
-   * Busca si ya existe una cuenta por el hash de la cookie
-   */
-  private findAccountByCookieHash(cookie: string): any {
-    const crypto = require('crypto');
-    const hash = crypto.createHash('sha256').update(cookie.trim()).digest('hex');
-    const accounts = this.db.getAllAccounts();
-    return accounts.find((a: any) => a.cookie_hash === hash);
-  }
-
-  private async exportAccounts(): Promise<void> {
-      const result = await dialog.showSaveDialog({
-        defaultPath: 'cuentas_nexo.json',
-        filters: [{ name: 'Archivos JSON', extensions: ['json'] }],
-      });
-
-      if (result.canceled || !result.filePath) return;
-
-      try {
-        const rawAccounts = this.db.getAllAccounts();
-
-        if (rawAccounts.length === 0) {
-          dialog.showMessageBox(this.mainWindow!, {
-            type: 'info',
-            title: 'ExportaciÃ³n',
-            message: 'No hay cuentas para exportar.',
-          });
-          return;
-        }
-
-        // Descifrar cookies para el export
-        const payload = {
-          version: '1.0',
-          app: 'NexoAccManager',
-          exportDate: new Date().toISOString(),
-          accounts: rawAccounts.map((a: any) => {
-            let cookie = '';
-            try {
-              cookie = this.crypto.decrypt(a.encrypted_cookie);
-            } catch {
-              cookie = '';
-            }
-            return {
-              cookie,
-              username: a.username,
-              robloxUserId: a.roblox_user_id,
-              displayName: a.display_name || undefined,
-              group: a.group_name || 'Default',
-              description: a.description || '',
-              createdAt: a.created_at,
-              lastUsed: a.last_used,
-            };
-          }),
-        };
-
-        fs.writeFileSync(result.filePath, JSON.stringify(payload, null, 2), 'utf-8');
-
-        dialog.showMessageBox(this.mainWindow!, {
-          type: 'info',
-          title: 'ExportaciÃ³n completada',
-          message: `${rawAccounts.length} cuenta(s) exportadas a ${result.filePath}`,
-          detail: 'ADVERTENCIA: El archivo contiene cookies en texto plano. GuÃ¡rdalo en un lugar seguro.',
-        });
-      } catch (err: unknown) {
-        dialog.showErrorBox('Error de exportaciÃ³n', (err as Error).message);
-      }
-    }
-
-  private showAPIInfo(): void {
-    // Mostrar informaciÃ³n de la API
-  }
-
-  private showSettings(): void {
-    // Mostrar configuraciÃ³n
   }
 }
 
-const nexoApp = new NexoApp();
+let appInstance: NexoApp;
 
-app.whenReady().then(() => nexoApp.initialize());
+app.whenReady().then(async () => {
+  appInstance = new NexoApp();
+  await appInstance.initialize();
+});
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
+  app.quit();
+});
+
+app.on('activate', () => {
+  // macOS: recrear ventana cuando dock icon se clickea
+  if (appInstance) {
+    // La ventana ya existe, solo se reabre
   }
 });

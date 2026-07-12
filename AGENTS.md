@@ -42,15 +42,19 @@ Result pattern en IPC: `{ success, data }` | `{ success: false, error }` — nun
 - Sin restricciones por plan o pago
 - L?mite hardcoded en el contador de accounts
 
-## Estado actual — Julio 2026 (Migraci?n OpenSource)
+## Estado actual — Julio 2026 (Migración OpenSource COMPLETADA)
 ```
-✅ Migraci?n OpenSource — Eliminado SaaS backend y licencias
+✅ Migración OpenSource — Eliminado SaaS backend y licencias
 ✅ Licencia MIT — Establecida con disclaimers legales
 ✅ PROJECT.md, README.md, CONTRIBUTING.md — Actualizados
 ✅ LICENSE — Creado
-❌ Limpieza de c?digo — Eliminar AuthService, referencias license ← EN PROGRESO
-❌ Testeo con cuentas reales usando Computer-use ← SIGUIENTE
-❌ Deployment en Oracle Cloud + Dokploy
+✅ Limpieza de código — AuthService, LicenseService, WebServer eliminados
+✅ Locales limpios — claves auth/license/plan eliminadas (es/en/pt)
+✅ tsc compila limpio — 0 errores
+✅ Build exitoso — AppImage + .snap generados
+✅ README.md — Guía de instalación completa
+❌ Testeo con cuentas reales usando Computer-use ← EN PROGRESO
+❌ Subir a GitHub releases
 ```
 
 ## Loop de desarrollo para este proyecto
@@ -91,7 +95,7 @@ src/
     core/
       AccountManager.ts        → gestión de cuentas + cifrado
       ThemeService.ts          → sistema de temas CSS
-      LicenseService.ts        → validación JWT + plan
+      LicenseService.ts          → ELIMINADO (migración OpenSource)
     ipc/                       → handlers IPC por namespace
   renderer/
     App.tsx                    → raíz del renderer

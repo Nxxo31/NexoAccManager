@@ -1,6 +1,5 @@
 {
   "app": {
-    "checkingAuth": "Checking authentication...",
     "loadingAccounts": "Loading accounts...",
     "errorLoadingAccounts": "Error loading accounts. Make sure NexoAccManager is running.",
     "errorUnknown": "Error loading accounts"
@@ -10,7 +9,6 @@
     "navAccounts": "Accounts",
     "navServers": "Servers",
     "navPresence": "Presence",
-    "navAuth": "Auth",
     "navSettings": "Settings",
     "logoAlt": "NX"
   },
@@ -26,8 +24,7 @@
     "buttonAdding": "Verifying...",
     "buttonAdd": "Add Account",
     "buttonLimitReached": "Limit reached",
-    "limitReachedText": "Account limit reached: {current}/{limit} accounts on the {plan} plan.",
-    "upgradeLink": "How to upgrade?",
+    "limitReachedText": "Account limit reached: {current}/{limit} accounts.",
     "securityNote": "The cookie is stored encrypted locally with AES-256-GCM.\nIt is never sent to external servers."
   },
   "accountList": {
@@ -87,18 +84,11 @@
       "title": "Multi-Roblox",
       "description": "Allows having multiple Roblox instances open simultaneously.\nUses the roblox:// protocol directly."
     },
-    "apiKey": {
-      "title": "API Key",
-      "description": "Use this key to control NexoAccManager from external scripts\nvia REST API (port 8080).",
-      "buttonCopy": "Copy",
-      "copied": "Copied!",
-      "notAvailable": "API key not available. Run the app to generate it."
-    },
     "about": {
       "title": "About",
-      "description": "NexoAccManager v1.0.0",
-      "description2": "Secure Roblox account management.",
-      "license": "License: GPL-3.0"
+      "description": "NexoAccManager v2.0.0",
+      "description2": "Secure Roblox account management. OpenSource MIT.",
+      "license": "License: MIT"
     }
   },
   "serverBrowser": {
@@ -338,36 +328,6 @@
         "description": "Receive notifications when you receive a new message"
       }
     }
-  },
-  "auth": {
-    "login": {
-      "title": "Log In",
-      "subtitle": "Access your NexoAccManager account",
-      "labelEmail": "Email",
-      "placeholderEmail": "your@email.com",
-      "labelPassword": "Password",
-      "placeholderPassword": "••••••••"
-    },
-    "register": {
-      "title": "Create Account",
-      "subtitle": "Join NexoAccManager and start managing your Roblox accounts",
-      "labelEmail": "Email",
-      "placeholderEmail": "your@email.com",
-      "labelPassword": "Password",
-      "placeholderPassword": "••••••••",
-      "labelConfirmPassword": "Confirm Password",
-      "placeholderConfirmPassword": "••••••••"
-    },
-    "errorLogin": "Error logging in",
-    "errorRegister": "Error registering",
-    "errorLogout": "Error logging out",
-    "successRegister": "Registration successful. You can now log in",
-    "buttonLogin": "Log In",
-    "buttonLoggingIn": "Logging in...",
-    "buttonRegister": "Sign Up",
-    "buttonRegistering": "Creating account...",
-    "noAccountLink": "Don't have an account? Sign up here",
-    "hasAccountLink": "Already have an account? Log in here"
   },
   "languageSelector": {
     "title": "Language",

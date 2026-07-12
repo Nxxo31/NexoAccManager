@@ -130,7 +130,7 @@ export const themeDefinitions: Record<ThemeId, Record<string, string>> = {
     '--border': '#333333',
   },
   custom: {
-    // Only for Enterprise, colors are set dynamically
+    // Colores se configuran dinámicamente por el usuario (disponible para todos)
     '--primary': '#DE350D',
     '--primary-dark': '#B22A0A',
     '--accent': '#6347FF',

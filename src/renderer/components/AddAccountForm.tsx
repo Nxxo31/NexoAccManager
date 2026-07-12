@@ -5,36 +5,24 @@ interface AddAccountFormProps {
   onSuccess: () => void;
 }
 
+const MAX_ACCOUNTS = 50;
+
 export default function AddAccountForm({ onSuccess }: AddAccountFormProps) {
   const { t } = useTranslation();
   const [cookie, setCookie] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [group, setGroup] = useState('Default');
-  const [checkingLimit, setCheckingLimit] = useState(false);
-  const [limitInfo, setLimitInfo] = useState<{ canAdd: boolean; currentCount: number; limit: number; plan: string } | null>(null);
+  const [accountCount, setAccountCount] = useState(0);
 
-  const checkAccountLimit = async () => {
+  const fetchCount = async () => {
     try {
-      setCheckingLimit(true);
       // @ts-expect-error api existe en window via preload
-      const result = await window.api.auth.canAddAccount();
-      if (result && result.success !== false && result.data) {
-        const data = result.data as {
-          canAdd: boolean;
-          currentCount: number;
-          limit: number;
-          plan: string;
-        };
-        setLimitInfo(data);
-        return data;
-      }
-      return { canAdd: false, currentCount: 0, limit: 0, plan: 'UNKNOWN' };
+      const result = await window.api.account.list();
+      const count = Array.isArray(result) ? result.length : 0;
+      setAccountCount(count);
     } catch (err) {
-      console.error('Error checking account limit:', err);
-      return { canAdd: false, currentCount: 0, limit: 0, plan: 'ERROR' };
-    } finally {
-      setCheckingLimit(false);
+      console.error('Error fetching account count:', err);
     }
   };
 
@@ -53,10 +41,9 @@ export default function AddAccountForm({ onSuccess }: AddAccountFormProps) {
       return;
     }
 
-    // Verificar límite de cuenta antes de intentar agregar
-    const limitData = await checkAccountLimit();
-    if (!limitData.canAdd) {
-      setError(t('addAccount.limitReachedText', { current: limitData.currentCount, limit: limitData.limit, plan: limitData.plan }));
+    // Verificar límite local (50 cuentas, sin restricciones de plan)
+    if (accountCount >= MAX_ACCOUNTS) {
+      setError(t('addAccount.limitReachedText', { current: accountCount, limit: MAX_ACCOUNTS }));
       return;
     }
 
@@ -66,6 +53,7 @@ export default function AddAccountForm({ onSuccess }: AddAccountFormProps) {
       await window.api.account.add(trimmed);
       setCookie('');
       onSuccess();
+      fetchCount(); // actualizar contador
     } catch (err: unknown) {
       setError(t('addAccount.errorAdding'));
     } finally {
@@ -73,27 +61,20 @@ export default function AddAccountForm({ onSuccess }: AddAccountFormProps) {
     }
   };
 
-  // Verificar límite al cargar el componente
+  // Verificar contador al cargar el componente
   useEffect(() => {
-    checkAccountLimit();
+    fetchCount();
   }, []);
+
+  const limitReached = accountCount >= MAX_ACCOUNTS;
 
   return (
     <div className="bg-[#2f3640] rounded-lg p-4">
       <h3 className="font-semibold mb-3">{t('addAccount.title')}</h3>
 
-      {limitInfo && !limitInfo.canAdd && (
+      {limitReached && (
         <div className="p-3 bg-red-900/30 border border-red-600/50 rounded mb-4 text-sm text-red-300">
-          {t('addAccount.limitReachedText', { current: limitInfo.currentCount, limit: limitInfo.limit, plan: limitInfo.plan })}
-          <button
-            onClick={() => {
-              // Aquí podríamos navegar a una página de upgrade o mostrar más info
-              alert(`Para agregar más cuentas, necesitas actualizar tu plan. Actualmente tienes el plan ${limitInfo.plan} con límite de ${limitInfo.limit} cuentas.`);
-            }}
-            className="ml-2 text-xs text-[#6c5ce7] underline hover:cursor-pointer"
-          >
-            {t('addAccount.upgradeLink')}
-          </button>
+          {t('addAccount.limitReachedText', { current: accountCount, limit: MAX_ACCOUNTS })}
         </div>
       )}
 
@@ -121,7 +102,7 @@ export default function AddAccountForm({ onSuccess }: AddAccountFormProps) {
             value={group}
             onChange={(e) => setGroup(e.target.value)}
             placeholder={t('addAccount.placeholderGroup')}
-            className="w-full bg-[#1e272e] border border-gray-600 rounded-md px-3 py-2 text-sm text-[#f5f6fa] placeholder-gray-600 focus:outline-none focus:border-[#6c5ce7] transition-colors"
+            className="w-full bg-[#1e272e] border border-gray-600 rounded-md px-3 py-2 text-sm text-[#f5f6fa] focus:outline-none focus:border-[#6c5ce7] transition-colors"
             disabled={loading}
           />
         </div>
@@ -134,16 +115,20 @@ export default function AddAccountForm({ onSuccess }: AddAccountFormProps) {
 
         <button
           type="submit"
-          disabled={loading || !cookie.trim() || (limitInfo && !limitInfo.canAdd)}
+          disabled={loading || !cookie.trim() || limitReached}
           className="w-full py-2 bg-[#6c5ce7] text-white text-sm font-medium rounded-md hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? t('addAccount.buttonAdding') : !limitInfo || !limitInfo.canAdd ? t('addAccount.buttonLimitReached') : t('addAccount.buttonAdd')}
+          {loading ? t('addAccount.buttonAdding') : limitReached ? t('addAccount.buttonLimitReached') : t('addAccount.buttonAdd')}
         </button>
       </form>
 
-      <p className="text-xs text-gray-500 mt-3 leading-relaxed">
+      <p className="text-xs text-gray-500 mt-3 leading-relaxed whitespace-pre-line">
         {t('addAccount.securityNote')}
       </p>
+
+      <div className="mt-2 text-xs text-gray-600">
+        {accountCount}/{MAX_ACCOUNTS}
+      </div>
     </div>
   );
 }
