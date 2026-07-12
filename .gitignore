@@ -52,3 +52,6 @@ electron-builder.yml
 
 # Test coverage
 coverage/
+
+# AppImage extraction artifacts
+squashfs-root/

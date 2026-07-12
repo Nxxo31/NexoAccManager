@@ -44,7 +44,15 @@ export class AccountManager {
    this.db = db;
    this.crypto = crypto;
    this.multiRobloxService = new MultiRobloxService();
-   this.updateCachedAccounts();
+   // No llamar updateCachedAccounts() aquí — la DB no está inicializada todavía.
+   // Se llama explícitamente desde NexoApp.initialize() después de db.initialize().
+ }
+
+ /**
+  * Inicialización post-DB — llama después de db.initialize()
+  */
+ async init(): Promise<void> {
+   await this.updateCachedAccounts();
  }
 
   /**

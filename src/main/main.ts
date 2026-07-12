@@ -125,6 +125,7 @@ class NexoApp {
 
   async initialize(): Promise<void> {
     await this.db.initialize();
+    await this.accountManager.init();
     this.setupCSP();
     this.createWindow();
     this.setupIPCHandlers();
