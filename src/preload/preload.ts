@@ -119,7 +119,7 @@ function invoke<T>(channel: IpcChannel, ...args: unknown[]): Promise<T> {
 
 contextBridge.exposeInMainWorld('api', {
   account: {
-    add: (cookie: string) => invoke('account:add', cookie),
+    add: (cookie: string, group?: string) => invoke('account:add', cookie, group),
     remove: (id: string) => invoke('account:remove', id),
     list: () => invoke('account:list'),
     moveAccount: (id: string, groupName: string) => invoke('account:move', id, groupName),
@@ -200,7 +200,7 @@ contextBridge.exposeInMainWorld('api', {
 // =============================================================================
 export interface Api {
   account: {
-    add: (cookie: string) => Promise<any>;
+    add: (cookie: string, group?: string) => Promise<any>;
     remove: (id: string) => Promise<boolean>;
     list: () => Promise<any[]>;
     moveAccount: (accountId: string, groupName: string) => Promise<void>;

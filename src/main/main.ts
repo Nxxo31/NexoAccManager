@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, session, shell } from 'electron';
+import axios from 'axios';
 import path from 'path';
 import fs from 'fs';
 import { AccountManager } from './core/AccountManager';
@@ -109,8 +110,8 @@ class NexoApp {
   private db: DatabaseManager;
   private crypto: CryptoService;
   private accountSettingsService: AccountSettingsService;
-  private presenceService: PresenceService;
-  private cookieExpiryService: CookieExpiryService;
+  presenceService: PresenceService;
+  cookieExpiryService: CookieExpiryService;
   private themeService: ThemeService;
 
   constructor() {
@@ -196,7 +197,7 @@ class NexoApp {
     // GESTIÓN DE CUENTAS — con validación de tipos
     // =================================================================
 
-    ipcMain.handle('account:add', async (event, cookie: unknown) => {
+    ipcMain.handle('account:add', async (event, cookie: unknown, group: unknown) => {
       if (!isNonEmptyString(cookie)) {
         return err('Payload inválido: cookie debe ser un string no vacío');
       }
@@ -204,7 +205,8 @@ class NexoApp {
         return err('La cookie no tiene el formato válido de .ROBLOSECURITY');
       }
       try {
-        const result = await this.accountManager.addAccountFromCookie(cookie.trim());
+        const groupName = isNonEmptyString(group) ? group.trim() : 'Default';
+        const result = await this.accountManager.addAccountFromCookie(cookie.trim(), groupName);
         return ok(result);
       } catch (e) {
         return err(`Error agregando cuenta: ${(e as Error).message}`);
@@ -545,6 +547,35 @@ class NexoApp {
         return result ? ok(true) : err('Error cerrando sesión');
       } catch (e) {
         return err(`Error: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('settings:security:logout-all', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
+      try {
+        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
+        if (!cookie) return err('No se pudo descifrar la cookie');
+        const result = await this.accountSettingsService.logoutAllSessions(cookie);
+        return result ? ok(true) : err('Error cerrando todas las sesiones');
+      } catch (e) {
+        return err(`Error: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('account:avatar-thumbnail', async (_, userId: unknown) => {
+      if (typeof userId !== 'number' || !Number.isFinite(userId)) {
+        return err('userId debe ser un número válido');
+      }
+      try {
+        const res = await axios.get<{ data: Array<{ imageUrl: string }> }>(
+          `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=150x150&format=Png`,
+          { timeout: 10_000 }
+        );
+        const url = res.data.data?.[0]?.imageUrl || null;
+        return ok(url);
+      } catch (e) {
+        return err(`Error obteniendo avatar: ${(e as Error).message}`);
       }
     });
 
@@ -1028,6 +1059,12 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
+  if (appInstance) {
+    try {
+      appInstance.presenceService?.cleanup();
+      appInstance.cookieExpiryService?.stop?.();
+    } catch { /* ignore on quit */ }
+  }
   app.quit();
 });
 

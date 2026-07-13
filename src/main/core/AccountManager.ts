@@ -80,8 +80,8 @@ export class AccountManager {
       displayName: row.display_name || undefined,
       group: row.group_name || 'Default',
       description: row.description || '',
-      lastUsed: new Date(row.last_used),
-      createdAt: new Date(row.created_at),
+      lastUsed: row.last_used ? new Date(row.last_used) : new Date(),
+      createdAt: row.created_at ? new Date(row.created_at) : new Date(),
       cookieExpiresAt: row.cookie_expires_at ? new Date(row.cookie_expires_at) : undefined,
     };
   }
@@ -89,15 +89,15 @@ export class AccountManager {
   /**
    * AÃ±ade una cuenta desde una cookie .ROBLOSECURITY
    */
-  async addAccountFromCookie(cookie: string): Promise<Account> {
+  async addAccountFromCookie(cookie: string, group: string = 'Default'): Promise<Account> {
     if (!cookie.trim().startsWith('_|WARNING:-DO-NOT-SHARE|_')) {
-      throw new Error('Formato de cookie invÃ¡lido');
+      throw new Error('Formato de cookie inválido');
     }
 
     // Validar la cookie usando Roblox
     const auth = await this.verifyAndGetAuthInfo(cookie);
     if (!auth.authenticated || !auth.userId) {
-      throw new Error('Cookie invÃ¡lida o expirada');
+      throw new Error('Cookie inválida o expirada');
     }
 
     const encryptedCookie = this.crypto.encrypt(cookie);
@@ -117,6 +117,7 @@ export class AccountManager {
       encryptedCookie: encryptedCookie,
       cookieHash: hash,
       cookieExpiresAt: cookieExpiresAt.toISOString(),
+      groupName: group,
     });
 
     await this.updateCachedAccounts();

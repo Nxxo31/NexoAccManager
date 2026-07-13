@@ -268,7 +268,21 @@ export class GamesService {
     onProgress?: (current: number, total: number) => void
   ): Promise<Record<string, boolean>> {
     const results: Record<string, boolean> = {};
-    const servers = await this.getGameServers(placeId, ''); // cookie no necesaria para distribuir
+    // Use first account's cookie for server listing
+    let cookieForServers = '';
+    for (const id of accountIds) {
+      try {
+        const acct = accountManager.getAccountById(id);
+        if (acct) {
+          const raw = (this as any).db?.getAccount?.(id);
+          if (raw?.encrypted_cookie) {
+            cookieForServers = (this as any).crypto?.decrypt?.(raw.encrypted_cookie) || '';
+          }
+        }
+      } catch { /* ignore */ }
+      if (cookieForServers) break;
+    }
+    const servers = await this.getGameServers(placeId, cookieForServers);
 
     if (servers.length === 0) {
       // Lanzar a todos al mismo placeId sin server especifico

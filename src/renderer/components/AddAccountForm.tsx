@@ -50,7 +50,7 @@ export default function AddAccountForm({ onSuccess }: AddAccountFormProps) {
     setLoading(true);
     try {
       // @ts-expect-error api existe en window via preload
-      await window.api.account.add(trimmed);
+      await window.api.account.add(trimmed, group);
       setCookie('');
       onSuccess();
       fetchCount(); // actualizar contador

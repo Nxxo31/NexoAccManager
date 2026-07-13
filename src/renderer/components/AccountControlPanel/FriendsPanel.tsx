@@ -319,7 +319,6 @@ function BlockedTab({ accountId }: { accountId: string }) {
     setError(null);
     try {
       // @ts-expect-error api existe en window via preload
-      siblingData; // placeholder para evitar conflictos
       const result = await window.api.account.getBlocked(accountId);
       if (!result.success) {
         setError(result.error || 'Error cargando bloqueados');

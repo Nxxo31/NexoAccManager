@@ -1,5 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { formatDuration } from '../../../main/services/PresenceService';
+
+// formatDuration moved here from PresenceService to avoid cross-process import
+function formatDuration(totalSeconds: number | undefined): string {
+  if (totalSeconds === undefined || totalSeconds <= 0) return '';
+  const hrs = Math.floor(totalSeconds / 3600);
+  const mins = Math.floor((totalSeconds % 3600) / 60);
+  if (hrs > 0) return `${hrs}h ${mins}m`;
+  return `${mins}m`;
+}
 
 interface PresenceData {
   accountId: string;
