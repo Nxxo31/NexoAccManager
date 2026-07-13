@@ -8,7 +8,6 @@ import { AccountManager } from '../core/AccountManager';
  * Cache LRU de 60s para todas las llamadas a games.roblox.com
  * Las cookies se pasan desde los handlers IPC con la cuenta seleccionada
  */
-
 export interface RobloxGame {
   name: string;
   description: string;
@@ -72,6 +71,10 @@ export class GamesService {
   private baseURL: string;
   private cache: LRUCache<any>;
   private cookieCache: LRUCache<any>; // cacheado con cookie_hash para aislamiento
+  
+  // LRU cache for ping measurements (60 seconds)
+  private pingCache: Map<string, { ping: number; region: 'NA' | 'EU' | 'ASIA' | 'SA' | 'UNKNOWN'; timestamp: number }> = new Map();
+  private readonly PING_CACHE_TTL = 60_000; // 60 seconds
 
   constructor() {
     this.baseURL = 'https://games.roblox.com';
@@ -161,7 +164,7 @@ export class GamesService {
         thumbnail,
         placeId: Number(placeId),
       };
-
+      
       this.cache.set(cacheKey, game);
       return game;
     } catch (error: any) {
@@ -202,6 +205,87 @@ export class GamesService {
   }
 
   // =====================================================
+  // MEDICION REAL DE PING
+  // =====================================================
+  async measurePing(placeId: string): Promise<number> {
+    const cacheKey = `ping_${placeId}`;
+    const cached = this.pingCache.get(cacheKey);
+    
+    // Return cached result if still valid
+    if (cached && Date.now() - cached.timestamp < this.PING_CACHE_TTL) {
+      return cached.ping;
+    }
+    
+    try {
+      // Measure latency to a small Roblox resource (favicon.ico)
+      const startTime = performance.now();
+      await axios.get(
+        'https://www.roblox.com/favicon.ico',
+        { timeout: 5000 } // 5 second timeout
+      );
+      const endTime = performance.now();
+      const ping = Math.round(endTime - startTime);
+      
+      // Cache the result
+      this.pingCache.set(cacheKey, { ping, region: this.estimateRegionFromPing(ping), timestamp: Date.now() });
+      
+      return ping;
+    } catch (error) {
+      // Fallback to a reasonable default if measurement fails
+      console.warn('[GamesService] Ping measurement failed, using fallback:', (error as Error).message);
+      const fallbackPing = 150; // Reasonable middle value
+      this.pingCache.set(cacheKey, { ping: fallbackPing, region: this.estimateRegionFromPing(fallbackPing), timestamp: Date.now() });
+      return fallbackPing;
+    }
+  }
+
+  // =====================================================
+  // ESTIMACION DE REGION POR LATENCIA
+  // =====================================================
+  estimateRegionFromPing(ping: number): 'NA' | 'EU' | 'ASIA' | 'SA' | 'UNKNOWN' {
+    // Heuristica basada en rangos de latencia tipicos
+    if (ping < 80) return 'NA';      // North America (baja latencia)
+    if (ping < 120) return 'SA';     // South America
+    if (ping < 180) return 'EU';     // Europe
+    if (ping < 250) return 'ASIA';   // Asia
+    return 'UNKNOWN';
+  }
+
+  // Method to get both ping and region with caching
+  async getPingAndRegion(placeId: string): Promise<{ ping: number; region: 'NA' | 'EU' | 'ASIA' | 'SA' | 'UNKNOWN' }> {
+    const cacheKey = `ping_${placeId}`;
+    const cached = this.pingCache.get(cacheKey);
+    
+    // Return cached result if still valid
+    if (cached && Date.now() - cached.timestamp < this.PING_CACHE_TTL) {
+      return { ping: cached.ping, region: cached.region };
+    }
+    
+    try {
+      // Measure latency to a small Roblox resource (favicon.ico)
+      const startTime = performance.now();
+      await axios.get(
+        'https://www.roblox.com/favicon.ico',
+        { timeout: 5000 } // 5 second timeout
+      );
+      const endTime = performance.now();
+      const ping = Math.round(endTime - startTime);
+      const region = this.estimateRegionFromPing(ping);
+      
+      // Cache the result
+      this.pingCache.set(cacheKey, { ping, region, timestamp: Date.now() });
+      return { ping, region };
+    } catch (error) {
+      // Fallback to a reasonable default if measurement fails
+      console.warn('[GamesService] Ping measurement failed, using fallback:', (error as Error).message);
+      const fallbackPing = 150; // Reasonable middle value
+      const fallbackRegion = this.estimateRegionFromPing(fallbackPing);
+      this.pingCache.set(cacheKey, { ping: fallbackPing, region: fallbackRegion, timestamp: Date.now() });
+      return { ping: fallbackPing, region: fallbackRegion };
+    }
+  }
+
+  // =====================================================
   // LISTAR SERVERS ACTIVOS
   // =====================================================
   async getGameServers(placeId: string, cookie: string): Promise<GameServer[]> {
@@ -218,22 +302,21 @@ export class GamesService {
 
       const serversData = response.data?.data || [];
 
-      const servers: GameServer[] = serversData.map((s: any) => {
-        const ping = this.estimatePing();
-        const region = this.estimateRegion(ping);
-        const playerCount = s.playing || 0;
-        const maxPlayers = s.maxPlayers || 25;
-
+      // Use real ping measurement for each server
+      const serverPromises = serversData.map(async (s: any) => {
+        const { ping, region } = await this.getPingAndRegion(placeId);
         return {
           jobId: s.id || s.jobId || '',
-          playerCount,
-          maxPlayers,
+          playerCount: s.playing || 0,
+          maxPlayers: s.maxPlayers || 25,
           ping,
           region: region as 'NA' | 'EU' | 'ASIA' | 'SA' | 'UNKNOWN',
           fps: s.fps || 60,
           accessibility: s.accessibility || 'Public',
         };
       });
+
+      const servers: GameServer[] = await Promise.all(serverPromises);
 
       this.cache.set(cacheKey, servers);
       return servers;
@@ -272,7 +355,6 @@ export class GamesService {
     const servers = await this.getGameServers(placeId, cookie);
 
     if (servers.length === 0) {
-      // Lanzar a todos al mismo placeId sin server especifico
       for (let i = 0; i < accountIds.length; i++) {
         const accountId = accountIds[i];
         try {
@@ -285,13 +367,11 @@ export class GamesService {
       return results;
     }
 
-    // Round-robin: asignar una cuenta por server
     for (let i = 0; i < accountIds.length; i++) {
       const accountId = accountIds[i];
       const server = servers[i % servers.length];
       try {
         results[accountId] = await accountManager.launchRoblox(accountId, placeId, server.jobId);
-        // Delay de 2s entre cada lanzamiento para respetar rate limit
         if (i < accountIds.length - 1) {
           await this.delay(2000);
         }
@@ -306,27 +386,6 @@ export class GamesService {
 
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  // =====================================================
-  // ESTIMACION DE PING (simulado)
-  // =====================================================
-  estimatePing(): number {
-    // Simulacion: generar ping entre 50ms y 300ms
-    // En la practica, esto se haria con un ping real al server
-    return Math.floor(Math.random() * (300 - 50 + 1)) + 50;
-  }
-
-  // =====================================================
-  // ESTIMACION DE REGION POR LATENCIA
-  // =====================================================
-  estimateRegion(ping: number): 'NA' | 'EU' | 'ASIA' | 'SA' | 'UNKNOWN' {
-    // Heuristica basada en rangos de latencia tipicos
-    if (ping < 80) return 'NA';      // North America (baja latencia)
-    if (ping < 120) return 'SA';     // South America
-    if (ping < 180) return 'EU';     // Europe
-    if (ping < 250) return 'ASIA';   // Asia
-    return 'UNKNOWN';
   }
 
   // =====================================================

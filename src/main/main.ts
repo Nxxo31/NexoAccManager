@@ -1025,6 +1025,17 @@ class NexoApp {
       }
     });
 
+    // Cookie expiry event listeners
+    ipcMain.on('cookie:expiring', (event, accountId, hoursLeft) => {
+      // Forward to all renderer windows
+      this.mainWindow?.webContents.send('cookie:expiring', accountId, hoursLeft);
+    });
+
+    ipcMain.on('cookie:expired', (event, accountId) => {
+      // Forward to all renderer windows
+      this.mainWindow?.webContents.send('cookie:expired', accountId);
+    });
+
     ipcMain.handle('shell:open-external', async (_, url: unknown) => {
       if (!isNonEmptyString(url)) return err('url inválida');
       const allowed = url.trim().startsWith('roblox-player://');

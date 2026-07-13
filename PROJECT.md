@@ -171,7 +171,8 @@ runs locally on the user's device.
 - **IPC**: invoke/handle (Promise-based) — never send/on for request-response
 - **IPC Security**: contextBridge with explicit channel whitelist, validation on both sides
 - **IPC Namespacing**: `account:*`, `roblox:*`, `settings:*`, `theme:*`, `i18n:*`, `advanced:*`
-- **State**: useState in renderer components (Zustand declared but not yet in use)
+- **State**: Zustand stores (useAccountStore, useUIStore) with devtools + persist
+- **UI**: Framer Motion animations, Lucide icons, Radix UI primitives, CVA variants
 - **Services**: Repository pattern for SQLite, Service layer for Roblox API
 - **Cache**: LRU cache in main process for Roblox API responses (TTL 60s)
 - **Error handling**: Result pattern (success/error) in IPC — never throw without catch
@@ -246,18 +247,23 @@ with the terms of service of any platform they interact with.
 | ✅ Residual SaaS cleanup | ✅ Complete | Removed Enterprise/plan references from locales and comments |
 | ✅ Architecture audit | ✅ Complete (2026-07-13) | Full code audit — 4 bugs found |
 | ✅ Bug fixes | ✅ Complete (2026-07-13) | GamesService, presence IPC, preload whitelist, MAX_ACCOUNTS |
-| 🔄 UI testing with Playwright | 🔄 In progress | Testing renderer UI via vite dev server |
+| ✅ UI/UX redesign | ✅ Complete (2026-07-13) | Framer Motion, Lucide, Radix, Zustand, new components |
+| ✅ Real ping measurement | ✅ Complete (2026-07-13) | HTTP timing to roblox.com with LRU cache |
+| ✅ Cookie expiry IPC | ✅ Complete (2026-07-13) | EventEmitter + IPC forward to renderer |
+| ✅ ESLint config | ✅ Complete (2026-07-13) | Flat config with TypeScript support |
+| 🔄 Vitest tests | 🔄 Pending | Unit + integration tests for handlers and services |
 | ⏳ Upload to GitHub releases | ⏳ Pending | |
 
 ### Known limitations
 
-- `estimatePing()` in GamesService is simulated (random 50-300ms) — not real ping
-- `estimateRegion()` is heuristic by ping range — not geolocation
-- `CookieExpiryService` logs warnings but does not notify the renderer
-- `Zustand` declared in stack but not in use — state managed with useState
-- No test files exist — vitest configured but 0 test coverage
-- `src/main/server/` and `src/main/types/` directories are empty (legacy)
-- `src/hooks/` and `src/store/` directories are empty (legacy)
+- Ping en GamesService ahora usa medición real HTTP a roblox.com (favicon.ico) con cache LRU 60s
+- Región estimada por latencia real (no simulada)
+- CookieExpiryService ahora emite eventos IPC (cookie:expiring, cookie:expired) al renderer
+- Zustand ahora integrado — stores useAccountStore y useUIStore activos
+- Tests vitest: configurados, sin cobertura aún
+- Directorios vacíos legacy eliminados (server, types, hooks, store)
+- ESLint flat config creado y funcional
+- UI rediseñada con framer-motion, lucide-react, radix-ui, Zustand
 
 ### SQLite settings table
 
@@ -406,4 +412,4 @@ thumbnails.roblox.com         → avatars, game thumbnails
 
 ---
 
-*Updated: 2026-07-13 — Architecture audit completed, 4 bugs fixed, backend/landing repos deleted.*
+*Updated: 2026-07-13 — UI/UX redesign completo (Framer Motion, Lucide, Radix, Zustand), ping real, cookie expiry IPC, ESLint, tsc 0 errores.*

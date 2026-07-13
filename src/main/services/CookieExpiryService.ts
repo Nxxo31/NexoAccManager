@@ -1,9 +1,7 @@
-/**
- * CookieExpiryService - Servicio para verificar y renovar cookies próximas a expirar
- */
 import { DatabaseManager } from '../storage/DatabaseManager';
 import { CryptoService } from '../core/CryptoService';
 import axios from 'axios';
+import { EventEmitter } from 'events';
 
 interface AccountLite {
   id: string;
@@ -20,7 +18,7 @@ export interface CookieExpiryResult {
   isValid: boolean;
 }
 
-export class CookieExpiryService {
+export class CookieExpiryService extends EventEmitter {
   private db: DatabaseManager;
   private crypto: CryptoService;
   private checkInterval: NodeJS.Timeout | null = null;
@@ -28,6 +26,7 @@ export class CookieExpiryService {
   private readonly RENEWAL_THRESHOLD_HOURS = 24; // Renovar 24h antes de expirar
 
   constructor(db: DatabaseManager, crypto: CryptoService) {
+    super();
     this.db = db;
     this.crypto = crypto;
   }
@@ -80,12 +79,15 @@ export class CookieExpiryService {
         const result = await this.checkAccountCookieExpiry(account);
         results.push(result);
         
-        // Si la cookie está expirada o es inválida, notificar
-        if (result.isExpired || !result.isValid) {
-          // Enviar notificación vía IPC al renderer
-          // Esto se haría a través del main.ts o un event emitter
-          // Por ahora, solo loggeamos
-          console.warn(`[CookieExpiryService] Cuenta ${account.id} tiene cookie expirada o inválida`);
+        // Si la cookie está próxima a expirar (dentro del umbral) o ya expirada, notificar
+        if (result.isExpired) {
+          // Emitir evento de cookie expirada
+          this.emit('cookie:expired', account.id);
+          console.warn(`[CookieExpiryService] Cuenta ${account.id} tiene cookie expirada`);
+        } else if (result.expiresInHours <= this.RENEWAL_THRESHOLD_HOURS) {
+          // Emitir evento de cookie expirando
+          this.emit('cookie:expiring', account.id, result.expiresInHours);
+          console.warn(`[CookieExpiryService] Cuenta ${account.id} tiene cookie próxima a expirar en ${result.expiresInHours} horas`);
         }
       }
       
