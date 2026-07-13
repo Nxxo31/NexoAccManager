@@ -54,8 +54,8 @@ Result pattern in IPC: `{ success, data }` | `{ success: false, error }` — nev
 ✅ README.md — complete installation guide
 ✅ Architecture audit — 2026-07-13, 4 bugs found and fixed
 ✅ Bug fixes — GamesService cookie, presence IPC, preload whitelist, MAX_ACCOUNTS
-❌ UI testing with Playwright — IN PROGRESS
-❌ Upload to GitHub releases
+✅ Upload to GitHub releases — v2.0.1 publicado (2026-07-13), NSIS 77MB, CI success
+⏳ UI testing with Playwright — PENDIENTE (fix aplicado, requiere restart)
 ```
 
 ## Development loop for this project
