@@ -1,9 +1,10 @@
 {
   "name": "nexoaccmanager",
   "version": "2.0.0",
-  "description": "Herramienta OpenSource para gesti?n de cuentas e instancias de juegos",
+  "description": "Open-source multi-account manager for gaming platforms — 100% local, no servers, no cloud",
   "main": "dist/main/main.js",
-  "author": "NexoAccManager Contributors",
+  "author": {"name": "NexoAccManager Contributors", "email": "nexoaccmanager@users.noreply.github.com"},
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
@@ -56,7 +57,17 @@
       "node_modules/**/*"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Utility",
+      "icon": "build/icon.png"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.png"
     }
   }
 }

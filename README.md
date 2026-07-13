@@ -1,6 +1,6 @@
 # NexoAccManager
 
-Open-source tool for managing multiple gaming platform accounts and instances.
+Open-source multi-account manager for gaming platforms.
 Modern, secure, 100% local — no servers, no cloud, no tracking.
 
 Inspired by [Roblox Account Manager (RAM)](https://github.com/ic3w0lf22/Roblox-Account-Manager) by ic3w0lf22, rebuilt from scratch with Electron + React + TypeScript.
@@ -9,56 +9,90 @@ Inspired by [Roblox Account Manager (RAM)](https://github.com/ic3w0lf22/Roblox-A
 
 ## Features
 
-- **Multi-account management** — Add, organize, and switch between up to 50 accounts
+### Account Management
+- **Multi-account support** — Add, organize, and switch between up to 50 accounts
 - **AES-256-GCM encryption** — All credentials stored locally with hardware-derived encryption
-- **Account Control Panel** — Profile, security, privacy, friends, and notifications management
-- **Server Browser** — Search servers by region, ping, and player count
-- **Presence Dashboard** — Real-time monitoring of all your accounts' status
-- **Multi-instance** — Run multiple game instances simultaneously
-- **Customizable themes** — Dark, Light, Roblox Classic, and Custom (all free)
-- **Full i18n** — Español, English, Português
-- **No backend** — 100% local, no servers, no cloud, no tracking
-- **Auto cookie refresh** — Automatically renews cookies 24h before expiry with retry and notifications
+- **Account groups** — Organize accounts into custom groups for easy management
 - **Import/Export** — Backup and restore accounts via JSON
+- **Auto cookie refresh** — Automatically renews cookies 24h before expiry with retry and notifications
+
+### Account Control Panel
+- **Profile** — View and edit display name, description, and avatar
+- **Security** — Manage sessions, change password, enable 2FA
+- **Privacy** — Control who can message, invite, and find you
+- **Friends** — Manage friends list, send/accept/decline requests
+- **Notifications** — Toggle notification types (friend requests, messages, etc.)
+
+### Server Browser
+- **Server search** — Find servers by PlaceId with real-time data
+- **Filters** — Filter by region, ping, and player count
+- **Sort by occupancy** — Find least populated servers instantly
+- **Auto-join** — Automatically join the least populated server
+- **Multi-distribute** — Split your accounts across multiple servers automatically
+
+### Presence Dashboard
+- **Real-time status** — Monitor online status of all your accounts
+- **Robux balance** — View Robux balance for each account
+- **Auto-refresh** — Status updates every 30 seconds
+- **Visual grid** — Clean card-based layout with avatars
+
+### Multi-Instance
+- **Multiple game instances** — Run several game instances simultaneously
+- **One-click launch** — Launch any account with a single click
+- **Roblox protocol** — Uses `roblox-player://` protocol directly
+
+### Customization
+- **4 themes** — Dark (default), Light, Roblox Classic, Custom (all free, no restrictions)
+- **Full i18n** — Español, English, Português
+- **Dense mode** — Compact layout for power users
+- **Custom fonts** — Choose between Inter, JetBrains Mono, and more
 
 ---
 
 ## Installation
 
-### Option 1 — Download the executable (end users)
+### Option 1 — Download the installer (recommended)
 
 1. Go to the [Releases page](https://github.com/Nxxo31/NexoAccManager/releases)
 2. Download the installer for your OS:
-   - **Windows**: `NexoAccManager-Setup-x.y.z.exe` (NSIS installer)
-   - **Linux**: `NexoAccManager-x.y.z.AppImage` (portable) or `.snap`
-3. Run the installer and follow the steps
-4. Open NexoAccManager from your start menu or desktop shortcut
+   - **Windows**: `NexoAccManager-Setup-2.0.0.exe` — NSIS installer
+   - **Linux**: `NexoAccManager-2.0.0.AppImage` — portable (no install needed) or `.deb` package
+   - **macOS**: `NexoAccManager-2.0.0.dmg` — disk image
+3. Run the installer (or `chmod +x` the AppImage on Linux)
+4. Open NexoAccManager
 
-### Option 2 — Build from source (developers)
+### Option 2 — Run AppImage (Linux)
+
+```bash
+chmod +x NexoAccManager-2.0.0.AppImage
+./NexoAccManager-2.0.0.AppImage
+```
+
+If FUSE is missing: `sudo apt install libfuse2`
+
+### Option 3 — Build from source (developers)
 
 **Prerequisites:**
 - Node.js 18+
 - npm 9+
 - Git
-- For Linux builds: `libgtk-3-dev`, `libnotify-dev`, `libnss3`, `libxss1`, `libasound2`
+- Linux: `libgtk-3-dev`, `libnotify-dev`, `libnss3`, `libxss1`, `libasound2`
 
 ```bash
-# Clone the repository
 git clone https://github.com/Nxxo31/NexoAccManager.git
 cd NexoAccManager
-
-# Install dependencies
 npm install
 
-# Build for production (generates installer in /release)
+# Production build (generates installers in /release)
 npm run build
 ```
 
-The installer is generated in `release/`:
-- Windows: `.exe` (NSIS)
-- Linux: `.AppImage` and `.snap`
+Installers are generated in `release/`:
+- Windows: `.exe` (NSIS installer)
+- Linux: `.AppImage` and `.deb`
+- macOS: `.dmg`
 
-### Option 3 — Run in development mode
+### Option 4 — Development mode
 
 ```bash
 git clone https://github.com/Nxxo31/NexoAccManager.git
@@ -67,43 +101,55 @@ npm install
 npm run dev
 ```
 
-This opens Electron with Vite hot-reload for the renderer.
+Opens Electron with Vite hot-reload for the renderer.
 
 ---
 
-## Usage
+## Usage Guide
 
-1. **Open the app**
-2. **Add an account** — Paste your `.ROBLOSECURITY` cookie in the form (max 50 accounts)
-3. **Organize in groups** — Assign groups to keep your accounts organized
-4. **Launch instances** — Use the Play button to open the game with the selected account
-5. **Monitor status** — The Presence Dashboard shows real-time online status of all accounts
-6. **Browse servers** — Search servers by PlaceId, filter by region/occupancy, distribute your accounts
-7. **Account Control Panel** — Manage profile, security, privacy, friends, and notifications
+### Adding an account
+
+1. Open NexoAccManager
+2. Click the **Add Account** button
+3. Enter a display name (for your reference)
+4. Paste your `.ROBLOSECURITY` cookie
+5. Click **Save** — the cookie is verified and encrypted locally
 
 ### How to get your .ROBLOSECURITY cookie
 
 1. Log in to [roblox.com](https://www.roblox.com)
 2. Open browser developer tools (F12)
-3. Go to Application -> Storage -> Cookies -> `https://www.roblox.com`
+3. Go to **Application** → **Storage** → **Cookies** → `https://www.roblox.com`
 4. Find the cookie named `.ROBLOSECURITY`
 5. Copy its value (starts with `_|WARNING:-DO-NOT-SHARE|_`)
 6. Paste it into NexoAccManager
 
-**Important:** Never share your cookie. It is equivalent to your session password.
+> **Warning:** Never share your cookie. It is equivalent to your session password.
 
----
+### Using the Server Browser
 
-## Security
+1. Enter a **PlaceId** (found in the game's URL on roblox.com)
+2. Click **Search** to fetch available servers
+3. Filter by **region**, **ping**, or **player count**
+4. Sort by **least players** to find low-population servers
+5. Use **Auto-join** to automatically join the least populated server
+6. Use **Multi-distribute** to split accounts across different servers
 
-- **100% Local** — Your data never leaves your device
-- **No servers** — No backend, no cloud, no tracking
-- **No data collection** — No analytics, no telemetry
-- **AES-256-GCM encryption** — Cookies encrypted locally, hardware-derived key
-- **Sandbox active** — contextIsolation + sandbox + nodeIntegration disabled
-- **Auditable code** — All code is public and reviewable
-- **IPC security** — contextBridge with explicit channel whitelist, type validation on both sides
-- **CSP enforced** — Content Security Policy restricts connections to `*.roblox.com` only
+### Monitoring with Presence Dashboard
+
+1. Navigate to the **Presence** tab
+2. View real-time status of all accounts (online/offline/in-game)
+3. See Robux balance for each account
+4. Status auto-refreshes every 30 seconds
+
+### Managing Account Settings
+
+From the Account Control Panel you can:
+- **Profile**: Update display name and description
+- **Security**: View active sessions, change password, manage 2FA
+- **Privacy**: Control who can message, invite, or find you
+- **Friends**: Send, accept, or decline friend requests
+- **Notifications**: Enable/disable specific notification types
 
 ---
 
@@ -111,13 +157,15 @@ This opens Electron with Vite hot-reload for the renderer.
 
 | Component       | Technology                     |
 |------------------|-------------------------------|
-| App              | Electron + React + TypeScript |
+| App              | Electron 30 + React 18 + TypeScript |
 | State            | Zustand                       |
 | Database         | SQLite + better-sqlite3       |
-| Encryption       | AES-256-GCM                   |
-| IPC Security     | contextBridge + sandbox       |
+| Encryption       | AES-256-GCM (hardware-derived) |
+| IPC Security     | contextBridge + sandbox        |
 | i18n             | i18next + react-i18next       |
-| Build            | electron-builder               |
+| Build            | Vite 5 + electron-builder 24  |
+| Testing          | Vitest                        |
+| Linting          | ESLint                        |
 
 ---
 
@@ -163,17 +211,17 @@ src/
 ### IPC Namespacing
 
 ```
-account:*    → Account management (CRUD + encryption)
-roblox:*     → Platform API calls
-settings:*   → Local preferences and config
-theme:*      → Theme system
-advanced:*   → Cache, export, data management
-shell:*      → External URL handling
-security:*   → Sessions, password, 2FA
-privacy:*    → Privacy settings
-friends:*    → Friends, requests, blocks
-notifications:* → Notification toggles
-presence:*   → Online status polling
+account:*         → Account management (CRUD + encryption)
+roblox:*          → Platform API calls
+settings:*        → Local preferences and config
+theme:*           → Theme system
+advanced:*        → Cache, export, data management
+shell:*           → External URL handling
+security:*        → Sessions, password, 2FA
+privacy:*         → Privacy settings
+friends:*         → Friends, requests, blocks
+notifications:*   → Notification toggles
+presence:*        → Online status polling
 ```
 
 Pattern: `invoke/handle` (Promise-based) — never `send/on` for request-response.
@@ -181,9 +229,22 @@ Result pattern: `{ success, data }` or `{ success: false, error }` — never thr
 
 ---
 
+## Security
+
+- **100% Local** — Your data never leaves your device
+- **No servers** — No backend, no cloud, no tracking
+- **No data collection** — No analytics, no telemetry
+- **AES-256-GCM encryption** — Cookies encrypted locally with hardware-derived key
+- **Sandbox active** — `contextIsolation: true` + `sandbox: true` + `nodeIntegration: false`
+- **CSP enforced** — Content Security Policy restricts connections to `*.roblox.com` only
+- **IPC security** — `contextBridge` with explicit channel whitelist, type validation on both sides
+- **Auditable code** — All code is public and reviewable
+
+---
+
 ## Contributing
 
-You are welcome to contribute. See [CONTRIBUTING.md](CONTRIBUTING.md) for complete guidelines.
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 - Report bugs in [Issues](https://github.com/Nxxo31/NexoAccManager/issues)
 - Submit PRs following the project's style guidelines
@@ -206,8 +267,9 @@ npm run build        # Production build
 ## Troubleshooting
 
 ### App won't start on Linux
-- Ensure you have the required libraries: `sudo apt install libgtk-3-dev libnotify-dev libnss3 libxss1 libasound2`
-- AppImage needs FUSE: `sudo apt install lib fuse2`
+- Install required libraries: `sudo apt install libgtk-3-dev libnotify-dev libnss3 libxss1 libasound2`
+- AppImage needs FUSE: `sudo apt install libfuse2`
+- If AppImage won't run: try `--no-sandbox` flag (not recommended for daily use)
 
 ### Cookie validation fails
 - Make sure the cookie starts with `_|WARNING:-DO-NOT-SHARE|_`
@@ -222,6 +284,11 @@ npm run build        # Production build
 ### Multi-Roblox not working
 - On Windows, ensure no other Roblox multi-instance tool is running
 - The app uses the `roblox-player://` protocol directly
+
+### Blank screen on launch
+- This usually means the renderer failed to load
+- Try running from terminal: `npm run dev` to see error output
+- Check that your GPU drivers are up to date (Electron uses GPU rendering)
 
 ---
 
