@@ -1,6 +1,6 @@
 {
   "name": "nexoaccmanager",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Open-source multi-account manager for gaming platforms — 100% local, no servers, no cloud",
   "main": "dist/main/main.js",
   "author": {
