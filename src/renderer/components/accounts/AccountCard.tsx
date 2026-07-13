@@ -1,20 +1,19 @@
 import * as React from 'react';
-import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@renderer/lib/utils';
-import { PlayCircle, Loader2, CheckCircle, XCircle, MapPin, Server } from 'lucide-react';
+import { PlayCircle, Loader2, CheckCircle, XCircle, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@renderer/components/ui/button';
 import { Badge } from '@renderer/components/ui/badge';
 
 const accountCardVariants = cva(
-  "flex w-full flex-col items-start gap-4 rounded-lg border border-border bg-card text-card-foreground shadow-sm",
+  "flex w-full flex-col items-start gap-4 rounded-lg border border-border bg-card text-card-foreground shadow-sm p-4",
   {
     variants: {
       status: {
         idle: "",
         loading: "animate-pulse",
-        success: "border-green-500 bg-green-50",
-        error: "border-red-500 bg-red-50",
+        success: "border-green-500/50",
+        error: "border-red-500/50",
       },
     },
     defaultVariants: {
@@ -44,15 +43,11 @@ export const AccountCard = React.forwardRef<
   HTMLDivElement,
   AccountCardProps
 >(({ account, isSelected, onSelect, onEdit, onDelete, onJoinGame, joinGameStatus = 'idle' }, ref) => {
-  const handleJoinGame = () => {
-    onJoinGame();
-  };
-
   return (
     <div
       className={cn(
         accountCardVariants({ status: joinGameStatus }),
-        isSelected ? 'ring-2 ring-ring bg-muted' : 'hover:bg-muted/50 transition-colors'
+        isSelected ? 'ring-2 ring-ring' : 'hover:bg-muted/50 transition-colors'
       )}
       ref={ref}
       onClick={onSelect}
@@ -67,55 +62,47 @@ export const AccountCard = React.forwardRef<
               className="h-12 w-12 rounded-full bg-muted/50 object-cover"
             />
           ) : (
-            <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center">
+            <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center text-lg font-semibold text-muted-foreground">
               {account.displayName.charAt(0).toUpperCase()}
             </div>
           )}
         </div>
 
         {/* Info */}
-        <div className="flex-1 space-y-2">
+        <div className="flex-1 space-y-2 min-w-0">
           <div className="flex flex-col space-y-1">
-            <div className="flex items-center justify-between w-full">
-              <h3 className="text-lg font-semibold text-foreground">{account.displayName}</h3>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>#{account.id.slice(0, 8)}</span>
-                <Badge variant="secondary">{account.group}</Badge>
-              </div>
+            <div className="flex items-center justify-between w-full gap-2">
+              <h3 className="text-base font-semibold text-foreground truncate">{account.displayName}</h3>
+              <Badge variant="secondary" className="flex-shrink-0">{account.group}</Badge>
             </div>
             <p className="text-sm text-muted-foreground truncate">
               @{account.username}
             </p>
           </div>
 
-          {/* Stats */}
-          <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                <MapPin className="h-4 w-4" />
-                <span>United States</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Server className="h-4 w-4" />
-                <span>124 ms</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
+          {/* Actions */}
+          <div className="flex w-full items-center justify-between pt-1">
+            <span className="text-xs text-muted-foreground font-mono">
+              #{account.id.slice(0, 8)}
+            </span>
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onEdit}
-                className="p-1 rounded hover:bg-muted"
+                onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                className="h-7 w-7 p-1"
+                title="Editar"
               >
-                <PlayCircle className="h-4 w-4" />
+                <Pencil className="h-3.5 w-3.5" />
               </Button>
               <Button
-                variant="destructive"
+                variant="ghost"
                 size="icon"
-                onClick={onDelete}
-                className="p-1 rounded hover:bg-destructive/10"
+                onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                className="h-7 w-7 p-1 text-destructive hover:text-destructive"
+                title="Eliminar"
               >
-                <XCircle className="h-4 w-4" />
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
@@ -123,23 +110,23 @@ export const AccountCard = React.forwardRef<
       </div>
 
       {/* Join Game Button */}
-      <div className="mt-4 w-full">
+      <div className="mt-2 w-full">
         <Button
-                    variant={joinGameStatus === 'loading' ? 'outline' : 'default'}
-                    size="sm"
-                    onClick={handleJoinGame}
-                    className="w-full"
-                    disabled={joinGameStatus === 'loading'}
+          variant={joinGameStatus === 'loading' ? 'outline' : 'default'}
+          size="sm"
+          onClick={(e) => { e.stopPropagation(); onJoinGame(); }}
+          className="w-full"
+          disabled={joinGameStatus === 'loading'}
         >
           {joinGameStatus === 'loading' ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Joining...
+              Uniéndose...
             </>
           ) : joinGameStatus === 'success' ? (
             <>
               <CheckCircle className="mr-2 h-4 w-4" />
-              Joined!
+              Unido!
             </>
           ) : joinGameStatus === 'error' ? (
             <>
@@ -149,7 +136,7 @@ export const AccountCard = React.forwardRef<
           ) : (
             <>
               <PlayCircle className="mr-2 h-4 w-4" />
-              Join Game
+              Jugar
             </>
           )}
         </Button>

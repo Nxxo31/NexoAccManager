@@ -12,9 +12,9 @@ const Sidebar = ({ className }: SidebarProps) => {
   const { activeView, toggleSidebar } = useUIStore();
   
   const navItems = [
-    { name: 'dashboard', icon: lucide.LayoutDashboard, route: '/accounts', label: 'Accounts' },
-    { name: 'server', icon: lucide.Server, route: '/servers', label: 'Servers' },
-    { name: 'friends', icon: lucide.UserPlus, route: '/friends', label: 'Friends' },
+    { name: 'accounts', icon: lucide.Users, route: '/accounts', label: 'Cuentas' },
+    { name: 'servers', icon: lucide.Server, route: '/servers', label: 'Servers' },
+    { name: 'presence', icon: lucide.Activity, route: '/presence', label: 'Presence' },
     { name: 'settings', icon: lucide.Settings, route: '/settings', label: 'Settings' },
   ];
 

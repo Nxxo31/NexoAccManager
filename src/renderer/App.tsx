@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider } from './context/ThemeContext';
 import AppShell from './components/layout/AppShell';
@@ -83,18 +83,27 @@ export default function App() {
       });
       const cleanupExpired = api.cookieEvents.onExpired((accountId: string) => {
         console.warn(`Cookie expired: account ${accountId}`);
+        fetchAccounts(); // Refresh accounts when a cookie expires
       });
       return () => {
         cleanupExpiring?.();
         cleanupExpired?.();
       };
     }
-  }, []);
+  }, [fetchAccounts]);
 
   const handleAddAccount = async (cookie: string, group?: string) => {
     const result = await (window as any).api.account.add(cookie, group);
     if (result && result.success === false) {
       throw new Error(result.error || 'Failed to add account');
+    }
+    await fetchAccounts();
+  };
+
+  const handleLoginAccount = async (username: string, password: string, group?: string) => {
+    const result = await (window as any).api.account.login(username, password, group);
+    if (result && result.success === false) {
+      throw new Error(result.error || 'Failed to login');
     }
     await fetchAccounts();
   };
@@ -147,10 +156,43 @@ export default function App() {
     await (window as any).api.advanced.clearCache();
   };
 
+  // Presence state
+  const [presences, setPresences] = React.useState<any[]>([]);
+  const [isPolling, setIsPolling] = React.useState(false);
+
+  const handleRefreshPresence = async () => {
+    if (accounts.length === 0) return;
+    const accountIds = accounts.map((a) => a.id);
+    const result = await (window as any).api.presence.getPresence(accountIds);
+    if (result && result.success) {
+      setPresences(result.data || []);
+    }
+  };
+
+  const handleTogglePolling = async () => {
+    if (isPolling) {
+      await (window as any).api.presence.stopPolling();
+      setIsPolling(false);
+    } else {
+      if (accounts.length === 0) return;
+      const accountIds = accounts.map((a) => a.id);
+      await (window as any).api.presence.startPolling(accountIds, 30000);
+      setIsPolling(true);
+      handleRefreshPresence();
+    }
+  };
+
+  // Server browser state
+  const [servers, setServers] = React.useState<any[]>([]);
+
+  const handleSelectServer = async (server: any) => {
+    console.log('Selected server:', server.jobId);
+  };
+
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <BrowserRouter>
+        <MemoryRouter>
           <Routes>
             <Route element={<AppShell />}>
               <Route
@@ -161,13 +203,24 @@ export default function App() {
                       <div className="flex items-center justify-center h-32">
                         <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
                       </div>
+                    ) : error ? (
+                      <div className="flex items-center justify-center h-32 text-destructive">
+                        {error}
+                      </div>
                     ) : (
-                      <AccountGrid />
+                      <AccountGrid
+                        accounts={accounts}
+                        onAddAccount={() => setShowAddModal(true)}
+                        onRefresh={fetchAccounts}
+                        onDeleteAccount={handleDeleteAccount}
+                        onSelectAccount={(account) => setSelectedAccount(account)}
+                      />
                     )}
                     <AddAccountModal
                       isOpen={showAddModal}
                       onClose={() => setShowAddModal(false)}
                       onAddAccount={handleAddAccount}
+                      onLoginAccount={handleLoginAccount}
                     />
                   </div>
                 }
@@ -176,8 +229,8 @@ export default function App() {
                 path="/servers"
                 element={
                   <ServerBrowser
-                    servers={[]}
-                    onSelectServer={(server) => console.log('Selected server:', server.jobId)}
+                    servers={servers}
+                    onSelectServer={handleSelectServer}
                   />
                 }
               />
@@ -185,10 +238,10 @@ export default function App() {
                 path="/presence"
                 element={
                   <PresenceDashboard
-                    presences={[]}
-                    onRefresh={() => console.log('Refresh presence')}
-                    isPolling={false}
-                    onTogglePolling={() => console.log('Toggle polling')}
+                    presences={presences}
+                    onRefresh={handleRefreshPresence}
+                    isPolling={isPolling}
+                    onTogglePolling={handleTogglePolling}
                   />
                 }
               />
@@ -214,7 +267,7 @@ export default function App() {
               <Route path="*" element={<div className="p-6">Page not found</div>} />
             </Route>
           </Routes>
-        </BrowserRouter>
+        </MemoryRouter>
       </ThemeProvider>
     </ErrorBoundary>
   );

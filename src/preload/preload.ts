@@ -7,6 +7,7 @@ import { ipcRenderer, contextBridge } from 'electron';
 
 type IpcChannel =
   | 'account:add'
+  | 'account:login'
   | 'account:remove'
   | 'account:list'
   | 'account:move'
@@ -61,6 +62,7 @@ type IpcChannel =
   | "cookie:expired"
 const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'account:add',
+  'account:login',
   'account:remove',
   'account:list',
   'account:move',
@@ -131,6 +133,7 @@ function invoke<T>(channel: IpcChannel, ...args: unknown[]): Promise<T> {
 contextBridge.exposeInMainWorld('api', {
   account: {
     add: (cookie: string, group?: string) => invoke('account:add', cookie, group),
+    login: (username: string, password: string, group?: string) => invoke('account:login', username, password, group),
     remove: (id: string) => invoke('account:remove', id),
     list: () => invoke('account:list'),
     moveAccount: (id: string, groupName: string) => invoke('account:move', id, groupName),
@@ -234,6 +237,7 @@ contextBridge.exposeInMainWorld('api', {
 export interface Api {
   account: {
     add: (cookie: string, group?: string) => Promise<any>;
+    login: (username: string, password: string, group?: string) => Promise<any>;
     remove: (id: string) => Promise<boolean>;
     list: () => Promise<any[]>;
     moveAccount: (accountId: string, groupName: string) => Promise<void>;

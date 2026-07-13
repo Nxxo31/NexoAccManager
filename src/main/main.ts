@@ -59,6 +59,7 @@ function err(message: string): IpcResult {
 // =============================================================================
 const ALLOWED_CHANNELS = new Set([
   'account:add',
+  'account:login',
   'account:remove',
   'account:list',
   'account:move',
@@ -228,6 +229,39 @@ class NexoApp {
         return ok(result);
       } catch (e) {
         return err(`Error agregando cuenta: ${(e as Error).message}`);
+      }
+    });
+
+    // LOGIN con username/password — alternativa a copiar/pegar cookie
+    ipcMain.handle('account:login', async (_, username: unknown, password: unknown, group: unknown) => {
+      if (!isNonEmptyString(username)) {
+        return err('Payload inválido: username debe ser un string no vacío');
+      }
+      if (!isNonEmptyString(password)) {
+        return err('Payload inválido: password debe ser un string no vacío');
+      }
+      // Validar límite máximo de cuentas
+      if (this.accountManager.getAllAccounts().length >= MAX_ACCOUNTS) {
+        return err(`Límite máximo de ${MAX_ACCOUNTS} cuentas alcanzado. Elimina algunas cuentas antes de agregar nuevas.`);
+      }
+      try {
+        const { RobloxAuthService } = await import('./services/RobloxAuthService');
+        const authService = new RobloxAuthService();
+        const loginResult = await authService.login(username.trim(), password);
+        
+        const groupName = isNonEmptyString(group) ? group.trim() : 'Default';
+        const result = await this.accountManager.addAccountFromCookie(loginResult.cookie, groupName);
+        return ok(result);
+      } catch (e) {
+        const msg = (e as Error).message;
+        // Mensajes de error más claros para casos comunes
+        if (msg.includes('2FA') || msg.includes('dos pasos')) {
+          return err('Esta cuenta requiere verificación en dos pasos (2FA). Usa el método de cookie manual.');
+        }
+        if (msg.includes('captcha')) {
+          return err('Roblox requiere captcha. Usa el método de cookie manual.');
+        }
+        return err(`Error iniciando sesión: ${msg}`);
       }
     });
 
