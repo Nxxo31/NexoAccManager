@@ -29,9 +29,9 @@ export default function Header({ activeView, onViewChange }: HeaderProps) {
   };
 
   return (
-    <header className="flex items-center justify-between px-6 py-3 bg-[#2f3640] border-b border-gray-700">
+    <header className="flex items-center justify-between px-6 py-3 bg-surface border-b border-gray-700">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-[#6c5ce7] rounded-lg flex items-center justify-center font-bold text-sm">
+        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center font-bold text-sm">
           NX
         </div>
         <h1 className="text-lg font-semibold tracking-tight">{t('header.title')}</h1>
@@ -40,25 +40,25 @@ export default function Header({ activeView, onViewChange }: HeaderProps) {
       <nav className="flex gap-1">
         <button
           onClick={() => onViewChange('accounts')}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeView === 'accounts' ? 'bg-[#6c5ce7] text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeView === 'accounts' ? 'bg-primary text-primary' : 'text-secondary hover:text-primary hover:bg-primary/10'}`}
         >
           {t('header.navAccounts')}
         </button>
         <button
           onClick={() => onViewChange('servers')}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeView === 'servers' ? 'bg-[#6c5ce7] text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeView === 'servers' ? 'bg-primary text-primary' : 'text-secondary hover:text-primary hover:bg-primary/10'}`}
         >
           {t('header.navServers')}
         </button>
         <button
           onClick={() => onViewChange('presence')}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeView === 'presence' ? 'bg-[#6c5ce7] text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeView === 'presence' ? 'bg-primary text-primary' : 'text-secondary hover:text-primary hover:bg-primary/10'}`}
         >
           {t('header.navPresence')}
         </button>
         <button
           onClick={() => onViewChange('settings')}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeView === 'settings' ? 'bg-[#6c5ce7] text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${activeView === 'settings' ? 'bg-primary text-primary' : 'text-secondary hover:text-primary hover:bg-primary/10'}`}
         >
           {t('header.navSettings')}
         </button>
@@ -68,7 +68,7 @@ export default function Header({ activeView, onViewChange }: HeaderProps) {
       <div className="relative inline-block">
         <button
           onClick={() => setOpen(!open)}
-          className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white focus:outline-none"
+          className="flex items-center gap-2 text-sm font-medium text-secondary hover:text-primary focus:outline-none"
           aria-label={t('languageSelector.title')}
         >
           <span>{langLabels[currentLang] || '🌐'}</span>
@@ -79,14 +79,14 @@ export default function Header({ activeView, onViewChange }: HeaderProps) {
         </button>
 
         {open && (
-          <div className="absolute right-0 mt-2 w-32 bg-[#2f3640] border border-gray-700 rounded-md shadow-lg z-10">
+          <div className="absolute right-0 mt-2 w-32 bg-surface border border-gray-700 rounded-md shadow-lg z-10">
             {[ 'es', 'en', 'pt' ].map(lng => (
               <button
                 key={lng}
                 onClick={() => handleLanguageChange(lng)}
-                className={`w-full text-left px-3 py-2 text-sm ${currentLang === lng ? 'bg-[#6c5ce7]' : 'text-gray-300 hover:bg-white/5 hover:text-white'}`}
+                className={`w-full text-left px-3 py-2 text-sm ${currentLang === lng ? 'bg-primary' : 'text-secondary hover:bg-white/5 hover:text-primary'}`}
               >
-                {langLabels[lng]} {t(`languageSelector.${lng}` as keyof any)}
+                {langLabels[lng]} {t(`languageSelector.${lng}` as any)}
               </button>
             ))}
           </div>

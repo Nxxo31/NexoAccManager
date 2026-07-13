@@ -8,27 +8,10 @@ import AccountControlPanel from './components/AccountControlPanel/AccountControl
 import ServerBrowser from './components/ServerBrowser/ServerBrowser';
 import PresenceDashboard from './components/PresenceDashboard';
 import { ThemeProvider } from './context/ThemeContext';
-
-interface Account {
-  id: string;
-  username: string;
-  displayName?: string;
-  group: string;
-  description?: string;
-  lastUsed: Date;
-  createdAt: Date;
-  robloxUserId?: number;
-}
+import ErrorBoundary from './components/ErrorBoundary';
+import { Account } from '@/types/Account';
 
 export default function App() {
-  return (
-    <ThemeProvider>
-      <AppInner />
-    </ThemeProvider>
-  );
-}
-
-function AppInner() {
   const { t } = useTranslation();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,62 +58,61 @@ function AppInner() {
   };
 
   return (
-    <div className="dark flex flex-col h-screen bg-[#1e272e] text-[#f5f6fa]">
-      <Header activeView={activeView} onViewChange={setActiveView} />
-
-      <main className="flex-1 overflow-hidden">
-        {error && (
-          <div className="mx-4 mt-4 p-3 bg-red-900/50 border border-red-600 rounded text-sm">
-            {error}
-          </div>
-        )}
-
-        {activeView === 'accounts' && (
-          <div className="flex h-full">
-            <div className="flex-1 overflow-y-auto p-4">
-              {loading ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="animate-spin w-8 h-8 border-2 border-[#6c5ce7] border-t-transparent rounded-full" />
+      <ErrorBoundary>
+        <ThemeProvider>
+          <div className="dark flex flex-col h-screen bg-dark text-primary">
+            <Header activeView={activeView} onViewChange={setActiveView} />
+            <main className="flex-1 overflow-hidden">
+              {error && (
+                <div className="mx-4 mt-4 p-3 bg-error/50 border border-error rounded text-sm">
+                  {error}
                 </div>
-              ) : (
-                <AccountList
-                  accounts={accounts}
-                  onRefresh={fetchAccounts}
-                  onRemove={handleAccountRemoved}
-                  onOpenAccountPanel={handleOpenAccountPanel}
+              )}
+              {activeView === 'accounts' && (
+                <div className="flex h-full">
+                  <div className="flex-1 overflow-y-auto p-4">
+                    {loading ? (
+                      <div className="flex items-center justify-center h-32">
+                        <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />
+                      </div>
+                    ) : (
+                      <AccountList
+                        accounts={accounts}
+                        onRefresh={fetchAccounts}
+                        onRemove={handleAccountRemoved}
+                        onOpenAccountPanel={handleOpenAccountPanel}
+                      />
+                    )}
+                  </div>
+                  <div className="w-80 border-l border p-4 overflow-y-auto">
+                    <AddAccountForm onSuccess={handleAccountAdded} />
+                  </div>
+                </div>
+              )}
+              {activeView === 'servers' && (
+                <div className="flex h-full">
+                  <ServerBrowser accounts={accounts} />
+                </div>
+              )}
+              {activeView === 'presence' && (
+                <div className="flex h-full">
+                  <PresenceDashboard />
+                </div>
+              )}
+              {activeView === "settings" && (
+                <div className="flex h-full">
+                  <SettingsPanel accounts={accounts} onSelectAccount={handleOpenAccountPanel} />
+                </div>
+              )}
+              {selectedAccount && (
+                <AccountControlPanel
+                  account={selectedAccount}
+                  onClose={handleCloseAccountPanel}
                 />
               )}
-            </div>
-
-            <div className="w-80 border-l border-gray-700 p-4 overflow-y-auto">
-              <AddAccountForm onSuccess={handleAccountAdded} />
-            </div>
+            </main>
           </div>
-        )}
-
-        {activeView === 'servers' && (
-          <div className="flex h-full">
-            <ServerBrowser accounts={accounts} />
-          </div>
-        )}
-
-        {activeView === 'presence' && (
-          <div className="flex h-full">
-            <PresenceDashboard />
-          </div>
-        )}
-
-        {activeView === "settings" && (
-          <SettingsPanel accounts={accounts} onSelectAccount={handleOpenAccountPanel} />
-        )}
-      </main>
-
-      {selectedAccount && (
-        <AccountControlPanel
-          account={selectedAccount}
-          onClose={handleCloseAccountPanel}
-        />
-      )}
-    </div>
-  );
-}
+        </ThemeProvider>
+      </ErrorBoundary>
+    );
+  };

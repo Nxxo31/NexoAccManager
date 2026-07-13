@@ -4,17 +4,7 @@ import SecurityPanel from './SecurityPanel';
 import PrivacyPanel from './PrivacyPanel';
 import FriendsPanel from './FriendsPanel';
 import NotificationsPanel from './NotificationsPanel';
-
-interface Account {
-  id: string;
-  username: string;
-  displayName?: string;
-  group: string;
-  description?: string;
-  lastUsed: Date;
-  createdAt: Date;
-  robloxUserId?: number;
-}
+import { Account } from '@/types/Account';
 
 interface AccountControlPanelProps {
   account: Account;

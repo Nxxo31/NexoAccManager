@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Account } from '@/types/Account';
 
 // formatDuration moved here from PresenceService to avoid cross-process import
 function formatDuration(totalSeconds: number | undefined): string {
@@ -19,18 +20,6 @@ interface PresenceData {
   robuxBalance?: number;
   robuxPremium?: boolean;
   lastOnline?: Date;
-}
-
-interface Account {
-  id: string;
-  username: string;
-  displayName?: string;
-  group: string;
-  description?: string;
-  lastUsed: Date;
-  createdAt: Date;
-  robloxUserId?: number;
-  thumbnail?: string;
 }
 
 interface RecentGame {
@@ -134,25 +123,32 @@ const PresenceDashboard: React.FC = () => {
     }
   }, []);
 
-  // Start polling for presence updates
+  // State to track if initial fetch is done
+  const [initialized, setInitialized] = useState(false);
+
+  // Fetch accounts on mount
   useEffect(() => {
+    fetchAccounts();
+  }, [fetchAccounts]);
+
+  // Start polling + presence fetch once accounts are loaded
+  useEffect(() => {
+    if (initialized || accounts.length === 0) return;
+
     let isMounted = true;
 
-    const initialize = async () => {
+    const init = async () => {
       try {
-        await fetchAccounts();
-        
-        // Get account IDs for polling
         const accountIds = accounts.map(acc => acc.id);
         if (accountIds.length > 0) {
           // @ts-expect-error api existe en window via preload
           await window.api.presence.startPolling(accountIds, 30_000);
-          
-          // Initial presence fetch
           await fetchPresence(accountIds);
         }
-        
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          setInitialized(true);
+        }
       } catch (err) {
         if (isMounted) {
           setError('Error al inicializar Presence Dashboard');
@@ -162,29 +158,45 @@ const PresenceDashboard: React.FC = () => {
       }
     };
 
-    initialize();
+    init();
 
     return () => {
       isMounted = false;
-      // Stop polling when component unmounts
-      window.api.presence.stopPolling?.();
     };
-  }, [accounts.length, fetchAccounts, fetchPresence]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accounts, initialized, fetchPresence]);
 
-  // Handle presence updates from polling
+  // Periodic presence refresh via polling (replaces non-existent onPresenceUpdate)
   useEffect(() => {
-    // Listen for presence updates from the main process
-    // @ts-expect-error api existe en window via preload
-    window.api.presence.onPresenceUpdate?.((data: Record<string, PresenceData>) => {
-      setPresenceData(data);
-      setLastUpdate(new Date());
-    });
+    if (!initialized || accounts.length === 0) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const accountIds = accounts.map(acc => acc.id);
+        // @ts-expect-error api existe en window via preload
+        const result = await window.api.presence.getPresence(accountIds);
+        if (result && result.success === false) return;
+
+        // Handle both {success, data} and array direct return
+        const presences: PresenceData[] = result?.data || (Array.isArray(result) ? result : []);
+        const presenceMap: Record<string, PresenceData> = {};
+        presences.forEach((p: PresenceData) => {
+          presenceMap[p.accountId] = p;
+        });
+        setPresenceData(presenceMap);
+        setLastUpdate(new Date());
+      } catch (err) {
+        console.error('Error polling presence:', err);
+      }
+    }, 30_000);
 
     return () => {
-      // Cleanup listener
-      window.api.presence.offPresenceUpdate?.();
+      clearInterval(interval);
+      // @ts-expect-error api existe en window via preload
+      window.api.presence.stopPolling?.();
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialized, accounts]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -334,9 +346,9 @@ const PresenceDashboard: React.FC = () => {
                       {/* Card header */}
                       <div className="flex items-center px-4 py-3 border-b border-gray-700">
                         {/* Avatar */}
-                        {account.thumbnail ? (
+                        {account.avatarUrl ? (
                           <img
-                            src={account.thumbnail}
+                            src={account.avatarUrl}
                             alt={`${account.username} avatar`}
                             className="w-10 h-10 rounded-full object-cover"
                           />

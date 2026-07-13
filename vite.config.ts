@@ -43,10 +43,10 @@ export default defineConfig({
       },
     ]),
   ],
-  root: 'public',
   server: {
     port: 5173,
   },
+  base: './',
   build: {
     outDir: path.resolve(__dirname, 'dist/renderer'),
     emptyOutDir: true,

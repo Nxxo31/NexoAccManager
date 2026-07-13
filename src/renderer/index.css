@@ -28,15 +28,15 @@
 
 /* Variables de Tailwind mantenidas para compatibilidad */
 :root {
-  --color-primary: #6c5ce7;
-  --color-secondary: #2ed573;
-  --color-error: #ff7675;
-  --color-warning: #fdcb6e;
+  --color-primary: #DE350D;
+  --color-secondary: #6347FF;
+  --color-error: #FF4757;
+  --color-warning: #FFA502;
   --color-info: #74b9ff;
-  --color-dark-bg: #1e272e;
-  --color-dark-primary: #2f3640;
-  --color-text: #f5f6fa;
-  --color-text-secondary: #bdc3c7;
+  --color-dark-bg: #0D0D0D;
+  --color-dark-primary: #161616;
+  --color-text: #FFFFFF;
+  --color-text-secondary: #A0A0A0;
 }
 
 /* Clases de tema - pueden ser usadas como fallback o por componentes específicos */
@@ -59,14 +59,10 @@ body {
 }
 
 /* Si se fuerza modo light vía clase en body o html */
-body.light, .light body {
-  background-color: var(--bg-card); /* Fondo claro del ThemeService */
-  color: var(--text-primary); /* Texto claro (en light es oscuro) */
-}
 
 /* Override para asegurar que en light el texto sea oscuro */
 body.light {
-  color: #1A1A1A; /* Texto oscuro para tema light */
+  --color-text: #FFFFFF; /* Texto oscuro para tema light */
 }
 
 #root, .container {

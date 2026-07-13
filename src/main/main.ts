@@ -190,6 +190,20 @@ class NexoApp {
     } else {
       this.mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
     }
+
+    // Logging de errores del renderer al main process console
+    this.mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+      const levelStr = ['verbose', 'info', 'warning', 'error'][level] || 'unknown';
+      console.log(`[Renderer:${levelStr}] ${message} (${sourceId}:${line})`);
+    });
+
+    this.mainWindow.webContents.on('render-process-gone', (_event, details) => {
+      console.error(`[Renderer CRASH] reason=${details.reason} exitCode=${details.exitCode}`);
+    });
+
+    this.mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+      console.error(`[Renderer LOAD FAIL] code=${errorCode} desc=${errorDescription} url=${validatedURL}`);
+    });
   }
 
   private setupIPCHandlers(): void {

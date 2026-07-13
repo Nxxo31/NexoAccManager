@@ -1,15 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Account } from '@/types/Account';
 
 // =============================================================================
 // ServerBrowser — Datos reales via IPC (roblox:games:*, roblox:servers:*)
 // =============================================================================
-
-interface Account {
-  id: string;
-  username: string;
-  displayName?: string;
-}
 
 interface RobloxGame {
   name: string;
@@ -36,19 +31,7 @@ interface ServerBrowserProps {
   accounts: Account[];
 }
 
-declare global {
-  interface Window {
-    api: {
-      account: { list: () => Promise<{ success: boolean; data: any[]; error?: string }> };
-      roblox: {
-        searchGame: (placeId: string, accountId: string) => Promise<any>;
-        getServers: (placeId: string, accountId: string) => Promise<any>;
-        joinServer: (placeId: string, jobId: string, accountId: string) => Promise<any>;
-        distributeAccounts: (placeId: string, accountIds: string[]) => Promise<any>;
-      };
-    };
-  }
-}
+// Use @ts-expect-error for window.api calls — the preload exposes it via contextBridge
 
 export default function ServerBrowser({ accounts }: ServerBrowserProps) {
   const { t } = useTranslation();
@@ -92,6 +75,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
 
     try {
       const accountId = accounts[0].id;
+      // @ts-expect-error api existe en window via preload
       const result = await window.api.roblox.searchGame(placeId.trim(), accountId);
       if (!result || !result.success) {
         setError(result?.error || t('serverBrowser.searchBar.errorSearch'));
@@ -112,6 +96,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
     if (accounts.length === 0) return;
     try {
       const accountId = accounts[0].id;
+      // @ts-expect-error api existe en window via preload
       const result = await window.api.roblox.getServers(pid, accountId);
       if (result?.success) {
         setServers(result.data || []);
@@ -126,6 +111,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
     setJoining(true);
     try {
       const accountId = accounts[0].id;
+      // @ts-expect-error api existe en window via preload
       const result = await window.api.roblox.joinServer(String(game.placeId), server.jobId, accountId);
       if (result?.success) {
         alert(`${t('serverBrowser.table.joinAlert', { game: game.name, server: server.jobId.slice(0, 8) })}`);
@@ -150,6 +136,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
     setDistributing(true);
     try {
       const accountIds = accounts.map((a) => a.id);
+      // @ts-expect-error api existe en window via preload
       const result = await window.api.roblox.distributeAccounts(String(game.placeId), accountIds);
       if (result?.success) {
         const successCount = Object.values(result.data).filter(Boolean).length;
@@ -167,7 +154,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
   const getOccupancyBadge = (current: number, max: number) => {
     const pct = max > 0 ? Math.round((current / max) * 100) : 0;
     if (pct >= 90) return { label: t('serverBrowser.table.occupancyHigh'), className: 'bg-red-500/20 text-red-400 border-red-500/30' };
-    if (pct >= 60) return { label: t('serverBrowser.table.occupancyMedium'), className: 'bg-orange-500/20 text-orange-400 border-orange-500/30' };
+    if (pct >= 60) return { label: t('serverBrowser.table.occupancyMedium'), className: 'bg-accent/20 text-orange-400 border-orange-500/30' };
     return { label: t('serverBrowser.table.occupancyLow'), className: 'bg-green-500/20 text-green-400 border-green-500/30' };
   };
 
@@ -184,12 +171,12 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
               onChange={(e) => setPlaceId(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder={t('serverBrowser.searchBar.placeholder')}
-              className="flex-1 bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#DE350D] transition-colors"
+              className="flex-1 bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg px-4 py-2.5 text-sm text-primary placeholder-gray-500 focus:outline-none focus:border-[#DE350D] transition-colors"
             />
             <button
               onClick={handleSearch}
               disabled={searching || !placeId.trim()}
-              className="px-5 py-2.5 bg-[#DE350D] hover:bg-[#B22A0A] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium text-white transition-all flex items-center gap-2"
+              className="px-5 py-2.5 bg-[#DE350D] hover:bg-[#B22A0A] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium text-primary transition-all flex items-center gap-2"
             >
               {searching ? (
                 <>
@@ -217,14 +204,14 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
             {game.thumbnail ? (
               <img src={game.thumbnail} alt={game.name} className="w-24 h-24 rounded-lg object-cover bg-[#2A2A2A]" />
             ) : (
-              <div className="w-24 h-24 rounded-lg bg-[#2A2A2A] flex items-center justify-center text-gray-500 text-xs">
+              <div className="w-24 h-24 rounded-lg bg-[#2A2A2A] flex items-center justify-center text-secondary text-xs">
                 {t('serverBrowser.gameCard.noThumbnail')}
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold text-white truncate">{game.name}</h3>
-              <p className="text-sm text-gray-400 mt-1 line-clamp-2">{game.description || t('serverBrowser.gameCard.noDescription')}</p>
-              <div className="flex items-center gap-4 mt-3 text-sm text-gray-300">
+              <h3 className="text-lg font-semibold text-primary truncate">{game.name}</h3>
+              <p className="text-sm text-secondary mt-1 line-clamp-2">{game.description || t('serverBrowser.gameCard.noDescription')}</p>
+              <div className="flex items-center gap-4 mt-3 text-sm text-secondary">
                 <span className="flex items-center gap-1">
                   <svg className="w-4 h-4 text-[#DE350D]" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
@@ -237,7 +224,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
                   </svg>
                   {game.rating > 0 ? `${game.rating.toFixed(1)} *` : t('serverBrowser.gameCard.noRating')}
                 </span>
-                <span className="text-gray-500">{t('serverBrowser.gameCard.maxPlayers', { max: game.maxPlayers })}</span>
+                <span className="text-secondary">{t('serverBrowser.gameCard.maxPlayers', { max: game.maxPlayers })}</span>
               </div>
             </div>
           </div>
@@ -248,11 +235,11 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
       {game && (
         <div className="px-4 py-3 border-b border-[#2A2A2A] flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-400">{t('serverBrowser.filters.regionLabel')}</label>
+            <label className="text-sm text-secondary">{t('serverBrowser.filters.regionLabel')}</label>
             <select
               value={regionFilter}
               onChange={(e) => setRegionFilter(e.target.value as Region)}
-              className="bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#DE350D]"
+              className="bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:border-[#DE350D]"
             >
               <option value="ALL">{t('serverBrowser.filters.regionAll')}</option>
               <option value="NA">{t('serverBrowser.filters.regionNA')}</option>
@@ -263,11 +250,11 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-400">{t('serverBrowser.filters.sortLabel')}</label>
+            <label className="text-sm text-secondary">{t('serverBrowser.filters.sortLabel')}</label>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortBy)}
-              className="bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#DE350D]"
+              className="bg-[#1E1E1E] border border-[#2A2A2A] rounded-lg px-3 py-1.5 text-sm text-primary focus:outline-none focus:border-[#DE350D]"
             >
               <option value="least-players">{t('serverBrowser.filters.sortLeastPlayers')}</option>
               <option value="most-players">{t('serverBrowser.filters.sortMostPlayers')}</option>
@@ -278,7 +265,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
             <button
               onClick={handleAutoJoin}
               disabled={filteredServers.length === 0}
-              className="px-3 py-1.5 bg-[#6347FF] hover:bg-[#8B6FFF] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium text-white transition-all flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-[#6347FF] hover:bg-[#8B6FFF] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium text-primary transition-all flex items-center gap-1.5"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
@@ -288,7 +275,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
             <button
               onClick={handleDistribute}
               disabled={filteredServers.length === 0 || accounts.length < 2}
-              className="px-3 py-1.5 bg-[#2ED573] hover:bg-[#26af61] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium text-white transition-all flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-[#2ED573] hover:bg-[#26af61] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium text-primary transition-all flex items-center gap-1.5"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -302,7 +289,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
       {/* Servers table */}
       <div className="flex-1 overflow-auto p-4">
         {!game && !searching && (
-          <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+          <div className="flex flex-col items-center justify-center h-64 text-secondary">
             <svg className="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -312,7 +299,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
         )}
 
         {game && filteredServers.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+          <div className="flex flex-col items-center justify-center h-64 text-secondary">
             <p className="text-lg font-medium">{t('serverBrowser.noServers.title')}</p>
             <p className="text-sm mt-1">{t('serverBrowser.noServers.description')}</p>
           </div>
@@ -322,18 +309,18 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
           <table className="w-full text-left">
             <thead className="sticky top-0 bg-[#0D0D0D]">
               <tr className="border-b border-[#2A2A2A]">
-                <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{t('serverBrowser.table.colJobId')}</th>
-                <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="py-3 px-3 text-xs font-medium text-secondary uppercase tracking-wider">{t('serverBrowser.table.colJobId')}</th>
+                <th className="py-3 px-3 text-xs font-medium text-secondary uppercase tracking-wider">
                   {t('serverBrowser.table.colRegion')}
                   <span className="ml-1 text-[10px] text-gray-600" title="Region estimada basada en lat hardware de Roblox">{t('serverBrowser.table.regionEstimated')}</span>
                 </th>
-                <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{t('serverBrowser.table.colPlayers')}</th>
-                <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="py-3 px-3 text-xs font-medium text-secondary uppercase tracking-wider">{t('serverBrowser.table.colPlayers')}</th>
+                <th className="py-3 px-3 text-xs font-medium text-secondary uppercase tracking-wider">
                   {t('serverBrowser.table.colPing')}
                   <span className="ml-1 text-[10px] text-gray-600" title="Ping estimado, no medido directamente">{t('serverBrowser.table.pingEstimated')}</span>
                 </th>
-                <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">{t('serverBrowser.table.colOccupancy')}</th>
-                <th className="py-3 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">{t('serverBrowser.table.colAction')}</th>
+                <th className="py-3 px-3 text-xs font-medium text-secondary uppercase tracking-wider">{t('serverBrowser.table.colOccupancy')}</th>
+                <th className="py-3 px-3 text-xs font-medium text-secondary uppercase tracking-wider text-right">{t('serverBrowser.table.colAction')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#2A2A2A]">
@@ -341,18 +328,18 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
                 const badge = getOccupancyBadge(server.playerCount, server.maxPlayers);
                 return (
                   <tr key={server.jobId} className="hover:bg-[#1E1E1E]/50 transition-colors">
-                    <td className="py-3 px-3 text-sm font-mono text-gray-300 truncate max-w-[150px]" title={server.jobId}>
+                    <td className="py-3 px-3 text-sm font-mono text-secondary truncate max-w-[150px]" title={server.jobId}>
                       {server.jobId.slice(0, 12)}...
                     </td>
-                    <td className="py-3 px-3 text-sm text-gray-300">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#1E1E1E] border border-[#2A2A2A] text-gray-400">
+                    <td className="py-3 px-3 text-sm text-secondary">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#1E1E1E] border border-[#2A2A2A] text-secondary">
                         {server.region}
                       </span>
                     </td>
-                    <td className="py-3 px-3 text-sm text-gray-300">
+                    <td className="py-3 px-3 text-sm text-secondary">
                       {server.playerCount} / {server.maxPlayers}
                     </td>
-                    <td className="py-3 px-3 text-sm text-gray-300">
+                    <td className="py-3 px-3 text-sm text-secondary">
                       {server.ping}ms
                     </td>
                     <td className="py-3 px-3">
@@ -364,7 +351,7 @@ export default function ServerBrowser({ accounts }: ServerBrowserProps) {
                       <button
                         onClick={() => handleJoin(server)}
                         disabled={joining}
-                        className="px-3 py-1.5 bg-[#DE350D] hover:bg-[#B22A0A] disabled:opacity-50 rounded text-xs font-medium text-white transition-all"
+                        className="px-3 py-1.5 bg-[#DE350D] hover:bg-[#B22A0A] disabled:opacity-50 rounded text-xs font-medium text-primary transition-all"
                       >
                         {joining ? t('serverBrowser.table.joiningButton') : t('serverBrowser.table.joinButton')}
                       </button>

@@ -48,17 +48,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         const result = await (window as any).api.theme.get();
         if (cancelled) return;
         // El handler retorna { settings, css } directamente (sin wrapper ok())
+        // Si retorna null (error), usar defaults y dejar de cargar
         if (result && result.settings) {
           setSettings(result.settings);
           if (result.css) {
             setCss(result.css);
             applyCss(result.css);
           }
+        } else {
+          // Fallback: aplicar tema dark por defecto si el handler falla
+          console.warn('Theme handler returned null, using default dark theme');
         }
       } catch (e) {
         console.error('Failed to fetch theme:', e);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };

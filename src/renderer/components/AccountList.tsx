@@ -1,16 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-
-interface Account {
-  id: string;
-  username: string;
-  displayName?: string;
-  group: string;
-  description?: string;
-  lastUsed: Date;
-  createdAt: Date;
-  robloxUserId?: number;
-}
+import { Account } from '@/types/Account';
 
 interface AccountListProps {
   accounts: Account[];
@@ -40,17 +30,17 @@ function LaunchModal({ account, onClose, onLaunch }: LaunchModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-[#2f3640] rounded-lg p-6 w-96 border border-gray-700">
+      <div className="bg-dark rounded-lg p-6 w-96 border border">
         <h3 className="text-lg font-semibold mb-2">
           {t('accountList.launchModal.title', { name: account.displayName || account.username })}
         </h3>
-        <p className="text-sm text-gray-500 mb-4">
+        <p className="text-sm text-secondary mb-4">
           {t('accountList.launchModal.description')}
         </p>
 
         <div className="space-y-3 mb-4">
           <div>
-            <label className="block text-xs text-gray-400 mb-1">
+            <label className="block text-xs text-secondary mb-1">
               {t('accountList.launchModal.labelPlaceId')}
             </label>
             <input
@@ -58,11 +48,11 @@ function LaunchModal({ account, onClose, onLaunch }: LaunchModalProps) {
               value={placeId}
               onChange={(e) => setPlaceId(e.target.value)}
               placeholder={t('accountList.launchModal.placeholderPlaceId')}
-              className="w-full bg-[#1e272e] border border-gray-700 rounded px-3 py-2 text-sm focus:border-[#6c5ce7] focus:outline-none"
+              className="w-full bg-dark border border rounded px-3 py-2 text-sm focus:border-primary focus:outline-none"
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-400 mb-1">
+            <label className="block text-xs text-secondary mb-1">
               {t('accountList.launchModal.labelJobId')}
             </label>
             <input
@@ -70,7 +60,7 @@ function LaunchModal({ account, onClose, onLaunch }: LaunchModalProps) {
               value={jobId}
               onChange={(e) => setJobId(e.target.value)}
               placeholder={t('accountList.launchModal.placeholderJobId')}
-              className="w-full bg-[#1e272e] border border-gray-700 rounded px-3 py-2 text-sm focus:border-[#6c5ce7] focus:outline-none"
+              className="w-full bg-dark border border rounded px-3 py-2 text-sm focus:border-primary focus:outline-none"
             />
           </div>
         </div>
@@ -78,14 +68,14 @@ function LaunchModal({ account, onClose, onLaunch }: LaunchModalProps) {
         <div className="flex gap-2">
           <button
             onClick={onClose}
-            className="flex-1 py-2 bg-gray-700 text-gray-300 rounded text-sm hover:bg-gray-600 transition-colors"
+            className="flex-1 py-2 bg-dark/50 text-secondary rounded text-sm hover:bg-dark/60 transition-colors"
           >
             {t('accountList.launchModal.cancelButton')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={!placeId.trim() || loading}
-            className="flex-1 py-2 bg-[#6c5ce7] text-white rounded text-sm hover:brightness-110 transition-all disabled:opacity-50"
+            className="flex-1 py-2 bg-primary text-primary rounded text-sm hover:bg-[color:var(--primary)_0.9] transition-all disabled:opacity-50"
           >
             {loading ? t('accountList.launchModal.launchingButton') : t('accountList.launchModal.launchButton')}
           </button>
@@ -129,7 +119,7 @@ export default function AccountList({ accounts, onRefresh, onRemove, onOpenAccou
 
   if (accounts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+      <div className="flex flex-col items-center justify-center h-64 text-secondary">
         <div className="text-4xl mb-3">🎮</div>
         <p className="text-lg font-medium">{t('accountList.noAccountsTitle')}</p>
         <p className="text-sm">{t('accountList.noAccountsDescription')}</p>
@@ -145,7 +135,7 @@ export default function AccountList({ accounts, onRefresh, onRemove, onOpenAccou
         </h2>
         <button
           onClick={onRefresh}
-          className="text-sm text-gray-400 hover:text-white transition-colors"
+          className="text-sm text-secondary hover:text-primary transition-colors"
         >
           {t('accountList.refreshButton')}
         </button>
@@ -153,7 +143,7 @@ export default function AccountList({ accounts, onRefresh, onRemove, onOpenAccou
 
       {Object.entries(grouped).map(([group, groupAccounts]) => (
         <div key={group} className="mb-6">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+          <h3 className="text-xs font-semibold text-secondary uppercase tracking-wider mb-2">
             {group}
           </h3>
 
@@ -161,30 +151,30 @@ export default function AccountList({ accounts, onRefresh, onRemove, onOpenAccou
             {groupAccounts.map((account) => (
               <div
                 key={account.id}
-                className="bg-[#2f3640] rounded-lg p-4 flex items-center justify-between hover:bg-[#363d47] transition-colors"
+                className="bg-dark rounded-lg p-4 flex items-center justify-between hover:bg-[#363d47] transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#6c5ce7]/20 rounded-full flex items-center justify-center text-sm font-semibold text-[#6c5ce7]">
+                  <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center text-sm font-semibold text-primary">
                     {account.username.charAt(0).toUpperCase()}
                   </div>
                   <div>
                     <div className="font-medium">
                       {account.displayName || account.username}
                     </div>
-                    <div className="text-xs text-gray-500">@{account.username}</div>
+                    <div className="text-xs text-secondary">@{account.username}</div>
                   </div>
                 </div>
 
                 <div className="flex gap-2">
                   <button
                     onClick={() => setSelectedAccount(account)}
-                    className="px-3 py-1.5 bg-[#2ed573] text-white text-sm rounded-md hover:brightness-110 transition-all"
+                    className="px-3 py-1.5 bg-success text-primary text-sm rounded-md hover:bg-[color:var(--primary)_0.9] transition-all"
                   >
                     {t('accountList.playButton')}
                   </button>
                   <button
                     onClick={() => onOpenAccountPanel(account)}
-                    className="px-3 py-1.5 bg-[#6347FF]/20 text-[#8B6FFF] text-sm rounded-md hover:bg-[#6347FF]/30 transition-all"
+                    className="px-3 py-1.5 bg-accent/20 text-accent-light text-sm rounded-md hover:bg-accent/30 transition-all"
                     title={t('accountList.controlPanelTitle')}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -196,7 +186,7 @@ export default function AccountList({ accounts, onRefresh, onRemove, onOpenAccou
                   </button>
                   <button
                     onClick={() => handleRemove(account.id)}
-                    className="px-3 py-1.5 bg-red-500/20 text-red-400 text-sm rounded-md hover:bg-red-500/30 transition-all"
+                    className="px-3 py-1.5 bg-error/20 text-error text-sm rounded-md hover:bg-error/30 transition-all"
                   >
                     {t('accountList.deleteButton')}
                   </button>
