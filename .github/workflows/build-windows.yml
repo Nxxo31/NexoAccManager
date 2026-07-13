@@ -6,6 +6,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -25,8 +28,8 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
-      - name: Build
-        run: npm run build
+      - name: Build (no auto-publish)
+        run: npx tsc --noEmit && npx vite build && npx electron-builder --win nsis --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -36,6 +39,16 @@ jobs:
         with:
           files: |
             release/*.exe
-            release/*.msi
+            release/*.yml
           tag_name: ${{ github.ref_name }}
-          generate_release_notes: true
+          name: ${{ github.ref_name }} — OpenSource Release
+          generate_release_notes: false
+          draft: false
+          prerelease: false
+
+      - name: Upload artifacts (manual trigger)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: NexoAccManager-windows-exe
+          path: release/*.exe
