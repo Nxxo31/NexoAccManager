@@ -48,6 +48,9 @@ type IpcChannel =
   // Theme / Appearance
   | "settings:theme:get"
   | "settings:theme:set"
+  | "settings:language:get"
+  | "settings:language:set"
+  | "theme:get-css"
   // Advanced
   | "advanced:clearCache"
   | "advanced:exportData"
@@ -96,6 +99,9 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   // Theme / Appearance
   'settings:theme:get',
   'settings:theme:set',
+  'settings:language:get',
+  'settings:language:set',
+  'theme:get-css',
   'advanced:clearCache',
   'advanced:exportData',
   'advanced:deleteAllAccounts',
@@ -191,6 +197,12 @@ contextBridge.exposeInMainWorld('api', {
   theme: {
     get: () => invoke('settings:theme:get'),
     set: (settings: any) => invoke('settings:theme:set', settings),
+    getCss: () => invoke('theme:get-css'),
+  },
+  // Language / i18n
+  language: {
+    get: () => invoke('settings:language:get'),
+    set: (lang: string) => invoke('settings:language:set', lang),
   },
   checkAccount: (accountId: string) => invoke('account:check', accountId),
 });
@@ -258,6 +270,11 @@ export interface Api {
   theme: {
     get: () => Promise<any>;
     set: (settings: any) => Promise<void>;
+    getCss: () => Promise<string>;
+  };
+  language: {
+    get: () => Promise<string>;
+    set: (lang: string) => Promise<boolean>;
   };
   checkAccount: (accountId: string) => Promise<any>;
 }

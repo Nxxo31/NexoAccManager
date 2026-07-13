@@ -218,6 +218,10 @@ class NexoApp {
       if (!cookie.trim().startsWith('_|WARNING:-DO-NOT-SHARE|_')) {
         return err('La cookie no tiene el formato válido de .ROBLOSECURITY');
       }
+      // Validar límite máximo de cuentas
+      if (this.accountManager.getAllAccounts().length >= MAX_ACCOUNTS) {
+        return err(`Límite máximo de ${MAX_ACCOUNTS} cuentas alcanzado. Elimina algunas cuentas antes de agregar nuevas.`);
+      }
       try {
         const groupName = isNonEmptyString(group) ? group.trim() : 'Default';
         const result = await this.accountManager.addAccountFromCookie(cookie.trim(), groupName);
@@ -428,9 +432,17 @@ class NexoApp {
         return err('Payload inválido: accountIds debe ser un array no vacío');
       }
       try {
+        // Obtener cookie del primer accountId para listar servers
+        const firstId = String(accountIds[0]).trim();
+        const raw = (this.db as any).getAccount?.(firstId) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+
         const { GamesService } = await import('./services/GamesService');
         const service = new GamesService();
-        const results = await service.distributeAccounts(placeId.trim(), accountIds, this.accountManager);
+        const results = await service.distributeAccounts(placeId.trim(), accountIds, this.accountManager, cookie);
         return ok(results);
       } catch (e) {
         return err(`Error distribuyendo cuentas: ${(e as Error).message}`);
@@ -800,10 +812,14 @@ class NexoApp {
     });
 
     // PRESENCE
-    ipcMain.handle('presence:get', async (_, accountId: unknown) => {
-      if (!isNonEmptyString(accountId)) return err('accountId inválido');
+    ipcMain.handle('presence:get', async (_, accountIds: unknown) => {
+      if (!Array.isArray(accountIds) || accountIds.length === 0) {
+        return err('Payload inválido: accountIds debe ser un array no vacío');
+      }
       try {
-        const presence = await this.presenceService.getPresence([accountId.trim()]);
+        const ids = accountIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
+        if (ids.length === 0) return err('Ningún accountId válido');
+        const presence = await this.presenceService.getPresence(ids);
         return ok(presence);
       } catch (e) {
         return err(`Error: ${(e as Error).message}`);

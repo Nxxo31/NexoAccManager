@@ -41,7 +41,7 @@ Result pattern in IPC: `{ success, data }` | `{ success: false, error }` — nev
 - Maximum 50 accounts per user
 - Hardcoded in the account counter
 
-## Current status — July 2026 (OpenSource migration COMPLETED)
+## Current status — July 2026 (OpenSource + Bug Fixes COMPLETED)
 ```
 ✅ OpenSource migration — SaaS backend and licenses removed
 ✅ MIT License — established with legal disclaimers
@@ -50,9 +50,10 @@ Result pattern in IPC: `{ success, data }` | `{ success: false, error }` — nev
 ✅ Code cleanup — AuthService, LicenseService, WebServer removed
 ✅ Locales cleaned — auth/license/plan keys removed (es/en/pt)
 ✅ tsc compiles clean — 0 errors
-✅ Successful build — AppImage + .snap generated
+✅ Successful build — AppImage + .snap + .deb + NSIS generated
 ✅ README.md — complete installation guide
-✅ Residual SaaS references removed from locales and code comments
+✅ Architecture audit — 2026-07-13, 4 bugs found and fixed
+✅ Bug fixes — GamesService cookie, presence IPC, preload whitelist, MAX_ACCOUNTS
 ❌ UI testing with Playwright — IN PROGRESS
 ❌ Upload to GitHub releases
 ```
@@ -154,7 +155,7 @@ Custom          → primary + accent color picker (all users)
 - Default language: Spanish (es)
 - IPC: `settings:language:get` / `settings:language:set`
 - Persistence: SQLite `settings` table, key `language`
-- Detection: i18next-browser-languagedetector on first launch
+- Detection: navigator.language on first launch, then stored preference
 
 ## Roblox APIs used
 ```

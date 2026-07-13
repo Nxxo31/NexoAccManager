@@ -23,6 +23,8 @@ focused on privacy and user control.
 |------|-------------|-----|
 | **NexoAccManager** (this repo) | Electron app — RAM engine, 100% local | https://github.com/Nxxo31/NexoAccManager |
 
+---
+
 ## History
 
 - **2026-07-04:** Strategic decision to migrate from SaaS to OpenSource
@@ -31,11 +33,12 @@ focused on privacy and user control.
   Stripe integration, and centralized authentication from the Electron app.
 - **2026-07-12:** Cleaned PROJECT.md — all SaaS content removed.
 - **2026-07-12:** Cleaned residual SaaS references in locales and code comments.
-
-## References
-
-- https://github.com/ic3w0lf22/Roblox-Account-Manager
-- https://ic3w0lf22.gitbook.io/roblox-account-manager/
+- **2026-07-13:** Deleted NexoAccManager-Backend and NexoAccManager-Landing
+  repos from filesystem. Project is now a single standalone repo.
+- **2026-07-13:** Architecture audit completed. 4 bugs found and fixed:
+  GamesService.distributeAccounts cookie access, presence:get IPC signature
+  mismatch, missing language channels in preload whitelist, MAX_ACCOUNTS
+  not enforced on account:add.
 
 ---
 
@@ -122,7 +125,7 @@ focused on privacy and user control.
 - Selector: dropdown with flags in Header
 - Persistence: SQLite `settings` table, key `language`
 - Auto-detection: uses OS language on first launch
-- IPC channel: `settings:language:get/set`
+- IPC channels: `settings:language:get` / `settings:language:set`
 
 ---
 
@@ -168,7 +171,7 @@ runs locally on the user's device.
 - **IPC**: invoke/handle (Promise-based) — never send/on for request-response
 - **IPC Security**: contextBridge with explicit channel whitelist, validation on both sides
 - **IPC Namespacing**: `account:*`, `roblox:*`, `settings:*`, `theme:*`, `i18n:*`, `advanced:*`
-- **State**: Zustand in renderer — never state in main process
+- **State**: useState in renderer components (Zustand declared but not yet in use)
 - **Services**: Repository pattern for SQLite, Service layer for Roblox API
 - **Cache**: LRU cache in main process for Roblox API responses (TTL 60s)
 - **Error handling**: Result pattern (success/error) in IPC — never throw without catch
@@ -236,13 +239,25 @@ with the terms of service of any platform they interact with.
 
 | Sprint | Status | Description |
 |--------|--------|-------------|
-| ✅ OpenSource migration | ✅ Complete | Removed backend, licenses, and monetization from the Electron app |
+| ✅ OpenSource migration | ✅ Complete | Removed backend, licenses, and monetization |
 | ✅ Rebranding | ✅ Complete | Name change and brand reference removal |
 | ✅ Documentation | ✅ Complete | README, CONTRIBUTING, build guides |
 | ✅ Code cleanup | ✅ Complete | Removed LicenseService, AuthContext, plan validations |
 | ✅ Residual SaaS cleanup | ✅ Complete | Removed Enterprise/plan references from locales and comments |
-| ❌ UI testing with Playwright | 🔄 In progress | Testing renderer UI via vite dev server |
-| ❌ Upload to GitHub releases | ⏳ Pending | |
+| ✅ Architecture audit | ✅ Complete (2026-07-13) | Full code audit — 4 bugs found |
+| ✅ Bug fixes | ✅ Complete (2026-07-13) | GamesService, presence IPC, preload whitelist, MAX_ACCOUNTS |
+| 🔄 UI testing with Playwright | 🔄 In progress | Testing renderer UI via vite dev server |
+| ⏳ Upload to GitHub releases | ⏳ Pending | |
+
+### Known limitations
+
+- `estimatePing()` in GamesService is simulated (random 50-300ms) — not real ping
+- `estimateRegion()` is heuristic by ping range — not geolocation
+- `CookieExpiryService` logs warnings but does not notify the renderer
+- `Zustand` declared in stack but not in use — state managed with useState
+- No test files exist — vitest configured but 0 test coverage
+- `src/main/server/` and `src/main/types/` directories are empty (legacy)
+- `src/hooks/` and `src/store/` directories are empty (legacy)
 
 ### SQLite settings table
 
@@ -259,6 +274,7 @@ CREATE TABLE settings (
 -- animationsEnabled → 'true' | 'false'
 -- primaryColor      → '#DE350D' (user-customizable)
 -- accentColor       → '#6347FF' (user-customizable)
+-- MultiRoblox       → 'true' | 'false'
 ```
 
 ---
@@ -275,6 +291,7 @@ CREATE TABLE settings (
 - ✅ Multi-Roblox (multiple simultaneous instances)
 - ✅ Import/Export JSON
 - ✅ Local REST API on port 8080
+- ✅ MAX_ACCOUNTS limit (50) enforced on account:add
 
 ### Account Control Panel — completed
 
@@ -297,7 +314,8 @@ CREATE TABLE settings (
 - ✅ Server list with player count, JobId, estimated region
 - ✅ Filters (by region, by least players)
 - ✅ Auto-join least populated
-- ✅ Multi-account server split
+- ✅ Multi-account server split (round-robin distribution)
+- ⚠️ Ping/region is simulated (not real latency)
 
 ### Presence Dashboard — completed
 
@@ -314,6 +332,7 @@ CREATE TABLE settings (
 - ✅ Language selector with flags in Header
 - ✅ OS language auto-detection
 - ✅ Language persistence in SQLite settings
+- ✅ Dedicated IPC channels (settings:language:get/set)
 
 ### Themes — completed
 
@@ -360,6 +379,7 @@ thumbnails.roblox.com         → avatars, game thumbnails
 ### Sprint E6 — i18n ✅
 ### Sprint E7 — Themes ✅
 ### Sprint E8 — Settings Panel ✅
+### Sprint E9 — Architecture Audit + Bug Fixes ✅ (2026-07-13)
 
 ---
 
@@ -382,8 +402,8 @@ thumbnails.roblox.com         → avatars, game thumbnails
 - Themes: Dark as default theme
 - All themes available to all users — no restrictions
 - NEVER use dangerouslySetInnerHTML with external data in React
-- Account limit: max 50 per user (hardcoded)
+- Account limit: max 50 per user (hardcoded, enforced on account:add)
 
 ---
 
-*Updated: 2026-07-12 — Repository finalized as standalone OpenSource project.*
+*Updated: 2026-07-13 — Architecture audit completed, 4 bugs fixed, backend/landing repos deleted.*

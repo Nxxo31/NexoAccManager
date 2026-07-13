@@ -45,11 +45,23 @@ export default function App() {
     fetchAccounts();
   };
 
-  const handleAccountRemoved = () => {
-    fetchAccounts();
+  const handleAccountRemoved = (id: string) => {
+    if (!window.confirm(t('accountList.confirmDelete'))) return;
+    // @ts-expect-error api existe en window via preload
+    window.api.account.remove(id).then(() => {
+      fetchAccounts();
+    }).catch((err: unknown) => {
+      console.error('Error removing account:', err);
+    });
   };
 
-  const handleOpenAccountPanel = (account: Account) => {
+  const handleOpenAccountDetail = (account: Account) => {
+    setSelectedAccount(account);
+  };
+
+  const handleJoinGame = (account: Account) => {
+    // Abrir directamente el modal de lanzamiento para unirnos al juego
+    // Por ahora, simplemente abrimos el panel de detalles para que el usuario elija
     setSelectedAccount(account);
   };
 
@@ -58,61 +70,62 @@ export default function App() {
   };
 
   return (
-      <ErrorBoundary>
-        <ThemeProvider>
-          <div className="dark flex flex-col h-screen bg-dark text-primary">
-            <Header activeView={activeView} onViewChange={setActiveView} />
-            <main className="flex-1 overflow-hidden">
-              {error && (
-                <div className="mx-4 mt-4 p-3 bg-error/50 border border-error rounded text-sm">
-                  {error}
+    <ErrorBoundary>
+      <ThemeProvider>
+        <div className="dark flex flex-col h-screen bg-dark text-primary">
+          <Header activeView={activeView} onViewChange={setActiveView} />
+          <main className="flex-1 overflow-hidden">
+            {error && (
+              <div className="mx-4 mt-4 p-3 bg-error/50 border border-error rounded text-sm">
+                {error}
+              </div>
+            )}
+            {activeView === 'accounts' && (
+              <div className="flex h-full">
+                <div className="flex-1 overflow-y-auto p-4">
+                  {loading ? (
+                    <div className="flex items-center justify-center h-32">
+                      <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />
+                    </div>
+                  ) : (
+                    <AccountList
+                      accounts={accounts}
+                      onRefresh={fetchAccounts}
+                      onRemove={handleAccountRemoved}
+                      onOpenAccountDetail={handleOpenAccountDetail}
+                      onJoinGame={handleJoinGame}
+                    />
+                  )}
                 </div>
-              )}
-              {activeView === 'accounts' && (
-                <div className="flex h-full">
-                  <div className="flex-1 overflow-y-auto p-4">
-                    {loading ? (
-                      <div className="flex items-center justify-center h-32">
-                        <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />
-                      </div>
-                    ) : (
-                      <AccountList
-                        accounts={accounts}
-                        onRefresh={fetchAccounts}
-                        onRemove={handleAccountRemoved}
-                        onOpenAccountPanel={handleOpenAccountPanel}
-                      />
-                    )}
-                  </div>
-                  <div className="w-80 border-l border p-4 overflow-y-auto">
-                    <AddAccountForm onSuccess={handleAccountAdded} />
-                  </div>
+                <div className="w-80 border-l border-border p-4 overflow-y-auto">
+                  <AddAccountForm onSuccess={handleAccountAdded} />
                 </div>
-              )}
-              {activeView === 'servers' && (
-                <div className="flex h-full">
-                  <ServerBrowser accounts={accounts} />
-                </div>
-              )}
-              {activeView === 'presence' && (
-                <div className="flex h-full">
-                  <PresenceDashboard />
-                </div>
-              )}
-              {activeView === "settings" && (
-                <div className="flex h-full">
-                  <SettingsPanel accounts={accounts} onSelectAccount={handleOpenAccountPanel} />
-                </div>
-              )}
-              {selectedAccount && (
-                <AccountControlPanel
-                  account={selectedAccount}
-                  onClose={handleCloseAccountPanel}
-                />
-              )}
-            </main>
-          </div>
-        </ThemeProvider>
-      </ErrorBoundary>
-    );
-  };
+              </div>
+            )}
+            {activeView === 'servers' && (
+              <div className="flex h-full">
+                <ServerBrowser accounts={accounts} />
+              </div>
+            )}
+            {activeView === 'presence' && (
+              <div className="flex h-full">
+                <PresenceDashboard />
+              </div>
+            )}
+            {activeView === "settings" && (
+              <div className="flex h-full">
+                <SettingsPanel accounts={accounts} onSelectAccount={handleOpenAccountDetail} />
+              </div>
+            )}
+            {selectedAccount && (
+              <AccountControlPanel
+                account={selectedAccount}
+                onClose={handleCloseAccountPanel}
+              />
+            )}
+          </main>
+        </div>
+      </ThemeProvider>
+    </ErrorBoundary>
+  );
+}
