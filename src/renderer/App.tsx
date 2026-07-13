@@ -1,130 +1,220 @@
-import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import AccountList from './components/AccountList';
-import AddAccountForm from './components/AddAccountForm';
-import SettingsPanel from './components/SettingsPanel';
-import Header from './components/Header';
-import AccountControlPanel from './components/AccountControlPanel/AccountControlPanel';
-import ServerBrowser from './components/ServerBrowser/ServerBrowser';
-import PresenceDashboard from './components/PresenceDashboard';
+import * as React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider } from './context/ThemeContext';
-import ErrorBoundary from './components/ErrorBoundary';
+import AppShell from './components/layout/AppShell';
+import AccountGrid from './components/accounts/AccountGrid';
+import AddAccountModal from './components/accounts/AddAccountModal';
+import ServerBrowser from './components/server-browser/ServerBrowser';
+import PresenceDashboard from './components/presence/PresenceDashboard';
+import SettingsPanel from './components/settings/SettingsPanel';
+import { useAccountStore } from './store/useAccountStore';
 import { Account } from '@/types/Account';
 
 export default function App() {
-  const { t } = useTranslation();
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<'accounts' | 'servers' | 'settings' | 'presence'>('accounts');
-  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [showAddModal, setShowAddModal] = React.useState(false);
+  const [accounts, setAccounts] = React.useState<Account[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [theme, setTheme] = React.useState<any>(null);
+  const [language, setLanguage] = React.useState('es');
+  const setStoreAccounts = useAccountStore((s) => s.setAccounts);
+  const setSelectedAccount = useAccountStore((s) => s.setSelectedAccount);
 
-  const fetchAccounts = async () => {
+  const fetchAccounts = React.useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const result = await (window as any).api.account.list();
       if (result && result.success === false) {
-        setError(result.error || t('app.errorLoadingAccounts'));
+        setError(result.error || 'Error loading accounts');
         return;
       }
-      setAccounts(result || []);
+      const data = result?.data || result || [];
+      setAccounts(data);
+      setStoreAccounts(data);
     } catch (err) {
-      setError(t('app.errorLoadingAccounts'));
+      setError('Error loading accounts');
       console.error(err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [setStoreAccounts]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     fetchAccounts();
+  }, [fetchAccounts]);
+
+  // Load theme settings
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const result = await (window as any).api.theme.get();
+        if (result && result.success && result.data) {
+          setTheme(result.data.settings);
+        } else if (result && result.settings) {
+          setTheme(result.settings);
+        }
+      } catch (e) {
+        console.error('Failed to load theme:', e);
+      }
+    })();
+
+    (async () => {
+      try {
+        const result = await (window as any).api.language.get();
+        if (result && result.success && result.data) {
+          setLanguage(result.data);
+        } else if (result && result.data) {
+          setLanguage(result.data);
+        }
+      } catch (e) {
+        console.error('Failed to load language:', e);
+      }
+    })();
   }, []);
 
-  const handleAccountAdded = () => {
-    fetchAccounts();
+  // Cookie expiry event listeners
+  React.useEffect(() => {
+    const api = (window as any).api;
+    if (api?.cookieEvents?.onExpiring) {
+      const cleanupExpiring = api.cookieEvents.onExpiring((accountId: string, hoursLeft: number) => {
+        console.warn(`Cookie expiring: account ${accountId}, ${hoursLeft}h left`);
+      });
+      const cleanupExpired = api.cookieEvents.onExpired((accountId: string) => {
+        console.warn(`Cookie expired: account ${accountId}`);
+      });
+      return () => {
+        cleanupExpiring?.();
+        cleanupExpired?.();
+      };
+    }
+  }, []);
+
+  const handleAddAccount = async (cookie: string, group?: string) => {
+    const result = await (window as any).api.account.add(cookie, group);
+    if (result && result.success === false) {
+      throw new Error(result.error || 'Failed to add account');
+    }
+    await fetchAccounts();
   };
 
-  const handleAccountRemoved = (id: string) => {
-    if (!window.confirm(t('accountList.confirmDelete'))) return;
-    // @ts-expect-error api existe en window via preload
-    window.api.account.remove(id).then(() => {
-      fetchAccounts();
-    }).catch((err: unknown) => {
-      console.error('Error removing account:', err);
-    });
+  const handleDeleteAccount = async (id: string) => {
+    const result = await (window as any).api.account.remove(id);
+    if (result && result.success === false) {
+      throw new Error(result.error || 'Failed to remove account');
+    }
+    await fetchAccounts();
   };
 
-  const handleOpenAccountDetail = (account: Account) => {
-    setSelectedAccount(account);
+  const handleThemeChange = async (partial: any) => {
+    const result = await (window as any).api.theme.set(partial);
+    if (result && result.success && result.data) {
+      setTheme(result.data.settings);
+    } else if (result && result.settings) {
+      setTheme(result.settings);
+    }
   };
 
-  const handleJoinGame = (account: Account) => {
-    // Abrir directamente el modal de lanzamiento para unirnos al juego
-    // Por ahora, simplemente abrimos el panel de detalles para que el usuario elija
-    setSelectedAccount(account);
+  const handleLanguageChange = async (lang: string) => {
+    const result = await (window as any).api.language.set(lang);
+    if (result && result.success) {
+      setLanguage(lang);
+    }
   };
 
-  const handleCloseAccountPanel = () => {
-    setSelectedAccount(null);
+  const handleExportData = async () => {
+    const result = await (window as any).api.advanced.exportData();
+    if (result && result.success && result.data) {
+      const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'nexoacc-export.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    const result = await (window as any).api.advanced.deleteAllAccounts();
+    if (result && result.success) {
+      await fetchAccounts();
+    }
+  };
+
+  const handleClearCache = async () => {
+    await (window as any).api.advanced.clearCache();
   };
 
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <div className="dark flex flex-col h-screen bg-dark text-primary">
-          <Header activeView={activeView} onViewChange={setActiveView} />
-          <main className="flex-1 overflow-hidden">
-            {error && (
-              <div className="mx-4 mt-4 p-3 bg-error/50 border border-error rounded text-sm">
-                {error}
-              </div>
-            )}
-            {activeView === 'accounts' && (
-              <div className="flex h-full">
-                <div className="flex-1 overflow-y-auto p-4">
-                  {loading ? (
-                    <div className="flex items-center justify-center h-32">
-                      <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />
-                    </div>
-                  ) : (
-                    <AccountList
-                      accounts={accounts}
-                      onRefresh={fetchAccounts}
-                      onRemove={handleAccountRemoved}
-                      onOpenAccountDetail={handleOpenAccountDetail}
-                      onJoinGame={handleJoinGame}
+        <BrowserRouter>
+          <Routes>
+            <Route element={<AppShell />}>
+              <Route
+                path="/accounts"
+                element={
+                  <div className="p-6 overflow-y-auto h-full">
+                    {loading ? (
+                      <div className="flex items-center justify-center h-32">
+                        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+                      </div>
+                    ) : (
+                      <AccountGrid />
+                    )}
+                    <AddAccountModal
+                      isOpen={showAddModal}
+                      onClose={() => setShowAddModal(false)}
+                      onAddAccount={handleAddAccount}
                     />
-                  )}
-                </div>
-                <div className="w-80 border-l border-border p-4 overflow-y-auto">
-                  <AddAccountForm onSuccess={handleAccountAdded} />
-                </div>
-              </div>
-            )}
-            {activeView === 'servers' && (
-              <div className="flex h-full">
-                <ServerBrowser accounts={accounts} />
-              </div>
-            )}
-            {activeView === 'presence' && (
-              <div className="flex h-full">
-                <PresenceDashboard />
-              </div>
-            )}
-            {activeView === "settings" && (
-              <div className="flex h-full">
-                <SettingsPanel accounts={accounts} onSelectAccount={handleOpenAccountDetail} />
-              </div>
-            )}
-            {selectedAccount && (
-              <AccountControlPanel
-                account={selectedAccount}
-                onClose={handleCloseAccountPanel}
+                  </div>
+                }
               />
-            )}
-          </main>
-        </div>
+              <Route
+                path="/servers"
+                element={
+                  <ServerBrowser
+                    servers={[]}
+                    onSelectServer={(server) => console.log('Selected server:', server.jobId)}
+                  />
+                }
+              />
+              <Route
+                path="/presence"
+                element={
+                  <PresenceDashboard
+                    presences={[]}
+                    onRefresh={() => console.log('Refresh presence')}
+                    isPolling={false}
+                    onTogglePolling={() => console.log('Toggle polling')}
+                  />
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <SettingsPanel
+                    theme={theme?.theme || 'dark'}
+                    primaryColor={theme?.primaryColor || '#DE350D'}
+                    accentColor={theme?.accentColor || '#6347FF'}
+                    fontSize={theme?.fontSize || 'medium'}
+                    uiDensity={theme?.uiDensity || 'normal'}
+                    animationsEnabled={theme?.animationsEnabled ?? true}
+                    language={language}
+                    onThemeChange={handleThemeChange}
+                    onLanguageChange={handleLanguageChange}
+                    onExportData={handleExportData}
+                    onDeleteAllAccounts={handleDeleteAll}
+                    onClearCache={handleClearCache}
+                  />
+                }
+              />
+              <Route path="*" element={<div className="p-6">Page not found</div>} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
       </ThemeProvider>
     </ErrorBoundary>
   );

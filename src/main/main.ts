@@ -246,11 +246,9 @@ class NexoApp {
     ipcMain.handle('account:list', async () => {
       try {
         const accounts = this.accountManager.getAllAccounts();
-        // Retornar el array directamente — el renderer espera un array, no un wrapper { success, data }
-        return accounts;
+        return ok(accounts);
       } catch (e) {
-        console.error('Error listando cuentas:', e);
-        return [];
+        return err(`Error listando cuentas: ${(e as Error).message}`);
       }
     });
 
@@ -368,7 +366,7 @@ class NexoApp {
         return err('Payload inválido: accountId debe ser un string no vacío');
       }
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie
           ? this.crypto.decrypt(raw.encrypted_cookie)
           : '';
@@ -390,7 +388,7 @@ class NexoApp {
         return err('Payload inválido: accountId debe ser un string no vacío');
       }
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie
           ? this.crypto.decrypt(raw.encrypted_cookie)
           : '';
@@ -434,7 +432,7 @@ class NexoApp {
       try {
         // Obtener cookie del primer accountId para listar servers
         const firstId = String(accountIds[0]).trim();
-        const raw = (this.db as any).getAccount?.(firstId) || {};
+        const raw = this.db.getAccount(firstId) || {};
         const cookie = raw.encrypted_cookie
           ? this.crypto.decrypt(raw.encrypted_cookie)
           : '';
@@ -492,7 +490,7 @@ class NexoApp {
       try {
         const account = this.accountManager.getAccountById(accountId.trim());
         if (!account) return err('Cuenta no encontrada');
-        const raw = (this.db as any).getAccount?.(accountId) || {};
+        const raw = this.db.getAccount(accountId) || {};
         const cookie = raw.encrypted_cookie
           ? this.crypto.decrypt(raw.encrypted_cookie)
           : '';
@@ -512,7 +510,7 @@ class NexoApp {
         return err('Payload inválido: patch debe ser un objeto');
       }
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie
           ? this.crypto.decrypt(raw.encrypted_cookie)
           : '';
@@ -539,7 +537,7 @@ class NexoApp {
       if (!isNonEmptyString(oldPw)) return err('oldPw inválido');
       if (!isNonEmptyString(newPw)) return err('newPw inválido');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const result = await this.accountSettingsService.changePassword(cookie, oldPw.trim(), newPw.trim());
@@ -552,7 +550,7 @@ class NexoApp {
     ipcMain.handle('settings:security:sessions', async (_, accountId: unknown) => {
       if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const sessions = await this.accountSettingsService.getActiveSessions(cookie);
@@ -566,7 +564,7 @@ class NexoApp {
       if (!isNonEmptyString(accountId)) return err('accountId inválido');
       if (!isNonEmptyString(sessionId)) return err('sessionId inválido');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const result = await this.accountSettingsService.logoutSession(cookie, sessionId.trim());
@@ -579,7 +577,7 @@ class NexoApp {
     ipcMain.handle('settings:security:logout-all', async (_, accountId: unknown) => {
       if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const result = await this.accountSettingsService.logoutAllSessions(cookie);
@@ -609,7 +607,7 @@ class NexoApp {
     ipcMain.handle('settings:privacy:get', async (_, accountId: unknown) => {
       if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const privacy = await this.accountSettingsService.getPrivacySettings(cookie);
@@ -624,7 +622,7 @@ class NexoApp {
       if (!isNonEmptyString(key)) return err('key inválido');
       if (typeof value !== 'string') return err('value debe ser string');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const result = await this.accountSettingsService.updatePrivacySetting(cookie, key.trim(), value);
@@ -637,7 +635,7 @@ class NexoApp {
     ipcMain.handle('settings:security:2fa:get', async (_, accountId: unknown) => {
       if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const data = await this.accountSettingsService.get2FAStatus(cookie);
@@ -651,7 +649,7 @@ class NexoApp {
       if (!isNonEmptyString(accountId)) return err('accountId inválido');
       if (typeof enabled !== 'boolean') return err('enabled debe ser booleano');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const result = await this.accountSettingsService.toggle2FA(cookie, enabled);
@@ -664,7 +662,7 @@ class NexoApp {
     ipcMain.handle('settings:notifications:get', async (_, accountId: unknown) => {
       if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const data = await this.accountSettingsService.getNotificationSettings(cookie);
@@ -679,7 +677,7 @@ class NexoApp {
       if (!isNonEmptyString(key)) return err('key inválido');
       if (typeof value !== 'boolean') return err('value debe ser booleano');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const result = await this.accountSettingsService.updateNotificationSetting(cookie, key.trim(), value);
@@ -693,7 +691,7 @@ class NexoApp {
     ipcMain.handle('account:friends:list', async (_, accountId: unknown) => {
       if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const friends = await this.accountSettingsService.getFriendsList(cookie);
@@ -706,7 +704,7 @@ class NexoApp {
     ipcMain.handle('account:friends:requests', async (_, accountId: unknown) => {
       if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const requests = await this.accountSettingsService.getFriendRequests(cookie);
@@ -724,7 +722,7 @@ class NexoApp {
       const userIdNumber = typeof userId === 'number' ? userId : Number(userId);
       if (!Number.isFinite(userIdNumber)) return err('userId debe ser numérico');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const result = await this.accountSettingsService.respondFriendRequest(cookie, userIdNumber, accept);
@@ -737,7 +735,7 @@ class NexoApp {
     ipcMain.handle('account:blocked:list', async (_, accountId: unknown) => {
       if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const blocked = await this.accountSettingsService.getBlockedUsers(cookie);
@@ -753,7 +751,7 @@ class NexoApp {
       const userIdNumber = typeof userId === 'number' ? userId : Number(userId);
       if (!Number.isFinite(userIdNumber)) return err('userId debe ser numérico');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const result = await this.accountSettingsService.blockUser(cookie, userIdNumber);
@@ -769,7 +767,7 @@ class NexoApp {
       const userIdNumber = typeof userId === 'number' ? userId : Number(userId);
       if (!Number.isFinite(userIdNumber)) return err('userId debe ser numérico');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const result = await this.accountSettingsService.unblockUser(cookie, userIdNumber);
@@ -785,7 +783,7 @@ class NexoApp {
       const userIdNumber = typeof userId === 'number' ? userId : Number(userId);
       if (!Number.isFinite(userIdNumber)) return err('userId debe ser numérico');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const result = await this.accountSettingsService.followUser(cookie, userIdNumber);
@@ -801,7 +799,7 @@ class NexoApp {
       const userIdNumber = typeof userId === 'number' ? userId : Number(userId);
       if (!Number.isFinite(userIdNumber)) return err('userId debe ser numérico');
       try {
-        const raw = (this.db as any).getAccount?.(accountId.trim()) || {};
+        const raw = this.db.getAccount(accountId.trim()) || {};
         const cookie = raw.encrypted_cookie ? this.crypto.decrypt(raw.encrypted_cookie) : '';
         if (!cookie) return err('No se pudo descifrar la cookie');
         const result = await this.accountSettingsService.unfollowUser(cookie, userIdNumber);
@@ -882,18 +880,16 @@ class NexoApp {
       try {
         const settings = this.themeService.getSettings();
         const css = this.themeService.getThemeCSS();
-        // Retornar directamente { settings, css } — sin wrapper ok()
-        return { settings, css };
+        return ok({ settings, css });
       } catch (e) {
-        console.error('Error obteniendo tema:', e);
-        return null;
+        return err(`Error obteniendo tema: ${(e as Error).message}`);
       }
     });
 
     // El preload expone 'settings:theme:set' con un objeto settings
     ipcMain.handle('settings:theme:set', async (_, settings: unknown) => {
       if (!settings || typeof settings !== 'object') {
-        return null;
+        return err('Payload inválido: settings debe ser un objeto');
       }
       try {
         const s = settings as Record<string, unknown>;
@@ -901,19 +897,19 @@ class NexoApp {
         if (typeof s.theme === 'string') {
           const validThemes: ThemeId[] = ['dark', 'light', 'roblox-classic', 'custom'];
           if (!validThemes.includes(s.theme as ThemeId)) {
-            return null;
+            return err(`Tema no válido: ${s.theme}. Válidos: ${validThemes.join(', ')}`);
           }
           patch.theme = s.theme as ThemeId;
         }
         if (typeof s.fontSize === 'string') {
           if (!['small', 'medium', 'large'].includes(s.fontSize)) {
-            return null;
+            return err(`fontSize no válido: ${s.fontSize}. Válidos: small, medium, large`);
           }
           patch.fontSize = s.fontSize as ThemeSettings['fontSize'];
         }
         if (typeof s.uiDensity === 'string') {
           if (!['compact', 'normal', 'spacious'].includes(s.uiDensity)) {
-            return null;
+            return err(`uiDensity no válido: ${s.uiDensity}. Válidos: compact, normal, spacious`);
           }
           patch.uiDensity = s.uiDensity as ThemeSettings['uiDensity'];
         }
@@ -928,11 +924,9 @@ class NexoApp {
         }
         const merged = this.themeService.setSettings(patch);
         const css = this.themeService.getThemeCSS();
-        // Retornar { settings, css } — sin wrapper
-        return { settings: merged, css };
+        return ok({ settings: merged, css });
       } catch (e) {
-        console.error('Error configurando tema:', e);
-        return null;
+        return err(`Error configurando tema: ${(e as Error).message}`);
       }
     });
 

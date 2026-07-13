@@ -56,6 +56,9 @@ type IpcChannel =
   | "advanced:exportData"
   | "advanced:deleteAllAccounts"
   | "shell:open-external"
+  // Cookie events
+  | "cookie:expiring"
+  | "cookie:expired"
 const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'account:add',
   'account:remove',
@@ -106,7 +109,9 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'advanced:exportData',
   'advanced:deleteAllAccounts',
   'shell:open-external',
-]);
+  'cookie:expiring',
+  'cookie:expired',
+  ]);
 
 // =============================================================================
 // VALIDACIÓN PRIVADA – No exponer nunca ipcRenderer al renderer directamente
@@ -205,6 +210,22 @@ contextBridge.exposeInMainWorld('api', {
     set: (lang: string) => invoke('settings:language:set', lang),
   },
   checkAccount: (accountId: string) => invoke('account:check', accountId),
+  cookieEvents: {
+    onExpiring: (callback: (accountId: string, hoursLeft: number) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, accountId: string, hoursLeft: number) => {
+        callback(accountId, hoursLeft);
+      };
+      ipcRenderer.on('cookie:expiring', listener);
+      return () => { ipcRenderer.removeListener('cookie:expiring', listener); };
+    },
+    onExpired: (callback: (accountId: string) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, accountId: string) => {
+        callback(accountId);
+      };
+      ipcRenderer.on('cookie:expired', listener);
+      return () => { ipcRenderer.removeListener('cookie:expired', listener); };
+    },
+  },
 });
 
 // =============================================================================
@@ -277,4 +298,8 @@ export interface Api {
     set: (lang: string) => Promise<boolean>;
   };
   checkAccount: (accountId: string) => Promise<any>;
+  cookieEvents: {
+    onExpiring: (callback: (accountId: string, hoursLeft: number) => void) => () => void;
+    onExpired: (callback: (accountId: string) => void) => () => void;
+  };
 }

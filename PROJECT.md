@@ -251,7 +251,11 @@ with the terms of service of any platform they interact with.
 | ✅ Real ping measurement | ✅ Complete (2026-07-13) | HTTP timing to roblox.com with LRU cache |
 | ✅ Cookie expiry IPC | ✅ Complete (2026-07-13) | EventEmitter + IPC forward to renderer |
 | ✅ ESLint config | ✅ Complete (2026-07-13) | Flat config with TypeScript support |
-| 🔄 Vitest tests | 🔄 Pending | Unit + integration tests for handlers and services |
+| ✅ Vitest tests | ✅ Complete (2026-07-13) | 72 tests: CryptoService, IPC patterns, GamesService, AccountStore |
+| ✅ App.tsx integration | ✅ Complete (2026-07-13) | BrowserRouter + AppShell, new components, cookie listeners |
+| ✅ IPC result pattern | ✅ Complete (2026-07-13) | All handlers use ok()/err(), no raw returns |
+| ✅ DatabaseManager typing | ✅ Complete (2026-07-13) | getAccount() typed, no more (this.db as any) casts |
+| ✅ Preload cookie events | ✅ Complete (2026-07-13) | cookieEvents.onExpiring/onExpired in contextBridge |
 | ⏳ Upload to GitHub releases | ⏳ Pending | |
 
 ### Known limitations
@@ -260,7 +264,11 @@ with the terms of service of any platform they interact with.
 - Región estimada por latencia real (no simulada)
 - CookieExpiryService ahora emite eventos IPC (cookie:expiring, cookie:expired) al renderer
 - Zustand ahora integrado — stores useAccountStore y useUIStore activos
-- Tests vitest: configurados, sin cobertura aún
+- Tests vitest: 72 tests pasando (CryptoService, IPC, GamesService, AccountStore)
+- IPC result pattern: todos los handlers usan ok()/err()
+- DatabaseManager: getAccount() tipado, sin casts as any
+- Preload: cookieEvents.onExpiring/onExpired expuestos en contextBridge
+- App.tsx: integrado con BrowserRouter, nuevos componentes, cookie listeners
 - Directorios vacíos legacy eliminados (server, types, hooks, store)
 - ESLint flat config creado y funcional
 - UI rediseñada con framer-motion, lucide-react, radix-ui, Zustand
@@ -412,4 +420,4 @@ thumbnails.roblox.com         → avatars, game thumbnails
 
 ---
 
-*Updated: 2026-07-13 — UI/UX redesign completo (Framer Motion, Lucide, Radix, Zustand), ping real, cookie expiry IPC, ESLint, tsc 0 errores.*
+*Updated: 2026-07-13 — Proyecto terminado: 72 tests pasando, IPC pattern corregido, preload cookie events, App.tsx integrado, tsc 0 errores.*
