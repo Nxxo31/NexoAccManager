@@ -1,7 +1,7 @@
 # NexoAccManager
 
 Open-source multi-account manager for gaming platforms.
-Modern, secure, 100% local — no servers, no cloud, no tracking.
+Built for Windows. Modern, secure, 100% local — no servers, no cloud, no tracking.
 
 Inspired by [Roblox Account Manager (RAM)](https://github.com/ic3w0lf22/Roblox-Account-Manager) by ic3w0lf22, rebuilt from scratch with Electron + React + TypeScript.
 
@@ -54,21 +54,14 @@ Inspired by [Roblox Account Manager (RAM)](https://github.com/ic3w0lf22/Roblox-A
 ### Option 1 — Download the installer (recommended)
 
 1. Go to the [Releases page](https://github.com/Nxxo31/NexoAccManager/releases)
-2. Download the installer for your OS:
-   - **Windows**: `NexoAccManager-Setup-2.0.0.exe` — NSIS installer
-   - **Linux**: `NexoAccManager-2.0.0.AppImage` — portable (no install needed) or `.deb` package
-   - **macOS**: `NexoAccManager-2.0.0.dmg` — disk image
-3. Run the installer (or `chmod +x` the AppImage on Linux)
-4. Open NexoAccManager
+2. Download `NexoAccManager-Setup-x.y.z.exe` — NSIS installer for Windows
+3. Run the installer and follow the steps
+4. Open NexoAccManager from your Start menu or desktop shortcut
 
-### Option 2 — Run AppImage (Linux)
+### Option 2 — Portable version
 
-```bash
-chmod +x NexoAccManager-2.0.0.AppImage
-./NexoAccManager-2.0.0.AppImage
-```
-
-If FUSE is missing: `sudo apt install libfuse2`
+1. Download `NexoAccManager-x.y.z.exe` (portable) from Releases
+2. Run it directly — no installation needed
 
 ### Option 3 — Build from source (developers)
 
@@ -76,21 +69,19 @@ If FUSE is missing: `sudo apt install libfuse2`
 - Node.js 18+
 - npm 9+
 - Git
-- Linux: `libgtk-3-dev`, `libnotify-dev`, `libnss3`, `libxss1`, `libasound2`
+- Windows: Windows 10/11 with build tools
 
 ```bash
 git clone https://github.com/Nxxo31/NexoAccManager.git
 cd NexoAccManager
 npm install
 
-# Production build (generates installers in /release)
+# Production build (generates installer in /release)
 npm run build
 ```
 
-Installers are generated in `release/`:
+The installer is generated in `release/`:
 - Windows: `.exe` (NSIS installer)
-- Linux: `.AppImage` and `.deb`
-- macOS: `.dmg`
 
 ### Option 4 — Development mode
 
@@ -266,10 +257,11 @@ npm run build        # Production build
 
 ## Troubleshooting
 
-### App won't start on Linux
-- Install required libraries: `sudo apt install libgtk-3-dev libnotify-dev libnss3 libxss1 libasound2`
-- AppImage needs FUSE: `sudo apt install libfuse2`
-- If AppImage won't run: try `--no-sandbox` flag (not recommended for daily use)
+### App won't start
+- Run `npx tsc --noEmit` to check for type errors first
+- Ensure all dependencies are installed: `npm install`
+- If the installer fails, try the portable version
+- Check that your Windows version is 10 or later
 
 ### Cookie validation fails
 - Make sure the cookie starts with `_|WARNING:-DO-NOT-SHARE|_`
