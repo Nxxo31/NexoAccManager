@@ -422,19 +422,20 @@ thumbnails.roblox.com         → avatars, game thumbnails
 
 ## Release Status
 
-- **v2.0.1** publicado en GitHub Releases (2026-07-13)
-- NSIS installer: NexoAccManager.Setup.2.0.1.exe (77MB)
-- CI/CD: GitHub Actions build-windows.yml — success (3er run)
-- Tags: v2.0.0, v2.0.1
-- Release notes: completas (2820 chars)
-- Download: https://github.com/Nxxo31/NexoAccManager/releases/tag/v2.0.1
+- **v2.1.0** publicado en GitHub Releases (2026-07-13)
+- Login con username/password de Roblox integrado (RobloxAuthService)
+- BrowserRouter → MemoryRouter (fix pantalla negra en Electron)
+- AccountGrid/AccountCard conectados a acciones reales
+- 72 tests pasando, tsc 0 errores, build exitoso
+- Tags: v2.0.0, v2.0.1, v2.1.0
+- Download: https://github.com/Nxxo31/NexoAccManager/releases/tag/v2.1.0
 
 ## Known Limitations
 
-- **UI testing Playwright** — PENDIENTE. Playwright MCP fix aplicado (executable-path → chromium-browser), requiere nueva sesión para validar.
-- **computer_use WSLg** — screen capture funciona, input injection NO (limitación de WSLg Weston, no implementado zwlr_virtual_pointer).
-- Testing visual de la Electron app queda pendiente hasta validar Playwright en nueva sesión.
+- **NSIS installer** — se genera via GitHub Actions CI/CD (build-windows.yml)
+- **2FA accounts** — requieren método de cookie manual (login API no soporta 2FA programático)
+- **Captcha** — si Roblox requiere captcha, usar método de cookie manual
 
 ---
 
-*Updated: 2026-07-13 — Release v2.0.1 publicado, 72 tests pasando, IPC pattern corregido, preload cookie events, App.tsx integrado, tsc 0 errores. UI testing Playwright pendiente.*
+*Updated: 2026-07-13 — Release v2.1.0: login username/password + fix bugs UI + MemoryRouter + 72 tests + RobloxAuthService.*
