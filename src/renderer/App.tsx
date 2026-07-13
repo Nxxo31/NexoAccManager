@@ -1,9 +1,11 @@
 import * as React from 'react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider } from './context/ThemeContext';
 import AppShell from './components/layout/AppShell';
-import AccountGrid from './components/accounts/AccountGrid';
+import AccountTable from './components/accounts/AccountTable';
+import AccountDetailsPanel from './components/accounts/AccountDetailsPanel';
+import ActionBar from './components/accounts/ActionBar';
 import AddAccountModal from './components/accounts/AddAccountModal';
 import ServerBrowser from './components/server-browser/ServerBrowser';
 import PresenceDashboard from './components/presence/PresenceDashboard';
@@ -13,25 +15,36 @@ import { Account } from '@/types/Account';
 
 export default function App() {
   const [showAddModal, setShowAddModal] = React.useState(false);
-  const [accounts, setAccounts] = React.useState<Account[]>([]);
+  const [hideUsernames, setHideUsernames] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [theme, setTheme] = React.useState<any>(null);
   const [language, setLanguage] = React.useState('es');
+  const [placeIdInput, setPlaceIdInput] = React.useState('');
+  const [jobIdInput, setJobIdInput] = React.useState('');
+
+  const accounts = useAccountStore((s) => s.accounts);
   const setStoreAccounts = useAccountStore((s) => s.setAccounts);
+  const selectedAccount = useAccountStore((s) => s.selectedAccount);
   const setSelectedAccount = useAccountStore((s) => s.setSelectedAccount);
+
+  // Safe API accessor
+  const api = React.useMemo(() => (typeof window !== 'undefined' ? (window as any).api : null), []);
 
   const fetchAccounts = React.useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const result = await (window as any).api.account.list();
+      if (!api) {
+        setLoading(false);
+        return;
+      }
+      const result = await api.account.list();
       if (result && result.success === false) {
         setError(result.error || 'Error loading accounts');
         return;
       }
       const data = result?.data || result || [];
-      setAccounts(data);
       setStoreAccounts(data);
     } catch (err) {
       setError('Error loading accounts');
@@ -39,17 +52,18 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [setStoreAccounts]);
+  }, [api, setStoreAccounts]);
 
   React.useEffect(() => {
     fetchAccounts();
   }, [fetchAccounts]);
 
-  // Load theme settings
+  // Load theme + language
   React.useEffect(() => {
+    if (!api) return;
     (async () => {
       try {
-        const result = await (window as any).api.theme.get();
+        const result = await api.theme.get();
         if (result && result.success && result.data) {
           setTheme(result.data.settings);
         } else if (result && result.settings) {
@@ -62,7 +76,7 @@ export default function App() {
 
     (async () => {
       try {
-        const result = await (window as any).api.language.get();
+        const result = await api.language.get();
         if (result && result.success && result.data) {
           setLanguage(result.data);
         } else if (result && result.data) {
@@ -72,28 +86,26 @@ export default function App() {
         console.error('Failed to load language:', e);
       }
     })();
-  }, []);
+  }, [api]);
 
-  // Cookie expiry event listeners
+  // Cookie expiry listeners
   React.useEffect(() => {
-    const api = (window as any).api;
-    if (api?.cookieEvents?.onExpiring) {
-      const cleanupExpiring = api.cookieEvents.onExpiring((accountId: string, hoursLeft: number) => {
-        console.warn(`Cookie expiring: account ${accountId}, ${hoursLeft}h left`);
-      });
-      const cleanupExpired = api.cookieEvents.onExpired((accountId: string) => {
-        console.warn(`Cookie expired: account ${accountId}`);
-        fetchAccounts(); // Refresh accounts when a cookie expires
-      });
-      return () => {
-        cleanupExpiring?.();
-        cleanupExpired?.();
-      };
-    }
-  }, [fetchAccounts]);
+    if (!api?.cookieEvents?.onExpiring) return;
+    const cleanupExpiring = api.cookieEvents.onExpiring((accountId: string, hoursLeft: number) => {
+      console.warn(`Cookie expiring: account ${accountId}, ${hoursLeft}h left`);
+    });
+    const cleanupExpired = api.cookieEvents.onExpired((accountId: string) => {
+      console.warn(`Cookie expired: account ${accountId}`);
+      fetchAccounts();
+    });
+    return () => {
+      cleanupExpiring?.();
+      cleanupExpired?.();
+    };
+  }, [api, fetchAccounts]);
 
   const handleAddAccount = async (cookie: string, group?: string) => {
-    const result = await (window as any).api.account.add(cookie, group);
+    const result = await api.account.add(cookie, group);
     if (result && result.success === false) {
       throw new Error(result.error || 'Failed to add account');
     }
@@ -101,23 +113,68 @@ export default function App() {
   };
 
   const handleLoginAccount = async (username: string, password: string, group?: string) => {
-    const result = await (window as any).api.account.login(username, password, group);
+    const result = await api.account.login(username, password, group);
     if (result && result.success === false) {
       throw new Error(result.error || 'Failed to login');
     }
     await fetchAccounts();
   };
 
-  const handleDeleteAccount = async (id: string) => {
-    const result = await (window as any).api.account.remove(id);
+  const handleDeleteAccount = React.useCallback(async (id: string) => {
+    const result = await api.account.remove(id);
     if (result && result.success === false) {
       throw new Error(result.error || 'Failed to remove account');
     }
     await fetchAccounts();
-  };
+  }, [api, fetchAccounts]);
+
+  const handleSaveAlias = React.useCallback(async (accountId: string, alias: string) => {
+    const result = await api.account.updateProfile(accountId, { displayName: alias });
+    if (result && result.success === false) {
+      throw new Error(result.error || 'Error al guardar alias');
+    }
+    await fetchAccounts();
+  }, [api, fetchAccounts]);
+
+  const handleSaveDescription = React.useCallback(async (accountId: string, description: string) => {
+    const result = await api.account.setField(accountId, 'description', description);
+    if (result && result.success === false) {
+      throw new Error(result.error || 'Error al guardar descripción');
+    }
+    await fetchAccounts();
+  }, [api, fetchAccounts]);
+
+  const handleFollowUser = React.useCallback(async (accountId: string, userId: number) => {
+    await api.account.followUser(accountId, userId);
+  }, [api]);
+
+  const handleLaunchGame = React.useCallback(async (accountId: string, placeId: string, jobId: string) => {
+    await api.roblox.launch(accountId, placeId, jobId || undefined);
+  }, [api]);
+
+  const handlePlayAccount = React.useCallback((account: Account) => {
+    if (!api) return;
+    const placeId = window.prompt('Place ID del juego:');
+    if (placeId) {
+      api.roblox.launch(account.id, placeId).then((result: any) => {
+        if (result?.success === false) {
+          window.alert(result.error || 'Error al lanzar Roblox');
+        }
+      });
+    }
+  }, [api]);
+
+  const handleLaunchApp = React.useCallback(() => {
+    if (!selectedAccount || !api) return;
+    api.roblox.launch(selectedAccount.id).then((result: any) => {
+      if (result?.success === false) {
+        window.alert(result.error || 'Error al abrir Roblox');
+      }
+    });
+  }, [api, selectedAccount]);
 
   const handleThemeChange = async (partial: any) => {
-    const result = await (window as any).api.theme.set(partial);
+    const result = await api.theme.set(partial);
     if (result && result.success && result.data) {
       setTheme(result.data.settings);
     } else if (result && result.settings) {
@@ -126,14 +183,14 @@ export default function App() {
   };
 
   const handleLanguageChange = async (lang: string) => {
-    const result = await (window as any).api.language.set(lang);
+    const result = await api.language.set(lang);
     if (result && result.success) {
       setLanguage(lang);
     }
   };
 
   const handleExportData = async () => {
-    const result = await (window as any).api.advanced.exportData();
+    const result = await api.advanced.exportData();
     if (result && result.success && result.data) {
       const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -146,105 +203,99 @@ export default function App() {
   };
 
   const handleDeleteAll = async () => {
-    const result = await (window as any).api.advanced.deleteAllAccounts();
+    const result = await api.advanced.deleteAllAccounts();
     if (result && result.success) {
       await fetchAccounts();
     }
   };
 
   const handleClearCache = async () => {
-    await (window as any).api.advanced.clearCache();
+    await api.advanced.clearCache();
   };
 
-  // Presence state
-  const [presences, setPresences] = React.useState<any[]>([]);
-  const [isPolling, setIsPolling] = React.useState(false);
+  // === Accounts page layout ===
+  const accountsPage = (
+    <div className="flex flex-col h-full">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border/30">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Cuentas</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {accounts.length > 0 ? `${accounts.length} de 50 cuentas` : 'Sin cuentas'}
+          </p>
+        </div>
+      </div>
 
-  const handleRefreshPresence = async () => {
-    if (accounts.length === 0) return;
-    const accountIds = accounts.map((a) => a.id);
-    const result = await (window as any).api.presence.getPresence(accountIds);
-    if (result && result.success) {
-      setPresences(result.data || []);
-    }
-  };
+      {/* Main content: table + details panel */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Account table */}
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-32 text-destructive">
+              {error}
+            </div>
+          ) : (
+            <AccountTable
+              accounts={accounts}
+              selectedAccount={selectedAccount}
+              onSelectAccount={setSelectedAccount}
+              onDeleteAccount={handleDeleteAccount}
+              onPlayAccount={handlePlayAccount}
+              hideUsernames={hideUsernames}
+            />
+          )}
+        </div>
 
-  const handleTogglePolling = async () => {
-    if (isPolling) {
-      await (window as any).api.presence.stopPolling();
-      setIsPolling(false);
-    } else {
-      if (accounts.length === 0) return;
-      const accountIds = accounts.map((a) => a.id);
-      await (window as any).api.presence.startPolling(accountIds, 30000);
-      setIsPolling(true);
-      handleRefreshPresence();
-    }
-  };
+        {/* Details panel */}
+        <div className="w-80 flex-shrink-0 border-l border-border/30 bg-background/50">
+          <AccountDetailsPanel
+            account={selectedAccount}
+            onSaveAlias={handleSaveAlias}
+            onSaveDescription={handleSaveDescription}
+            onFollowUser={handleFollowUser}
+            onLaunchGame={handleLaunchGame}
+          />
+        </div>
+      </div>
 
-  // Server browser state
-  const [servers, setServers] = React.useState<any[]>([]);
+      {/* Action bar */}
+      <ActionBar
+        onAddAccount={() => setShowAddModal(true)}
+        onRemoveAccount={() => {
+          if (selectedAccount) handleDeleteAccount(selectedAccount.id);
+        }}
+        onLaunchApp={handleLaunchApp}
+        onEditTheme={() => {}}
+        onAccountControl={() => {}}
+        hideUsernames={hideUsernames}
+        onToggleHideUsernames={setHideUsernames}
+        hasSelectedAccount={!!selectedAccount}
+      />
 
-  const handleSelectServer = async (server: any) => {
-    console.log('Selected server:', server.jobId);
-  };
+      {/* Add Account Modal */}
+      <AddAccountModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAddAccount={handleAddAccount}
+        onLoginAccount={handleLoginAccount}
+      />
+    </div>
+  );
 
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <MemoryRouter>
+        <MemoryRouter initialEntries={['/accounts']}>
           <Routes>
             <Route element={<AppShell />}>
-              <Route
-                path="/accounts"
-                element={
-                  <div className="p-6 overflow-y-auto h-full">
-                    {loading ? (
-                      <div className="flex items-center justify-center h-32">
-                        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
-                      </div>
-                    ) : error ? (
-                      <div className="flex items-center justify-center h-32 text-destructive">
-                        {error}
-                      </div>
-                    ) : (
-                      <AccountGrid
-                        accounts={accounts}
-                        onAddAccount={() => setShowAddModal(true)}
-                        onRefresh={fetchAccounts}
-                        onDeleteAccount={handleDeleteAccount}
-                        onSelectAccount={(account) => setSelectedAccount(account)}
-                      />
-                    )}
-                    <AddAccountModal
-                      isOpen={showAddModal}
-                      onClose={() => setShowAddModal(false)}
-                      onAddAccount={handleAddAccount}
-                      onLoginAccount={handleLoginAccount}
-                    />
-                  </div>
-                }
-              />
-              <Route
-                path="/servers"
-                element={
-                  <ServerBrowser
-                    servers={servers}
-                    onSelectServer={handleSelectServer}
-                  />
-                }
-              />
-              <Route
-                path="/presence"
-                element={
-                  <PresenceDashboard
-                    presences={presences}
-                    onRefresh={handleRefreshPresence}
-                    isPolling={isPolling}
-                    onTogglePolling={handleTogglePolling}
-                  />
-                }
-              />
+              <Route index element={<Navigate to="/accounts" replace />} />
+              <Route path="/accounts" element={accountsPage} />
+              <Route path="/servers" element={<ServerBrowser />} />
+              <Route path="/presence" element={<PresenceDashboard />} />
               <Route
                 path="/settings"
                 element={
@@ -264,7 +315,7 @@ export default function App() {
                   />
                 }
               />
-              <Route path="*" element={<div className="p-6">Page not found</div>} />
+              <Route path="*" element={<Navigate to="/accounts" replace />} />
             </Route>
           </Routes>
         </MemoryRouter>

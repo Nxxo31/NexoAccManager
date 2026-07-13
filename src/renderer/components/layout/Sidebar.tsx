@@ -9,22 +9,36 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ className }: SidebarProps) => {
-  const { activeView, toggleSidebar } = useUIStore();
-  
+  const { toggleSidebar } = useUIStore();
+
   const navItems = [
     { name: 'accounts', icon: lucide.Users, route: '/accounts', label: 'Cuentas' },
     { name: 'servers', icon: lucide.Server, route: '/servers', label: 'Servers' },
-    { name: 'presence', icon: lucide.Activity, route: '/presence', label: 'Presence' },
-    { name: 'settings', icon: lucide.Settings, route: '/settings', label: 'Settings' },
+    { name: 'presence', icon: lucide.Activity, route: '/presence', label: 'Presencia' },
+    { name: 'settings', icon: lucide.Settings, route: '/settings', label: 'Ajustes' },
   ];
 
   return (
-    <aside className={cn('flex h-full w-64 flex-shrink-0 flex-col border-r', 'bg-background/50 backdrop-blur-sm', className)}>
-      <div className="flex h-16 items-center justify-between px-4">
-        <div className="text-xl font-semibold text-primary">NexoAcc</div>
-        <button 
-          onClick={toggleSidebar} 
-          className="p-2 rounded hover:bg-accent/20"
+    <aside
+      className={cn(
+        'flex h-full w-64 flex-shrink-0 flex-col border-r border-border/50 bg-background/80 backdrop-blur-xl',
+        className
+      )}
+    >
+      {/* Header */}
+      <div className="flex h-16 items-center justify-between px-5 border-b border-border/30">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-dark shadow-lg shadow-primary/20">
+            <lucide.Gamepad2 className="h-4 w-4 text-white" />
+          </div>
+          <div className="text-lg font-bold tracking-tight">
+            <span className="text-primary">Nexo</span>
+            <span className="text-foreground">Acc</span>
+          </div>
+        </div>
+        <button
+          onClick={toggleSidebar}
+          className="p-1.5 rounded-md hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
           aria-label="Toggle sidebar"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -32,26 +46,38 @@ const Sidebar = ({ className }: SidebarProps) => {
           </svg>
         </button>
       </div>
-      <nav className="mt-6 space-y-2">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.name}
-            to={item.route}
-            className={({ isActive }) => 
-              cn(
-                'flex items-center gap-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-                isActive ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:bg-accent/50'
-              )
-            }
-            end
-          >
-            <span className="flex items-center gap-3">
-              {React.createElement(item.icon, { className: 'h-4 w-4' })}
+
+      {/* Navigation */}
+      <nav className="mt-4 flex-1 px-3 space-y-1">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.name}
+              to={item.route}
+              className={({ isActive }) =>
+                cn(
+                  'group flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200',
+                  isActive
+                    ? 'bg-primary/10 text-primary border-l-2 border-primary'
+                    : 'text-muted-foreground hover:bg-muted/30 hover:text-foreground border-l-2 border-transparent'
+                )
+              }
+            >
+              <Icon className="h-4 w-4 flex-shrink-0" />
               <span>{item.label}</span>
-            </span>
-          </NavLink>
-        ))}
+            </NavLink>
+          );
+        })}
       </nav>
+
+      {/* Footer */}
+      <div className="px-3 pb-4 border-t border-border/30 pt-3">
+        <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground/60">
+          <lucide.Shield className="h-3.5 w-3.5" />
+          <span>v2.1.0 · 100% Local</span>
+        </div>
+      </div>
     </aside>
   );
 };
