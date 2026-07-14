@@ -63,9 +63,3 @@
 - Los tests de componentes usan mocks de window.api y stores para aislar la capa de presentación
 - El login con navegador es ahora el método habitual (por defecto), alineado con RAM Original
 - El login username/password sigue disponible como método avanzado en Settings
-
-## Investigación futura — patrones aplicables
-- Capability registry para tools (login browser, cookie refresh, server join)
-- Event log inmutable para auditar acciones de cuentas
-- Closed-loop validation: intent → ejecución → verificación
-- Policy engine: límites externalizables (50 cuentas, rate limiting Roblox)
