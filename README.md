@@ -1,5 +1,7 @@
 # NexoAccManager
 
+[![codecov](https://codecov.io/gh/Nxxo31/NexoAccManager/graph/badge.svg?token=NEXOACC_TOKEN)](https://codecov.io/gh/Nxxo31/NexoAccManager)
+
 Open-source multi-account manager for gaming platforms.
 Built for Windows. Modern, secure, 100% local — no servers, no cloud, no tracking.
 

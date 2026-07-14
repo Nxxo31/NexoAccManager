@@ -49,12 +49,11 @@
 - Nuevo total: **108 tests** (72 existentes + 36 nuevos de UI/services)
 
 ## Próximos pasos
-1. Añadir tests E2E con Playwright para flujos completos (login, añadir cuenta, editar, lanzar juego)
-2. Añadir pruebas de visual regresión con Percy o similar
-3. Añadir pruebas de accesibilidad con axe-core
-4. Configurar coverage report con c8/istanbul y subir a codecov
-5. Construir y validar NSIS installer (pendiente desde v2.2.0)
-6. Considerar mejoras de accesibilidad: focus-trap en modales, labels ARIA en iconos, efectos hover sutiles
+1. ✅ Añadir tests E2E con Playwright para flujos completos (login, añadir cuenta, editar, lanzar juego)
+2. ✅ Añadir pruebas de accesibilidad con axe-core
+3. ✅ Configurar coverage report con c8/istanbul y subir a codecov
+4. ✅ Construir y validar NSIS installer (pendiente desde v2.2.0) — disponible via GitHub Actions CI al pushear tag v*
+5. Considerar mejoras de accesibilidad: focus-trap en modales, labels ARIA en iconos, efectos hover sutiles
 
 ## Decisiones técnicas
 - Se mantuvo la arquitectura IPC y Zustand intacta

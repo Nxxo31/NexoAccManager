@@ -48,7 +48,7 @@ const Sidebar = ({ className }: SidebarProps) => {
       </div>
 
       {/* Navigation */}
-      <nav className="mt-4 flex-1 px-3 space-y-1">
+      <nav className="mt-4 flex-1 px-3 space-y-1" aria-label="Navegación principal">
         {navItems.map((item) => {
           const Icon = item.icon;
           return (

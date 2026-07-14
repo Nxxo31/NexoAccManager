@@ -135,7 +135,7 @@ const AccountDetailsPanel: React.FC<AccountDetailsPanelProps> = ({
           <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Place ID</label>
           <div className="flex items-center gap-2">
             <input type="text" placeholder="ej: 5315046213" value={placeId} onChange={(e) => setPlaceId(e.target.value)} className="nexo-input" />
-            <button onClick={handleCopyPlaceId} className="p-2 rounded-md border border-border hover:bg-muted/30 text-muted-foreground transition-colors flex-shrink-0" title="Copiar">
+            <button onClick={handleCopyPlaceId} className="p-2 rounded-md border border-border hover:bg-muted/30 text-muted-foreground transition-colors flex-shrink-0" aria-label="Copiar Place ID" title="Copiar">
               <Copy className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -158,7 +158,7 @@ const AccountDetailsPanel: React.FC<AccountDetailsPanelProps> = ({
           <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Alias</label>
           <div className="flex items-center gap-2">
             <input type="text" placeholder="Alias de la cuenta" value={alias} onChange={(e) => setAlias(e.target.value)} className="nexo-input" />
-            <Button variant="outline" size="sm" onClick={handleSaveAlias} disabled={aliasSave === 'saving'} className="flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={handleSaveAlias} disabled={aliasSave === 'saving'} className="flex-shrink-0" aria-label="Guardar alias">
               {aliasSave === 'saving' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : aliasSave === 'saved' ? <Check className="h-3.5 w-3.5 text-green-500" /> : aliasSave === 'error' ? <span className="text-xs text-red-500">✕</span> : <Save className="h-3.5 w-3.5" />}
             </Button>
           </div>
@@ -169,7 +169,7 @@ const AccountDetailsPanel: React.FC<AccountDetailsPanelProps> = ({
           <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Descripción</label>
           <textarea placeholder="Notas sobre esta cuenta..." value={description} onChange={(e) => setDescription(e.target.value)} className="nexo-input min-h-[80px] resize-y" rows={3} />
           <div className="flex items-center justify-between">
-            <Button variant="outline" size="sm" onClick={handleSaveDescription} disabled={descSave === 'saving'}>
+            <Button variant="outline" size="sm" onClick={handleSaveDescription} disabled={descSave === 'saving'} aria-label="Guardar descripción">
               {descSave === 'saving' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : descSave === 'saved' ? <Check className="h-3.5 w-3.5 text-green-500" /> : descSave === 'error' ? <span className="text-xs text-red-500">✕</span> : <Save className="h-3.5 w-3.5" />}
               <span className="ml-1.5">Guardar</span>
             </Button>
@@ -182,7 +182,7 @@ const AccountDetailsPanel: React.FC<AccountDetailsPanelProps> = ({
           <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1.5 block">Usuario</label>
           <div className="flex items-center gap-2">
             <input type="text" value={account.username} readOnly className="nexo-input opacity-60" />
-            <Button variant="outline" size="sm" onClick={handleFollow} disabled={following || !account.robloxUserId} className="flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={handleFollow} disabled={following || !account.robloxUserId} className="flex-shrink-0" aria-label="Follow user">
               {following ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5" />}
               <span className="ml-1">Follow</span>
             </Button>
