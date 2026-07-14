@@ -78,13 +78,25 @@ const AccountTable: React.FC<AccountTableProps> = ({
 
   return (
     <div className="overflow-hidden">
-      <table className="nexo-table">
+      <table
+        className="nexo-table"
+        role="table"
+        aria-label="Tabla de cuentas de Roblox"
+      >
         <thead>
           <tr>
-            <th className="w-[35%]">Usuario</th>
-            <th className="w-[25%]">Alias</th>
-            <th className="w-[30%]">Descripción</th>
-            <th className="w-[10%] text-right">Acciones</th>
+            <th className="w-[35%]" scope="col">
+              Usuario
+            </th>
+            <th className="w-[25%]" scope="col">
+              Alias
+            </th>
+            <th className="w-[30%]" scope="col">
+              Descripción
+            </th>
+            <th className="w-[10%] text-right" scope="col">
+              Acciones
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -95,9 +107,10 @@ const AccountTable: React.FC<AccountTableProps> = ({
                 key={account.id}
                 className={cn(isSelected && 'selected')}
                 onClick={() => onSelectAccount(account)}
+                role="row"
               >
                 {/* Usuario */}
-                <td>
+                <td role="cell">
                   <div className="flex items-center gap-2.5">
                     {getAvatar(account)}
                     <div className="flex flex-col min-w-0">
@@ -114,7 +127,7 @@ const AccountTable: React.FC<AccountTableProps> = ({
                 </td>
 
                 {/* Alias */}
-                <td>
+                <td role="cell">
                   <div className="flex flex-col gap-1">
                     <span className="text-sm text-foreground/80">
                       {account.displayName || account.username}
@@ -128,7 +141,7 @@ const AccountTable: React.FC<AccountTableProps> = ({
                 </td>
 
                 {/* Descripción */}
-                <td>
+                <td role="cell">
                   {account.description ? (
                     <span className="text-sm text-muted-foreground/80 truncate block max-w-[200px]">
                       {account.description}
@@ -141,12 +154,13 @@ const AccountTable: React.FC<AccountTableProps> = ({
                 </td>
 
                 {/* Acciones */}
-                <td>
+                <td role="cell">
                   <div className="flex items-center justify-end gap-1">
                     <button
                       onClick={(e) => { e.stopPropagation(); onPlayAccount(account); }}
                       className="p-1.5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
                       title="Jugar"
+                      aria-label="Jugar con esta cuenta"
                     >
                       <Play className="h-3.5 w-3.5" />
                     </button>
@@ -154,6 +168,7 @@ const AccountTable: React.FC<AccountTableProps> = ({
                       onClick={(e) => { e.stopPropagation(); onSelectAccount(account); }}
                       className="p-1.5 rounded hover:bg-accent/10 text-muted-foreground hover:text-accent transition-colors"
                       title="Editar"
+                      aria-label="Editar esta cuenta"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
@@ -161,6 +176,7 @@ const AccountTable: React.FC<AccountTableProps> = ({
                       onClick={(e) => { e.stopPropagation(); handleDelete(account.id); }}
                       className="p-1.5 rounded hover:bg-error/10 text-muted-foreground hover:text-error transition-colors"
                       title="Eliminar"
+                      aria-label="Eliminar esta cuenta"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>

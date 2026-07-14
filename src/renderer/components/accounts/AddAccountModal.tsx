@@ -18,6 +18,14 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onLo
   const [showAdvanced, setShowAdvanced] = React.useState(false);
   const [cookie, setCookie] = React.useState('');
 
+  // Ref for the modal container to trap focus
+  const modalRef = React.useRef<HTMLDivElement>(null);
+  // To store the previously focused element when modal opens
+  const previouslyFocusedElement = React.useRef<HTMLElement | null>(null);
+  // Refs for the first and last focusable elements in the modal
+  const firstFocusableElement = React.useRef<HTMLElement | null>(null);
+  const lastFocusableElement = React.useRef<HTMLElement | null>(null);
+
   const handleBrowserLogin = async () => {
     setLoading(true);
     setError(null);
@@ -61,6 +69,60 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onLo
     }
   };
 
+  // Focus trap logic
+  React.useEffect(() => {
+    if (isOpen) {
+      // Save the currently focused element
+      previouslyFocusedElement.current = document.activeElement as HTMLElement;
+      // Wait for the modal to be rendered, then focus the first focusable element
+      requestAnimationFrame(() => {
+        if (modalRef.current) {
+          const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          );
+          if (focusableElements.length > 0) {
+            firstFocusableElement.current = focusableElements[0];
+            lastFocusableElement.current = focusableElements[focusableElements.length - 1];
+            firstFocusableElement.current.focus();
+          }
+        }
+      });
+    } else {
+      // Restore focus to the previously focused element
+      if (previouslyFocusedElement.current) {
+        previouslyFocusedElement.current.focus();
+      }
+    }
+  }, [isOpen]);
+
+  // Trap focus inside modal when Tab is pressed
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      handleClose();
+    }
+    if (e.key === 'Tab') {
+      if (modalRef.current) {
+        const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements.length === 0) return;
+        const first = focusableElements[0];
+        const last = focusableElements[focusableElements.length - 1];
+        if (e.shiftKey) { // Shift + Tab
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else { // Tab
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -70,6 +132,11 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onLo
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
           onClick={handleClose}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-account-modal-title"
+          onKeyDown={handleKeyDown}
+          ref={modalRef}
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
@@ -83,9 +150,16 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onLo
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
                 <Globe className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-semibold text-foreground">Agregar Cuenta</h2>
+                <h2 id="add-account-modal-title" className="text-lg font-semibold text-foreground">
+                  Agregar Cuenta
+                </h2>
               </div>
-              <button onClick={handleClose} className="p-1 rounded hover:bg-muted" disabled={loading}>
+              <button
+                onClick={handleClose}
+                className="p-1 rounded hover:bg-muted"
+                disabled={loading}
+                aria-label="Cerrar"
+              >
                 <X className="h-5 w-5 text-muted-foreground" />
               </button>
             </div>
@@ -159,6 +233,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onLo
                   onClick={() => setShowAdvanced(!showAdvanced)}
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                   disabled={loading}
+                  aria-expanded={showAdvanced}
                 >
                   {showAdvanced ? '▼' : '▶'} Opciones avanzadas (cookie manual)
                 </button>
