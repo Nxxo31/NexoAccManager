@@ -24,11 +24,13 @@ const PresenceDashboard: React.FC = () => {
   const [loading, setLoading] = React.useState(false);
   const accounts = useAccountStore((s) => s.accounts);
 
+  // Safe API accessor
+  const api = React.useMemo(() => (typeof window !== 'undefined' ? (window as any).api : null), []);
+
   const fetchPresence = React.useCallback(async () => {
-    if (accounts.length === 0) return;
+    if (accounts.length === 0 || !api) return;
     setLoading(true);
     try {
-      const api = (window as any).api;
       const accountIds = accounts.map((a) => a.id);
       const result = await api.presence.getPresence(accountIds);
       if (result && result.success) {
@@ -41,22 +43,22 @@ const PresenceDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [accounts]);
+  }, [accounts, api]);
 
   const handleTogglePolling = async () => {
+    if (!api) return;
     if (isPolling) {
       try {
-        await (window as any).api.presence.stopPolling();
+        await api.presence.stopPolling();
       } catch { /* ignore */ }
       setIsPolling(false);
     } else {
       if (accounts.length === 0) return;
       try {
-        const api = (window as any).api;
         const accountIds = accounts.map((a) => a.id);
         await api.presence.startPolling(accountIds, 30000);
         setIsPolling(true);
-        fetchPresence();
+        await fetchPresence();
       } catch (err) {
         console.error('Polling start error:', err);
       }
@@ -95,7 +97,7 @@ const PresenceDashboard: React.FC = () => {
               variant="outline"
               size="sm"
               onClick={fetchPresence}
-              disabled={loading}
+              disabled={loading || !api}
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Activity className="h-4 w-4" />}
               <span className="ml-1.5">Actualizar</span>
@@ -104,6 +106,7 @@ const PresenceDashboard: React.FC = () => {
               variant={isPolling ? 'outline' : 'default'}
               size="sm"
               onClick={handleTogglePolling}
+              disabled={!api}
             >
               {isPolling ? 'Detener' : 'Iniciar Polling'}
             </Button>

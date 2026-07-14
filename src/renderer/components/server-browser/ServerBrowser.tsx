@@ -28,6 +28,9 @@ const ServerBrowser: React.FC = () => {
   const accounts = useAccountStore((s) => s.accounts);
   const selectedAccount = useAccountStore((s) => s.selectedAccount);
 
+  // Safe API accessor
+  const api = React.useMemo(() => (typeof window !== 'undefined' ? (window as any).api : null), []);
+
   const handleSearch = async () => {
     if (!placeId.trim()) {
       setError('Ingresa un Place ID');
@@ -37,11 +40,11 @@ const ServerBrowser: React.FC = () => {
       setError('Selecciona una cuenta primero');
       return;
     }
+    if (!api) return;
 
     setLoading(true);
     setError(null);
     try {
-      const api = (window as any).api;
       const result = await api.roblox.getServers(placeId, selectedAccount.id);
       if (result && result.success === false) {
         setError(result.error || 'Error al buscar servers');
@@ -59,9 +62,8 @@ const ServerBrowser: React.FC = () => {
   };
 
   const handleJoinServer = async (server: GameServer) => {
-    if (!selectedAccount) return;
+    if (!selectedAccount || !api) return;
     try {
-      const api = (window as any).api;
       await api.roblox.joinServer(placeId, server.jobId, selectedAccount.id);
     } catch (err) {
       console.error('Join server error:', err);
@@ -120,7 +122,7 @@ const ServerBrowser: React.FC = () => {
               className="nexo-input pl-10"
             />
           </div>
-          <Button variant="default" size="sm" onClick={handleSearch} disabled={loading}>
+          <Button variant="default" size="sm" onClick={handleSearch} disabled={loading || !api}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
             <span className="ml-1.5">Buscar</span>
           </Button>
@@ -219,6 +221,7 @@ const ServerBrowser: React.FC = () => {
                   variant="default"
                   size="sm"
                   onClick={(e) => { e.stopPropagation(); handleJoinServer(server); }}
+                  disabled={!api}
                 >
                   Unirse
                 </Button>

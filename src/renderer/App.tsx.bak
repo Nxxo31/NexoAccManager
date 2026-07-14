@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { MemoryRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider } from './context/ThemeContext';
 import AppShell from './components/layout/AppShell';
@@ -10,7 +10,6 @@ import AddAccountModal from './components/accounts/AddAccountModal';
 import ServerBrowser from './components/server-browser/ServerBrowser';
 import PresenceDashboard from './components/presence/PresenceDashboard';
 import SettingsPanel from './components/settings/SettingsPanel';
-import AccountControlPanel from './components/AccountControlPanel/AccountControlPanel';
 import { useAccountStore } from './store/useAccountStore';
 import { Account } from '@/types/Account';
 
@@ -21,7 +20,8 @@ export default function App() {
   const [error, setError] = React.useState<string | null>(null);
   const [theme, setTheme] = React.useState<any>(null);
   const [language, setLanguage] = React.useState('es');
-  const [showAccountControl, setShowAccountControl] = React.useState(false);
+  const [placeIdInput, setPlaceIdInput] = React.useState('');
+  const [jobIdInput, setJobIdInput] = React.useState('');
 
   const accounts = useAccountStore((s) => s.accounts);
   const setStoreAccounts = useAccountStore((s) => s.setAccounts);
@@ -164,31 +164,25 @@ export default function App() {
   }, [api]);
 
   const handlePlayAccount = React.useCallback((account: Account) => {
-    // Select the account and navigate to ServerBrowser
-    setSelectedAccount(account);
-  }, [setSelectedAccount]);
+    if (!api) return;
+    const placeId = window.prompt('Place ID del juego:');
+    if (placeId) {
+      api.roblox.launch(account.id, placeId).then((result: any) => {
+        if (result?.success === false) {
+          window.alert(result.error || 'Error al lanzar Roblox');
+        }
+      });
+    }
+  }, [api]);
 
   const handleLaunchApp = React.useCallback(() => {
     if (!selectedAccount || !api) return;
-    // Open Roblox app without specific game — quick launch
     api.roblox.launch(selectedAccount.id).then((result: any) => {
       if (result?.success === false) {
-        setError(result.error || 'Error al abrir Roblox');
+        window.alert(result.error || 'Error al abrir Roblox');
       }
     });
   }, [api, selectedAccount]);
-
-  const handleEditTheme = React.useCallback(() => {
-    // Navigate to settings
-    const navEvent = new CustomEvent('navigate', { detail: '/settings' });
-    window.dispatchEvent(navEvent);
-  }, []);
-
-  const handleAccountControl = React.useCallback(() => {
-    if (selectedAccount) {
-      setShowAccountControl(true);
-    }
-  }, [selectedAccount]);
 
   const handleThemeChange = async (partial: any) => {
     const result = await api.theme.set(partial);
@@ -231,100 +225,77 @@ export default function App() {
   };
 
   // === Accounts page layout ===
-  const AccountsPage = () => {
-    const navigate = useNavigate();
-
-    // Listen for navigation events from ActionBar
-    React.useEffect(() => {
-      const handler = (e: Event) => {
-        const { detail } = e as CustomEvent;
-        if (detail === '/settings') navigate('/settings');
-        if (detail === '/servers') navigate('/servers');
-      };
-      window.addEventListener('navigate', handler);
-      return () => window.removeEventListener('navigate', handler);
-    }, [navigate]);
-
-    return (
-      <div className="flex flex-col h-full">
-        {/* Toolbar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/30">
-          <div>
-            <h2 className="text-xl font-bold text-foreground">Cuentas</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {accounts.length > 0 ? `${accounts.length} de 50 cuentas` : 'Sin cuentas'}
-            </p>
-          </div>
+  const accountsPage = (
+    <div className="flex flex-col h-full">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border/30">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Cuentas</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {accounts.length > 0 ? `${accounts.length} de 50 cuentas` : 'Sin cuentas'}
+          </p>
         </div>
-
-        {/* Main content: table + details panel */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* Account table */}
-          <div className="flex-1 overflow-y-auto">
-            {loading ? (
-              <div className="flex items-center justify-center h-32">
-                <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
-              </div>
-            ) : error ? (
-              <div className="flex items-center justify-center h-32 text-destructive">
-                {error}
-              </div>
-            ) : (
-              <AccountTable
-                accounts={accounts}
-                selectedAccount={selectedAccount}
-                onSelectAccount={setSelectedAccount}
-                onDeleteAccount={handleDeleteAccount}
-                onPlayAccount={handlePlayAccount}
-                hideUsernames={hideUsernames}
-              />
-            )}
-          </div>
-
-          {/* Details panel */}
-          <div className="w-80 flex-shrink-0 border-l border-border/30 bg-background/50">
-            <AccountDetailsPanel
-              account={selectedAccount}
-              onSaveAlias={handleSaveAlias}
-              onSaveDescription={handleSaveDescription}
-              onFollowUser={handleFollowUser}
-              onLaunchGame={handleLaunchGame}
-            />
-          </div>
-        </div>
-
-        {/* Action bar */}
-        <ActionBar
-          onAddAccount={() => setShowAddModal(true)}
-          onRemoveAccount={() => {
-            if (selectedAccount) handleDeleteAccount(selectedAccount.id);
-          }}
-          onLaunchApp={handleLaunchApp}
-          onEditTheme={handleEditTheme}
-          onAccountControl={handleAccountControl}
-          hideUsernames={hideUsernames}
-          onToggleHideUsernames={setHideUsernames}
-          hasSelectedAccount={!!selectedAccount}
-        />
-
-        {/* Add Account Modal */}
-        <AddAccountModal
-          isOpen={showAddModal}
-          onClose={() => setShowAddModal(false)}
-          onLoginBrowser={handleLoginBrowser}
-          onAddCookie={handleAddCookie}
-        />
-
-        {/* Account Control Panel */}
-        {showAccountControl && selectedAccount && (
-          <AccountControlPanel
-            account={selectedAccount}
-            onClose={() => setShowAccountControl(false)}
-          />
-        )}
       </div>
-    );
-  };
+
+      {/* Main content: table + details panel */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Account table */}
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-32 text-destructive">
+              {error}
+            </div>
+          ) : (
+            <AccountTable
+              accounts={accounts}
+              selectedAccount={selectedAccount}
+              onSelectAccount={setSelectedAccount}
+              onDeleteAccount={handleDeleteAccount}
+              onPlayAccount={handlePlayAccount}
+              hideUsernames={hideUsernames}
+            />
+          )}
+        </div>
+
+        {/* Details panel */}
+        <div className="w-80 flex-shrink-0 border-l border-border/30 bg-background/50">
+          <AccountDetailsPanel
+            account={selectedAccount}
+            onSaveAlias={handleSaveAlias}
+            onSaveDescription={handleSaveDescription}
+            onFollowUser={handleFollowUser}
+            onLaunchGame={handleLaunchGame}
+          />
+        </div>
+      </div>
+
+      {/* Action bar */}
+      <ActionBar
+        onAddAccount={() => setShowAddModal(true)}
+        onRemoveAccount={() => {
+          if (selectedAccount) handleDeleteAccount(selectedAccount.id);
+        }}
+        onLaunchApp={handleLaunchApp}
+        onEditTheme={() => {}}
+        onAccountControl={() => {}}
+        hideUsernames={hideUsernames}
+        onToggleHideUsernames={setHideUsernames}
+        hasSelectedAccount={!!selectedAccount}
+      />
+
+      {/* Add Account Modal */}
+      <AddAccountModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onLoginBrowser={handleLoginBrowser}
+        onAddCookie={handleAddCookie}
+      />
+    </div>
+  );
 
   return (
     <ErrorBoundary>
@@ -333,7 +304,7 @@ export default function App() {
           <Routes>
             <Route element={<AppShell />}>
               <Route index element={<Navigate to="/accounts" replace />} />
-              <Route path="/accounts" element={<AccountsPage />} />
+              <Route path="/accounts" element={accountsPage} />
               <Route path="/servers" element={<ServerBrowser />} />
               <Route path="/presence" element={<PresenceDashboard />} />
               <Route

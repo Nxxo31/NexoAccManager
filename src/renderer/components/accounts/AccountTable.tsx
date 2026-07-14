@@ -37,6 +37,15 @@ const AccountTable: React.FC<AccountTableProps> = ({
     return 'bg-error';
   };
 
+  const getStatusLabel = (lastUsed: Date): string => {
+    const now = new Date();
+    const diffMs = now.getTime() - new Date(lastUsed).getTime();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays < 7) return 'Activo';
+    if (diffDays < 30) return 'Inactivo';
+    return 'Expirado';
+  };
+
   const getAvatar = (account: Account) => {
     if (account.avatarUrl) {
       return (
@@ -85,14 +94,17 @@ const AccountTable: React.FC<AccountTableProps> = ({
       >
         <thead>
           <tr>
-            <th className="w-[35%]" scope="col">
+            <th className="w-[30%]" scope="col">
               Usuario
             </th>
-            <th className="w-[25%]" scope="col">
+            <th className="w-[20%]" scope="col">
               Alias
             </th>
-            <th className="w-[30%]" scope="col">
+            <th className="w-[25%]" scope="col">
               Descripción
+            </th>
+            <th className="w-[15%]" scope="col">
+              Estado
             </th>
             <th className="w-[10%] text-right" scope="col">
               Acciones
@@ -102,6 +114,8 @@ const AccountTable: React.FC<AccountTableProps> = ({
         <tbody>
           {accounts.map((account) => {
             const isSelected = selectedAccount?.id === account.id;
+            const statusColor = getStatusColor(account.lastUsed);
+            const statusLabel = getStatusLabel(account.lastUsed);
             return (
               <tr
                 key={account.id}
@@ -151,6 +165,14 @@ const AccountTable: React.FC<AccountTableProps> = ({
                       Sin descripción
                     </span>
                   )}
+                </td>
+
+                {/* Estado */}
+                <td role="cell">
+                  <div className="flex items-center gap-2">
+                    <span className={cn('status-dot', statusColor.replace('bg-', ''))} />
+                    <span className="text-xs text-muted-foreground">{statusLabel}</span>
+                  </div>
                 </td>
 
                 {/* Acciones */}
