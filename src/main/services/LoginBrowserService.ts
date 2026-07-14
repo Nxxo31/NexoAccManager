@@ -13,8 +13,8 @@
  * - La cookie se procesa en main process, nunca llega al renderer
  */
 
-import { BrowserWindow, session, app } from 'electron';
-import axios from 'axios';
+import { BrowserWindow, session } from 'electron';
+import axios, { AxiosError } from 'axios';
 import * as path from 'path';
 
 export interface BrowserLoginResult {
@@ -36,17 +36,34 @@ export class LoginBrowserService {
       const partitionName = `nexo-login-${Date.now()}`;
       const loginSession = session.fromPartition(partitionName);
 
-      // Configurar User-Agent realista
-      loginSession.webRequest.onBeforeSendHeaders((details, callback) => {
-        // Clonar headers existentes
+      // --- Limpieza centralizada ---
+      let cookieListener: ((_event: Electron.Event, cookie: Electron.Cookie, cause: string) => void) | null = null;
+      let headersListener: ((details: Electron.OnBeforeSendHeadersListenerDetails, callback: (modified: Electron.BeforeSendResponse) => void) => void) | null = null;
+      let windowClosedHandler: (() => void) | null = null;
+
+      const cleanup = () => {
+        if (cookieListener) {
+          loginSession.cookies.removeListener('changed', cookieListener);
+          cookieListener = null;
+        }
+        if (headersListener) {
+          loginSession.webRequest.onBeforeSendHeaders(null as unknown as never, headersListener);
+          headersListener = null;
+        }
+        // Limpiar datos de la session partition
+        loginSession.clearStorageData().catch(() => {});
+      };
+
+      // Configurar User-Agent realista (evitar que Roblox detecte Electron)
+      headersListener = (details, callback) => {
         const headers = { ...details.requestHeaders };
-        // Asegurar que tenemos un User-Agent de navegador real
         if (!headers['User-Agent'] || headers['User-Agent'].includes('Electron')) {
           headers['User-Agent'] =
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
         }
         callback({ requestHeaders: headers });
-      });
+      };
+      loginSession.webRequest.onBeforeSendHeaders(headersListener);
 
       let cookieCaptured = false;
       let resolved = false;
@@ -61,48 +78,44 @@ export class LoginBrowserService {
           contextIsolation: true,
           sandbox: true,
           session: loginSession,
-          // Sin preload — ventana pura de navegador
         },
         title: 'Iniciar sesión en Roblox — NexoAccManager',
         icon: path.join(__dirname, '../../public/icon.png'),
         autoHideMenuBar: true,
       });
 
-      // Cargar Roblox login
       loginWindow.loadURL('https://www.roblox.com/login');
 
-      // Timeout de 5 minutos — si el usuario no completa, rechazar
+      // Timeout de 5 minutos
       const timeout = setTimeout(() => {
         if (!resolved) {
           resolved = true;
+          cleanup();
           try { loginWindow.close(); } catch {}
           reject(new Error('Tiempo de espera agotado. Vuelve a intentarlo.'));
         }
       }, 5 * 60 * 1000);
 
       // Escuchar cambios de cookies
-      loginSession.cookies.on('changed', async (_event, cookie, cause) => {
-        // Solo nos interesa .ROBLOSECURITY cuando se set o updated
+      cookieListener = async (_event, cookie, cause) => {
         if (cookie.name === '.ROBLOSECURITY' && !cookieCaptured && (cause === 'explicit' || cause === 'overwrite')) {
           cookieCaptured = true;
 
           const cookieValue = cookie.value;
-          if (!cookieValue || cookieValue.length < 20) {
-            return; // cookie vacía o inválida, esperar
+          if (!cookieValue || cookieValue.length < 10) {
+            cookieCaptured = false;
+            return;
           }
 
           try {
-            // Verificar la cookie y obtener info del usuario
             const userInfo = await this.getUserInfo(cookieValue);
 
             resolved = true;
             clearTimeout(timeout);
+            cleanup();
 
-            // Cerrar la ventana
             setTimeout(() => {
               try { loginWindow.close(); } catch {}
-              // Limpiar la session partition
-              loginSession.clearStorageData().catch(() => {});
             }, 500);
 
             resolve({
@@ -110,22 +123,24 @@ export class LoginBrowserService {
               userId: userInfo.id,
               username: userInfo.username,
             });
-          } catch (err) {
-            // La cookie no es válida todavía, seguir esperando
+          } catch {
             cookieCaptured = false;
           }
         }
-      });
+      };
+      loginSession.cookies.on('changed', cookieListener);
 
-      // Si el usuario cierra la ventana manualmente antes de completar
-      loginWindow.on('closed', () => {
+      // Si el usuario cierra la ventana manualmente
+      windowClosedHandler = () => {
         clearTimeout(timeout);
         if (!resolved) {
+          resolved = true;
+          cleanup();
           reject(new Error('Ventana cerrada por el usuario antes de completar el login.'));
         }
-      });
+      };
+      loginWindow.on('closed', windowClosedHandler);
 
-      // Remover la barra de menú
       loginWindow.setMenuBarVisibility(false);
     });
   }
@@ -138,8 +153,14 @@ export class LoginBrowserService {
       const response = await axios.get('https://users.roblox.com/v1/users/authenticated', {
         headers: { Cookie: `.ROBLOSECURITY=${cookie}` },
         timeout: 10000,
+        validateStatus: (status) => status < 500,
       });
-      if (response.data && response.data.id && response.data.name) {
+
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('Cookie inválida o expirada');
+      }
+
+      if (response.data && typeof response.data.id === 'number' && typeof response.data.name === 'string') {
         return {
           id: response.data.id,
           username: response.data.name,
@@ -147,6 +168,12 @@ export class LoginBrowserService {
       }
       throw new Error('Respuesta inválida de Roblox');
     } catch (error) {
+      if (error instanceof AxiosError && error.code === 'ECONNABORTED') {
+        throw new Error('Tiempo de espera agotado verificando la cookie');
+      }
+      if (error instanceof Error && error.message.includes('Cookie inválida')) {
+        throw error;
+      }
       throw new Error('No se pudo verificar la cookie. La sesión podría no ser válida.');
     }
   }

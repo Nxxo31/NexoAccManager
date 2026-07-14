@@ -1,14 +1,24 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// vi.hoisted ensures the mock fns exist before vi.mock runs (which is hoisted to top)
+const { mockPost, mockGet } = vi.hoisted(() => ({
+  mockPost: vi.fn(),
+  mockGet: vi.fn(),
+}));
+
+vi.mock('axios', () => ({
+  default: { post: mockPost, get: mockGet },
+  AxiosError: class AxiosError extends Error {},
+}));
+
 import { RobloxAuthService } from './RobloxAuthService';
 
 let service: RobloxAuthService;
 
 beforeEach(() => {
   service = new RobloxAuthService();
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
+  mockPost.mockClear();
+  mockGet.mockClear();
 });
 
 describe('RobloxAuthService', () => {
@@ -18,22 +28,24 @@ describe('RobloxAuthService', () => {
   });
 
   it('returns cookie when login succeeds', async () => {
-    const axios = await import('axios');
-    const postSpy = vi.spyOn(axios, 'post');
-    const getSpy = vi.spyOn(axios, 'get');
+    // First post: get CSRF token (403 + x-csrf-token header)
+    mockPost.mockResolvedValueOnce({
+      status: 403,
+      headers: { 'x-csrf-token': 'test-csrf-token' },
+      data: {},
+    });
 
-    postSpy
-      .mockResolvedValueOnce({ status: 403, headers: { 'x-csrf-token': 'test-csrf-token' } })
-      .mockResolvedValueOnce({
-        status: 200,
-        headers: {
-          'set-cookie': ['.ROBLOSECURITY=_|WARNING:-DO-NOT-SHARE|_12345ABCDEF; Path=/; HttpOnly'],
-        },
-        data: { user: { id: 67890, name: 'TestUser' } },
-      });
+    // Second post: actual login (200 + set-cookie)
+    mockPost.mockResolvedValueOnce({
+      status: 200,
+      headers: {
+        'set-cookie': ['.ROBLOSECURITY=_|WARNING:-DO-NOT-SHARE|_12345ABCDEF; Path=/; HttpOnly'],
+      },
+      data: { user: { id: 67890, name: 'TestUser' } },
+    });
 
-    // The verifyCookie call (get) will be made after the login post
-    getSpy.mockResolvedValueOnce({ status: 200 });
+    // get: verify cookie
+    mockGet.mockResolvedValueOnce({ status: 200, data: { id: 67890, name: 'TestUser' } });
 
     const result = await service.login('testuser', 'testpass');
     expect(result).toEqual({
@@ -44,15 +56,16 @@ describe('RobloxAuthService', () => {
   });
 
   it('throws 2FA error when account requires 2FA', async () => {
-    const axios = await import('axios');
-    const postSpy = vi.spyOn(axios, 'post');
+    mockPost.mockResolvedValueOnce({
+      status: 403,
+      headers: { 'x-csrf-token': 'test-csrf-token' },
+      data: {},
+    });
 
-    postSpy
-      .mockResolvedValueOnce({ status: 403, headers: { 'x-csrf-token': 'test-csrf-token' } })
-      .mockResolvedValueOnce({
-        status: 403,
-        data: { errors: [{ code: 0, message: '2FA required' }] },
-      });
+    mockPost.mockResolvedValueOnce({
+      status: 403,
+      data: { errors: [{ code: 0, message: '2FA required' }] },
+    });
 
     await expect(service.login('testuser', 'testpass')).rejects.toMatchObject({
       message: expect.stringContaining('verificación en dos pasos'),
@@ -61,15 +74,16 @@ describe('RobloxAuthService', () => {
   });
 
   it('throws captcha error when account requires captcha', async () => {
-    const axios = await import('axios');
-    const postSpy = vi.spyOn(axios, 'post');
+    mockPost.mockResolvedValueOnce({
+      status: 403,
+      headers: { 'x-csrf-token': 'test-csrf-token' },
+      data: {},
+    });
 
-    postSpy
-      .mockResolvedValueOnce({ status: 403, headers: { 'x-csrf-token': 'test-csrf-token' } })
-      .mockResolvedValueOnce({
-        status: 403,
-        data: { errors: [{ code: 1, message: 'captcha required' }] },
-      });
+    mockPost.mockResolvedValueOnce({
+      status: 403,
+      data: { errors: [{ code: 1, message: 'captcha required' }] },
+    });
 
     await expect(service.login('testuser', 'testpass')).rejects.toMatchObject({
       message: expect.stringContaining('captcha'),
