@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Account } from '@/types/Account';
 import { cn } from '@renderer/lib/utils';
-import { Play, Pencil, Trash2, PlusCircle } from 'lucide-react';
+import { PlusCircle, Play, Pencil, Trash2 } from 'lucide-react';
 
 interface AccountTableProps {
   accounts: Account[];
@@ -11,6 +11,9 @@ interface AccountTableProps {
   onPlayAccount: (account: Account) => void;
   hideUsernames: boolean;
   onAddAccount?: () => void;
+  onEditAlias?: (account: Account) => void;
+  onEditDesc?: (account: Account) => void;
+  onFollow?: (accountId: string, userId: number) => Promise<void>;
 }
 
 const AccountTable: React.FC<AccountTableProps> = ({
@@ -21,29 +24,14 @@ const AccountTable: React.FC<AccountTableProps> = ({
   onPlayAccount,
   hideUsernames,
   onAddAccount,
+  onEditAlias,
+  onEditDesc,
 }) => {
-  const handleDelete = (id: string) => {
+  const handleDelete = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (window.confirm('¿Eliminar esta cuenta?')) {
       onDeleteAccount(id);
     }
-  };
-
-  const getStatusColor = (lastUsed: Date): string => {
-    const now = new Date();
-    const diffMs = now.getTime() - new Date(lastUsed).getTime();
-    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays < 7) return 'bg-success';
-    if (diffDays < 30) return 'bg-warning';
-    return 'bg-error';
-  };
-
-  const getStatusLabel = (lastUsed: Date): string => {
-    const now = new Date();
-    const diffMs = now.getTime() - new Date(lastUsed).getTime();
-    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays < 7) return 'Activo';
-    if (diffDays < 30) return 'Inactivo';
-    return 'Expirado';
   };
 
   const getAvatar = (account: Account) => {
@@ -52,13 +40,13 @@ const AccountTable: React.FC<AccountTableProps> = ({
         <img
           src={account.avatarUrl}
           alt={`${account.username} avatar`}
-          className="h-8 w-8 rounded-full object-cover flex-shrink-0"
+          className="h-6 w-6 rounded-full object-cover flex-shrink-0"
         />
       );
     }
     const initials = (account.displayName || account.username).toUpperCase().charAt(0);
     return (
-      <div className="h-8 w-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-semibold flex-shrink-0">
+      <div className="h-6 w-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold flex-shrink-0">
         {initials}
       </div>
     );
@@ -67,17 +55,17 @@ const AccountTable: React.FC<AccountTableProps> = ({
   if (accounts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <PlusCircle className="h-12 w-12 text-muted-foreground/20 mb-4" />
-        <h3 className="font-semibold text-foreground/60">No hay cuentas</h3>
-        <p className="text-sm text-muted-foreground/50 mt-1.5">
-          Agrega tu primera cuenta de Roblox para empezar
+        <PlusCircle className="h-10 w-10 text-muted-foreground/20 mb-3" />
+        <h3 className="text-sm font-medium text-foreground/50">No hay cuentas</h3>
+        <p className="text-xs text-muted-foreground/40 mt-1">
+          Agrega tu primera cuenta para empezar
         </p>
         {onAddAccount && (
           <button
             onClick={onAddAccount}
-            className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-colors"
+            className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-white text-xs font-medium hover:bg-primary-dark transition-colors"
           >
-            <PlusCircle className="h-4 w-4" />
+            <PlusCircle className="h-3.5 w-3.5" />
             Agregar Cuenta
           </button>
         )}
@@ -87,122 +75,82 @@ const AccountTable: React.FC<AccountTableProps> = ({
 
   return (
     <div className="overflow-hidden">
-      <table
-        className="nexo-table"
-        role="table"
-        aria-label="Tabla de cuentas de Roblox"
-      >
+      <table className="nexo-table" role="table" aria-label="Tabla de cuentas">
         <thead>
           <tr>
-            <th className="w-[30%]" scope="col">
-              Usuario
-            </th>
-            <th className="w-[20%]" scope="col">
-              Alias
-            </th>
-            <th className="w-[25%]" scope="col">
-              Descripción
-            </th>
-            <th className="w-[15%]" scope="col">
-              Estado
-            </th>
-            <th className="w-[10%] text-right" scope="col">
-              Acciones
-            </th>
+            <th className="w-[33%]" scope="col">Usuario</th>
+            <th className="w-[33%]" scope="col">Alias</th>
+            <th className="w-[34%]" scope="col">Descripción</th>
           </tr>
         </thead>
         <tbody>
           {accounts.map((account) => {
             const isSelected = selectedAccount?.id === account.id;
-            const statusColor = getStatusColor(account.lastUsed);
-            const statusLabel = getStatusLabel(account.lastUsed);
             return (
               <tr
                 key={account.id}
                 className={cn(isSelected && 'selected')}
                 onClick={() => onSelectAccount(account)}
+                onDoubleClick={() => onPlayAccount(account)}
                 role="row"
+                title="Doble click para jugar"
               >
                 {/* Usuario */}
                 <td role="cell">
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2">
                     {getAvatar(account)}
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-sm font-medium text-foreground truncate">
-                        {hideUsernames ? '••••••' : `@${account.username}`}
-                      </span>
-                      {account.displayName && account.displayName !== account.username && (
-                        <span className="text-xs text-muted-foreground truncate">
-                          {account.displayName}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </td>
-
-                {/* Alias */}
-                <td role="cell">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-sm text-foreground/80">
-                      {account.displayName || account.username}
+                    <span className="text-xs font-medium text-foreground truncate">
+                      {hideUsernames ? '••••••' : `@${account.username}`}
                     </span>
                     {account.group && account.group !== 'Default' && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] rounded bg-primary/15 text-primary font-medium w-fit">
+                      <span className="inline-flex items-center px-1 py-0.5 text-[9px] rounded bg-primary/15 text-primary font-medium flex-shrink-0">
                         {account.group}
                       </span>
                     )}
                   </div>
                 </td>
 
-                {/* Descripción */}
+                {/* Alias */}
                 <td role="cell">
-                  {account.description ? (
-                    <span className="text-sm text-muted-foreground/80 truncate block max-w-[200px]">
-                      {account.description}
-                    </span>
+                  {onEditAlias ? (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onEditAlias(account); }}
+                      className="text-xs text-foreground/80 hover:text-primary transition-colors truncate block max-w-[200px] text-left"
+                      title="Click para editar alias"
+                    >
+                      {account.displayName || account.username}
+                    </button>
                   ) : (
-                    <span className="text-sm text-muted-foreground/30 italic">
-                      Sin descripción
+                    <span className="text-xs text-foreground/80 truncate block max-w-[200px]">
+                      {account.displayName || account.username}
                     </span>
                   )}
                 </td>
 
-                {/* Estado */}
+                {/* Descripción */}
                 <td role="cell">
-                  <div className="flex items-center gap-2">
-                    <span className={cn('status-dot', statusColor.replace('bg-', ''))} />
-                    <span className="text-xs text-muted-foreground">{statusLabel}</span>
-                  </div>
-                </td>
-
-                {/* Acciones */}
-                <td role="cell">
-                  <div className="flex items-center justify-end gap-1">
+                  {onEditDesc && account.description ? (
                     <button
-                      onClick={(e) => { e.stopPropagation(); onPlayAccount(account); }}
-                      className="p-1.5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
-                      title="Jugar"
-                      aria-label="Jugar con esta cuenta"
+                      onClick={(e) => { e.stopPropagation(); onEditDesc(account); }}
+                      className="text-xs text-muted-foreground/70 hover:text-foreground transition-colors truncate block max-w-[250px] text-left"
+                      title="Click para editar"
                     >
-                      <Play className="h-3.5 w-3.5" />
+                      {account.description}
                     </button>
+                  ) : account.description ? (
+                    <span className="text-xs text-muted-foreground/70 truncate block max-w-[250px]">
+                      {account.description}
+                    </span>
+                  ) : onEditDesc ? (
                     <button
-                      onClick={(e) => { e.stopPropagation(); onSelectAccount(account); }}
-                      className="p-1.5 rounded hover:bg-accent/10 text-muted-foreground hover:text-accent transition-colors"
-                      title="Editar"
-                      aria-label="Editar esta cuenta"
+                      onClick={(e) => { e.stopPropagation(); onEditDesc(account); }}
+                      className="text-xs text-muted-foreground/30 hover:text-muted-foreground transition-colors italic"
                     >
-                      <Pencil className="h-3.5 w-3.5" />
+                     Sin descripción
                     </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDelete(account.id); }}
-                      className="p-1.5 rounded hover:bg-error/10 text-muted-foreground hover:text-error transition-colors"
-                      title="Eliminar"
-                      aria-label="Eliminar esta cuenta"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground/30 italic">Sin descripción</span>
+                  )}
                 </td>
               </tr>
             );

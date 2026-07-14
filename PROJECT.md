@@ -1,8 +1,55 @@
 # Proyecto: NexoAccManager
-# Fecha: 2026-07-14 (actualizado 2026-07-15)
-# Estado: UI/UX mejorado, testing mejorado, login con navegador como método principal (v2.3.1)
+# Fecha: 2026-07-14 (actualizado 2026-07-16)
+# Estado: Release v2.4.0 completo - UI/UX minimalista tipo RAM, tsc limpio, tests 109/109, build exitoso
 
-## Resumen de cambios
+## Rediseño UI/UX — v2.4.0 (2026-07-15)
+
+### Filosofía de diseño
+- Minimalismo y funcionalidad sobre estética decorativa
+- Layout tipo RAM (ic3w0lf22) pero más organizado y limpio
+- Vista única compacta, sin sidebar ni routing
+- Espaciado tight, glassmorphism eliminado
+
+### Cambios de layout
+- **Eliminado**: Sidebar (AppShell.tsx), routing con react-router, AccountDetailsPanel lateral (320px)
+- **Eliminado**: Rutas /accounts, /servers, /presence, /settings → todo en una vista
+- **Nuevo**: Header compacto (h-12) con logo + contador + botones Servers/Presencia/Ajustes
+- **Nuevo**: Tabla de cuentas ocupa toda el área central (3 columnas: Usuario | Alias | Descripción)
+- **Nuevo**: Barra Place ID/Job ID integrada directamente debajo de la tabla (estilo RAM)
+- **Nuevo**: Action bar inferior compacta con todos los botones agrupados
+- **Nuevo**: ServerBrowser, PresenceDashboard, SettingsPanel → modales overlay (no routes)
+- **Nuevo**: Editar Alias y Descripción → modales overlay inline (no panel lateral)
+- **Nuevo**: JobId Shuffle toggle integrado en la barra Place/Job
+- **Nuevo**: Doble-click en fila para jugar (estilo RAM)
+
+### Cambios visuales
+- **index.css**: Reducido espaciado global (font-size 14px, transiciones 150ms)
+- **Tabla**: Filas más compactas (padding 0.5rem 0.75rem, font 0.75rem)
+- **Selección**: Highlight rojo primary con border-left (antes purple accent)
+- **Scrollbar**: 6px (antes 8px), más minimalista
+- **Backgrounds**:bg-card #141414 (antes #161616), bg-surface #1A1A1A, bg-elevated #222222
+- **Glassmorphism/blur**: Eliminado de barras y superficies
+- **Sombras**: Eliminadas en cards
+- **Border radius**: 4px inputs / 4px botones (antes 6px/8px)
+
+### Cambios de arquitectura
+- **Account.ts**: Agregado `savedPlaceId?` y `savedJobId?` al tipo Account
+- **postcss.config.js** → renombrado a `postcss.config.cjs` (fix ESM con type:module)
+- **Backups**: App.tsx.bak.v2.3, index.css.bak.v2.3 preservados
+
+### Componentes modificados
+- `src/renderer/App.tsx` — Reescrito completo (vista única, modales, header compacto)
+- `src/renderer/components/accounts/AccountTable.tsx` — Reescrito (3 columnas, edición inline)
+- `src/renderer/index.css` — Reescrito (minimalista, tighter spacing)
+- `src/types/Account.ts` — Agregados savedPlaceId, savedJobId
+
+### Componentes no usados (preservados, no eliminados)
+- `src/renderer/components/layout/Sidebar.tsx` — ya no se importa
+- `src/renderer/components/layout/AppShell.tsx` — ya no se importa
+- `src/renderer/components/accounts/AccountDetailsPanel.tsx` — ya no se importa
+- `src/renderer/components/accounts/ActionBar.tsx` — ya no se importa (integrado en App.tsx)
+
+## Resumen de cambios (v2.3.x — histórico)
 
 ### Login con navegador (NUEVO MÉTODO HABITUAL) - Implementado 2026-07-15
 - LoginBrowserService: BrowserWindow aislada que abre roblox.com/login

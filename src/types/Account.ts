@@ -13,7 +13,9 @@ export interface Account {
   createdAt: Date;              // Fecha de creaciÃ³n en NexoAccManager
   avatarUrl?: string;           // URL del avatar (opcional)
   fields?: Record<string, string>; // Campos personalizables
-  cookieExpiresAt?: Date;       // Fecha de expiraciÃ³n de la cookie
+  cookieExpiresAt?: Date;       // Fecha de expiración de la cookie
+  savedPlaceId?: string;        // Place ID guardado para esta cuenta
+  savedJobId?: string;          // Job ID guardado para esta cuenta
 }
 
 /**

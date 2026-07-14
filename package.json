@@ -1,8 +1,9 @@
 {
   "name": "nexoaccmanager",
-  "version": "2.3.1",
-  "description": "Open-source multi-account manager for gaming platforms \u2014 100% local, no servers, no cloud",
+  "version": "2.4.0",
+  "description": "Open-source multi-account manager for gaming platforms — 100% local, no servers, no cloud",
   "main": "dist/main/main.js",
+  "type": "module",
   "author": {
     "name": "NexoAccManager Contributors",
     "email": "nexoaccmanager@users.noreply.github.com"
@@ -37,6 +38,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
+    "@deslint/eslint-plugin": "^0.10.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.61.1",
     "@radix-ui/react-dialog": "^1.1.19",

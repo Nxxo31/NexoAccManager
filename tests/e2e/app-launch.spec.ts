@@ -4,8 +4,7 @@ import type { ElectronApplication, Page } from 'playwright';
 import path from 'path';
 
 // Skip Electron tests on non-Windows platforms since they require GUI
-test.describe(() => {
-  test.describe.skip(process.platform !== 'win32', 'Electron GUI tests require Windows environment', () => {
+test.describe.skip(process.platform !== 'win32', 'Electron GUI tests require Windows environment', () => {
     let electronApp: Electron.Application;
     let page: Page;
 

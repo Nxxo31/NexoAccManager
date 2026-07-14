@@ -163,7 +163,7 @@ const PresenceDashboard: React.FC = () => {
     return () => {
       isMounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [accounts, initialized, fetchPresence]);
 
   // Periodic presence refresh via polling (replaces non-existent onPresenceUpdate)
@@ -195,7 +195,7 @@ const PresenceDashboard: React.FC = () => {
       // @ts-expect-error api existe en window via preload
       window.api.presence.stopPolling?.();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [initialized, accounts]);
 
   const handleRefresh = useCallback(async () => {

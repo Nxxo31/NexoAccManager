@@ -168,6 +168,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <label className="text-sm font-medium text-foreground">Animaciones</label>
               <button
                 onClick={() => onThemeChange({ animationsEnabled: !animationsEnabled })}
+                aria-label={animationsEnabled ? 'Desactivar animaciones' : 'Activar animaciones'}
+                role="switch"
+                aria-checked={animationsEnabled}
                 className={`relative h-6 w-11 rounded-full transition-colors ${
                   animationsEnabled ? 'bg-primary' : 'bg-muted'
                 }`}

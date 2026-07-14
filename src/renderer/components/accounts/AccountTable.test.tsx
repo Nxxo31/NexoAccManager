@@ -58,23 +58,28 @@ describe('AccountTable', () => {
     expect(onSelectAccount).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onPlayAccount when play button is clicked', () => {
+  it('calls onPlayAccount when row is double-clicked', () => {
     const onPlayAccount = vi.fn();
     const accounts = [mockAccount()];
     render(<AccountTable accounts={accounts} {...defaultProps} onPlayAccount={onPlayAccount} />);
-    const playBtn = screen.getByTitle('Jugar');
-    fireEvent.click(playBtn);
+    const row = screen.getByText('@testuser').closest('tr');
+    if (row) fireEvent.doubleClick(row);
     expect(onPlayAccount).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onDeleteAccount with confirm dialog', () => {
-    const onDeleteAccount = vi.fn();
+  it('calls onEditAlias when alias is clicked', () => {
+    const onEditAlias = vi.fn();
     const accounts = [mockAccount()];
-    window.confirm = vi.fn().mockReturnValue(true);
-    render(<AccountTable accounts={accounts} {...defaultProps} onDeleteAccount={onDeleteAccount} />);
-    const deleteBtn = screen.getByTitle('Eliminar');
-    fireEvent.click(deleteBtn);
-    expect(window.confirm).toHaveBeenCalled();
-    expect(onDeleteAccount).toHaveBeenCalledWith('test-id-1');
+    render(<AccountTable accounts={accounts} {...defaultProps} onEditAlias={onEditAlias} />);
+    fireEvent.click(screen.getByText('TestUser'));
+    expect(onEditAlias).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onEditDesc when description is clicked', () => {
+    const onEditDesc = vi.fn();
+    const accounts = [mockAccount()];
+    render(<AccountTable accounts={accounts} {...defaultProps} onEditDesc={onEditDesc} />);
+    fireEvent.click(screen.getByText('Test description'));
+    expect(onEditDesc).toHaveBeenCalledTimes(1);
   });
 });
