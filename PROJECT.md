@@ -49,11 +49,14 @@
 - Nuevo total: **108 tests** (72 existentes + 36 nuevos de UI/services)
 
 ## Próximos pasos
-1. ✅ Añadir tests E2E con Playwright para flujos completos (login, añadir cuenta, editar, lanzar juego)
-2. ✅ Añadir pruebas de accesibilidad con axe-core
-3. ✅ Configurar coverage report con c8/istanbul y subir a codecov
-4. ✅ Construir y validar NSIS installer (pendiente desde v2.2.0) — disponible via GitHub Actions CI al pushear tag v*
-5. Considerar mejoras de accesibilidad: focus-trap en modales, labels ARIA en iconos, efectos hover sutiles
+1. ✅ Añadir tests E2E con Playwright para flujos completos (login, añadir cuenta, editar, lanzar juego) — COMPLETADO
+2. ✅ Añadir pruebas de accesibilidad con axe-core — COMPLETADO
+3. ✅ Configurar coverage report con c8/istanbul y subir a codecov — PENDIENTE
+4. ✅ Construir y validar NSIS installer (pendiente desde v2.2.0) — disponible via GitHub Actions CI al pushear tag v* — PENDIENTE
+5. ✅ Implementar Bulk Import (importación masiva de user:pass o cookies) — COMPLETADO v2.3.1
+6. ✅ Implementar JobId Shuffler (selección aleatoria de JobId al unir servidores) — COMPLETADO v2.3.1
+7. Considerar Auto Relaunch + Connection Watcher (relogin automático y monitor de conexión) — PROPOSICIÓN v2.4.0
+8. Considerar mejoras de accesibilidad: focus-trap en modales, labels ARIA en iconos, efectos hover sutiles — PENDIENTE
 
 ## Decisiones técnicas
 - Se mantuvo la arquitectura IPC y Zustand intacta
