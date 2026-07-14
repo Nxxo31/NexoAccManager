@@ -358,6 +358,61 @@ class NexoApp {
     });
 
     // =================================================================
+    // ACCOUNT — bulk import (user:pass or cookies, max 50)
+    // =================================================================
+    ipcMain.handle('account:bulk-import', async (_, input: unknown, format: unknown) => {
+      if (typeof input !== 'string') {
+        return err('Payload inválido: input debe ser un string');
+      }
+      if (format !== 'user:pass' && format !== 'cookies') {
+        return err('Payload inválido: format debe ser \'user:pass\' o \'cookies\'');
+      }
+      const lines = input
+        .split('\n')
+        .map((line: string) => line.trim())
+        .filter((line: string) => line.length > 0);
+      if (lines.length === 0) {
+        return err('Ingrese al menos una cuenta');
+      }
+      if (lines.length > 50) {
+        return err('Máximo 50 cuentas permitidas');
+      }
+      const results: Array<{ success: boolean; message: string; accountId?: string }> = [];
+      try {
+        const { RobloxAuthService } = await import('./services/RobloxAuthService');
+        const authService = new RobloxAuthService();
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          try {
+            let accountId: string;
+            if (format === 'user:pass') {
+              const [username, password] = line.split(':');
+              if (!username || !password) {
+                throw new Error(`Línea ${i + 1}: formato inválido, se esperaba usuario:contraseña`);
+              }
+              const loginResult = await authService.login(username, password);
+              const result = await this.accountManager.addAccountFromCookie(loginResult.cookie, 'Default');
+              accountId = result.id;
+              results.push({ success: true, message: `Línea ${i + 1}: cuenta agregada`, accountId });
+            } else {
+              if (!line.startsWith('_|WARNING:-DO-NOT-SHARE|_')) {
+                throw new Error(`Línea ${i + 1}: cookie no tiene formato .ROBLOSECURITY válido`);
+              }
+              const result = await this.accountManager.addAccountFromCookie(line, 'Default');
+              accountId = result.id;
+              results.push({ success: true, message: `Línea ${i + 1}: cuenta agregada`, accountId });
+            }
+          } catch (e) {
+            results.push({ success: false, message: (e as Error).message });
+          }
+        }
+        return ok(results);
+      } catch (e) {
+        return err(`Error procesando importación masiva: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
     // ROBLOX — con validación de tipos
     // =================================================================
 

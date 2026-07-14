@@ -131,6 +131,15 @@ export default function App() {
     await fetchAccounts();
   };
 
+  const handleBulkImport = async (input: string, format: 'user:pass' | 'cookies') => {
+    const result = await api.account.bulkImport(input, format);
+    if (result && result.success === false) {
+      throw new Error(result.error || 'Error en la importación masiva');
+    }
+    await fetchAccounts();
+    return result.data;
+  };
+
   const handleDeleteAccount = React.useCallback(async (id: string) => {
     const result = await api.account.remove(id);
     if (result && result.success === false) {
@@ -313,6 +322,7 @@ export default function App() {
           onClose={() => setShowAddModal(false)}
           onLoginBrowser={handleLoginBrowser}
           onAddCookie={handleAddCookie}
+          onBulkImport={handleBulkImport}
         />
 
         {/* Account Control Panel */}

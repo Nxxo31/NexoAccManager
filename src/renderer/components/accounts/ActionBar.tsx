@@ -1,6 +1,7 @@
 import { Button } from '@renderer/components/ui/button';
 import { cn } from '@renderer/lib/utils';
-import { PlusCircle, Trash2, EyeOff, AppWindow, Palette, Gamepad2 } from 'lucide-react';
+import { PlusCircle, Trash2, EyeOff, AppWindow, Palette, Gamepad2, Shuffle } from 'lucide-react';
+import { useUIStore } from '@renderer/store/useUIStore';
 
 interface ActionBarProps {
   onAddAccount: () => void;
@@ -23,6 +24,9 @@ export default function ActionBar({
   onToggleHideUsernames,
   hasSelectedAccount,
 }: ActionBarProps) {
+  const jobIdShuffle = useUIStore((s) => s.jobIdShuffle);
+  const toggleJobIdShuffle = useUIStore((s) => s.toggleJobIdShuffle);
+
   return (
     <div className="flex-shrink-0 border-t border-border/50 glass-bar px-4 py-3 flex flex-row items-center gap-3">
       <Button
@@ -81,6 +85,19 @@ export default function ActionBar({
       >
         <Gamepad2 className="h-4 w-4 opacity-50" />
         Control de Cuenta
+      </Button>
+
+      <Button
+        variant="ghost"
+        onClick={toggleJobIdShuffle}
+        className={cn(
+          'flex items-center gap-2 rounded-md px-3 py-2 text-sm',
+          jobIdShuffle && 'text-primary'
+        )}
+        title={jobIdShuffle ? 'JobId Shuffle activado — se unirá a un servidor aleatorio' : 'Activar JobId Shuffle'}
+      >
+        <Shuffle className={cn('h-4 w-4', jobIdShuffle ? 'text-primary' : 'opacity-50')} />
+        Shuffle
       </Button>
     </div>
   );
