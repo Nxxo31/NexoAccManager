@@ -1,40 +1,46 @@
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Lock, AlertCircle, Loader2, Cookie, LogIn } from 'lucide-react';
+import { X, AlertCircle, Loader2, Globe, Cookie } from 'lucide-react';
 import { Button } from '@renderer/components/ui/button';
 import { Input } from '@renderer/components/ui/input';
 
 interface AddAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddAccount: (cookie: string, group?: string) => Promise<void>;
-  onLoginAccount: (username: string, password: string, group?: string) => Promise<void>;
+  onLoginBrowser: (group?: string) => Promise<void>;
+  onAddCookie?: (cookie: string, group?: string) => Promise<void>;
 }
 
-type Tab = 'cookie' | 'login';
-
-const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAddAccount, onLoginAccount }) => {
-  const [tab, setTab] = React.useState<Tab>('login');
-  const [cookie, setCookie] = React.useState('');
+const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onLoginBrowser, onAddCookie }) => {
   const [group, setGroup] = React.useState('Default');
-  const [username, setUsername] = React.useState('');
-  const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = React.useState(false);
+  const [cookie, setCookie] = React.useState('');
+
+  const handleBrowserLogin = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await onLoginBrowser(group.trim() || 'Default');
+      setGroup('Default');
+      onClose();
+    } catch (e) {
+      setError((e as Error).message || 'Error al iniciar sesión');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCookieSubmit = async () => {
     if (!cookie.trim()) {
       setError('Pega una cookie .ROBLOSECURITY válida');
       return;
     }
-    if (!cookie.trim().startsWith('_|WARNING:-DO-NOT-SHARE|_')) {
-      setError('Formato inválido. La cookie debe empezar con _|WARNING:-DO-NOT-SHARE|_');
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
-      await onAddAccount(cookie.trim(), group.trim() || 'Default');
+      await onAddCookie?.(cookie.trim(), group.trim() || 'Default');
       setCookie('');
       setGroup('Default');
       onClose();
@@ -45,41 +51,12 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
     }
   };
 
-  const handleLoginSubmit = async () => {
-    if (!username.trim()) {
-      setError('Ingresa tu usuario de Roblox');
-      return;
-    }
-    if (!password) {
-      setError('Ingresa tu contraseña de Roblox');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      await onLoginAccount(username.trim(), password, group.trim() || 'Default');
-      setUsername('');
-      setPassword('');
-      setGroup('Default');
-      onClose();
-    } catch (e) {
-      setError((e as Error).message || 'Error al iniciar sesión');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resetState = () => {
-    setError(null);
-    setCookie('');
-    setUsername('');
-    setPassword('');
-    setGroup('Default');
-  };
-
   const handleClose = () => {
     if (!loading) {
-      resetState();
+      setError(null);
+      setCookie('');
+      setGroup('Default');
+      setShowAdvanced(false);
       onClose();
     }
   };
@@ -103,9 +80,9 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <LogIn className="h-5 w-5 text-primary" />
+                <Globe className="h-5 w-5 text-primary" />
                 <h2 className="text-lg font-semibold text-foreground">Agregar Cuenta</h2>
               </div>
               <button onClick={handleClose} className="p-1 rounded hover:bg-muted" disabled={loading}>
@@ -113,87 +90,22 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
               </button>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-1 mb-4 rounded-md bg-muted/50 p-1">
-              <button
-                onClick={() => { setTab('login'); setError(null); }}
-                className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${
-                  tab === 'login' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                }`}
-                disabled={loading}
-              >
-                <LogIn className="inline mr-1.5 h-3.5 w-3.5" />
-                Usuario y Contraseña
-              </button>
-              <button
-                onClick={() => { setTab('cookie'); setError(null); }}
-                className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${
-                  tab === 'cookie' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                }`}
-                disabled={loading}
-              >
-                <Cookie className="inline mr-1.5 h-3.5 w-3.5" />
-                Pegar Cookie
-              </button>
-            </div>
-
-            {/* Tab Content */}
+            {/* Browser login — método principal */}
             <div className="space-y-4">
-              {tab === 'login' ? (
-                <>
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1.5 block">
-                      Usuario de Roblox
-                    </label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Tu usuario de Roblox"
-                        className="w-full pl-9"
-                        disabled={loading}
-                        onKeyDown={(e) => e.key === 'Enter' && !loading && handleLoginSubmit()}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1.5 block">
-                      Contraseña
-                    </label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Tu contraseña de Roblox"
-                        className="w-full pl-9"
-                        disabled={loading}
-                        onKeyDown={(e) => e.key === 'Enter' && !loading && handleLoginSubmit()}
-                      />
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-1.5 block">
-                      Cookie .ROBLOSECURITY
-                    </label>
-                    <textarea
-                      value={cookie}
-                      onChange={(e) => setCookie(e.target.value)}
-                      placeholder="Pega tu cookie aquí..."
-                      rows={4}
-                      disabled={loading}
-                      className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring resize-none font-mono"
-                    />
-                  </div>
-                </>
-              )}
+              <div className="text-center py-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                  <Globe className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-base font-semibold text-foreground mb-1.5">
+                  Iniciar sesión en Roblox
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                  Se abrirá una ventana de navegador. Inicia sesión normalmente en Roblox
+                  y capturaremos tu sesión automáticamente.
+                </p>
+              </div>
 
-              {/* Group field — shared */}
+              {/* Group field */}
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">
                   Grupo (opcional)
@@ -217,33 +129,81 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onAd
 
               {/* Security notice */}
               <div className="text-xs text-muted-foreground bg-muted/30 rounded-md p-2.5 border border-border/50">
-                {tab === 'login' ? (
-                  <>🔒 Tus credenciales se envían solo a Roblox via HTTPS. No se almacenan en el dispositivo.</>
-                ) : (
-                  <>🔒 La cookie se cifra con AES-256-GCM y nunca sale de tu PC.</>
-                )}
+                🔒 Tu sesión se captura localmente. La cookie se cifra con AES-256-GCM y nunca sale de tu PC.
               </div>
 
-              {/* Actions */}
-              <div className="flex justify-end gap-3 pt-2">
-                <Button variant="outline" size="sm" onClick={handleClose} disabled={loading}>
-                  Cancelar
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={tab === 'login' ? handleLoginSubmit : handleCookieSubmit}
+              {/* Browser login button */}
+              <Button
+                variant="default"
+                size="default"
+                onClick={handleBrowserLogin}
+                disabled={loading}
+                className="w-full h-11"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Abriendo navegador...
+                  </>
+                ) : (
+                  <>
+                    <Globe className="mr-2 h-4 w-4" />
+                    Iniciar sesión en Roblox
+                  </>
+                )}
+              </Button>
+
+              {/* Advanced toggle */}
+              <div className="pt-2 border-t border-border/30">
+                <button
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                   disabled={loading}
                 >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {tab === 'login' ? 'Iniciando sesión...' : 'Agregando...'}
-                    </>
-                  ) : (
-                    tab === 'login' ? 'Iniciar Sesión' : 'Agregar Cuenta'
-                  )}
-                </Button>
+                  {showAdvanced ? '▼' : '▶'} Opciones avanzadas (cookie manual)
+                </button>
+
+                {showAdvanced && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    className="pt-3 space-y-3"
+                  >
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 flex items-center gap-1.5">
+                        <Cookie className="h-3.5 w-3.5" />
+                        Cookie .ROBLOSECURITY
+                      </label>
+                      <textarea
+                        value={cookie}
+                        onChange={(e) => setCookie(e.target.value)}
+                        placeholder="Pega tu cookie aquí... (solo para usuarios avanzados)"
+                        rows={3}
+                        disabled={loading}
+                        className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring resize-none font-mono"
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCookieSubmit}
+                      disabled={loading || !cookie.trim()}
+                      className="w-full"
+                    >
+                      {loading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Cookie className="mr-2 h-3.5 w-3.5" />
+                      )}
+                      Agregar con Cookie
+                    </Button>
+                    <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
+                      ⚠️ Este método es para usuarios avanzados. La cookie debe empezar con{' '}
+                      <code className="text-primary/80">_|WARNING:-DO-NOT-SHARE|_</code>.
+                      Puedes obtenerla de las DevTools del navegador.
+                    </p>
+                  </motion.div>
+                )}
               </div>
             </div>
           </motion.div>

@@ -112,10 +112,21 @@ export default function App() {
     await fetchAccounts();
   };
 
-  const handleLoginAccount = async (username: string, password: string, group?: string) => {
-    const result = await api.account.login(username, password, group);
+  const handleLoginBrowser = async (group?: string) => {
+    try {
+      const result = await api.account.loginBrowser(group);
+      if (result && result.success === false) throw new Error(result.error || 'Error desconocido');
+      await fetchAccounts();
+      setShowAddModal(false);
+    } catch (e) {
+      setError((e as Error).message || 'Error al iniciar sesión');
+    }
+  };
+
+  const handleAddCookie = async (cookie: string, group?: string) => {
+    const result = await api.account.add(cookie, group);
     if (result && result.success === false) {
-      throw new Error(result.error || 'Failed to login');
+      throw new Error(result.error || 'Error al agregar cookie');
     }
     await fetchAccounts();
   };
@@ -280,8 +291,8 @@ export default function App() {
       <AddAccountModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onAddAccount={handleAddAccount}
-        onLoginAccount={handleLoginAccount}
+        onLoginBrowser={handleLoginBrowser}
+        onAddCookie={handleAddCookie}
       />
     </div>
   );

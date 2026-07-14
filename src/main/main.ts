@@ -60,6 +60,7 @@ function err(message: string): IpcResult {
 const ALLOWED_CHANNELS = new Set([
   'account:add',
   'account:login',
+  'account:login-browser',
   'account:remove',
   'account:list',
   'account:move',
@@ -232,7 +233,33 @@ class NexoApp {
       }
     });
 
-    // LOGIN con username/password — alternativa a copiar/pegar cookie
+    // LOGIN con ventana de navegador — método principal (estilo RAM Original)
+    ipcMain.handle('account:login-browser', async (_, group: unknown) => {
+      // Validar límite máximo de cuentas
+      if (this.accountManager.getAllAccounts().length >= MAX_ACCOUNTS) {
+        return err(`Límite máximo de ${MAX_ACCOUNTS} cuentas alcanzado. Elimina algunas cuentas antes de agregar nuevas.`);
+      }
+      try {
+        const { LoginBrowserService } = await import('./services/LoginBrowserService');
+        const loginService = new LoginBrowserService();
+        const loginResult = await loginService.loginWithBrowser();
+
+        const groupName = isNonEmptyString(group) ? group.trim() : 'Default';
+        const result = await this.accountManager.addAccountFromCookie(loginResult.cookie, groupName);
+        return ok(result);
+      } catch (e) {
+        const msg = (e as Error).message;
+        if (msg.includes('Ventana cerrada')) {
+          return err('Login cancelado por el usuario');
+        }
+        if (msg.includes('Tiempo de espera')) {
+          return err('Tiempo de espera agotado. Vuelve a intentarlo.');
+        }
+        return err(`Error iniciando sesión: ${msg}`);
+      }
+    });
+
+    // LOGIN con username/password — método avanzado (en Settings)
     ipcMain.handle('account:login', async (_, username: unknown, password: unknown, group: unknown) => {
       if (!isNonEmptyString(username)) {
         return err('Payload inválido: username debe ser un string no vacío');
@@ -254,12 +281,11 @@ class NexoApp {
         return ok(result);
       } catch (e) {
         const msg = (e as Error).message;
-        // Mensajes de error más claros para casos comunes
         if (msg.includes('2FA') || msg.includes('dos pasos')) {
-          return err('Esta cuenta requiere verificación en dos pasos (2FA). Usa el método de cookie manual.');
+          return err('Esta cuenta requiere verificación en dos pasos (2FA). Usa el método de ventana de navegador.');
         }
         if (msg.includes('captcha')) {
-          return err('Roblox requiere captcha. Usa el método de cookie manual.');
+          return err('Roblox requiere captcha. Usa el método de ventana de navegador.');
         }
         return err(`Error iniciando sesión: ${msg}`);
       }

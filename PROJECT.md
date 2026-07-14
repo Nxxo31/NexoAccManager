@@ -1,441 +1,91 @@
-# NexoAccManager — OpenSource Account Manager
-
-## Description
-
-**Open-source tool for gaming platform account management.**
-
-Free and open-source tool for managing multiple accounts and game instances.
-Modern, secure evolution of the Roblox Account Manager (RAM) by ic3w0lf22,
-focused on privacy and user control.
-
-**Project nature:**
-- **Open source under MIT License:** Free use, modification, and distribution.
-- **No commercial intent:** No subscriptions, payments, or ads.
-- **100% Local:** All credentials and data are stored and processed only
-  on the user's device using AES-256-GCM encryption.
-- **Standalone:** No servers, no backend, no internet required.
-- **No affiliation:** This project is not affiliated with, endorsed by, or
-  sponsored by any gaming platform or related company.
-
-## Repository
-
-| Repo | Description | URL |
-|------|-------------|-----|
-| **NexoAccManager** (this repo) | Electron app — RAM engine, 100% local | https://github.com/Nxxo31/NexoAccManager |
-
----
-
-## History
-
-- **2026-07-04:** Strategic decision to migrate from SaaS to OpenSource
-  after legal and technical risk assessment.
-- **2026-07-04:** Removed proprietary backend, licensing system,
-  Stripe integration, and centralized authentication from the Electron app.
-- **2026-07-12:** Cleaned PROJECT.md — all SaaS content removed.
-- **2026-07-12:** Cleaned residual SaaS references in locales and code comments.
-- **2026-07-13:** Deleted NexoAccManager-Backend and NexoAccManager-Landing
-  repos from filesystem. Project is now a single standalone repo.
-- **2026-07-13:** Architecture audit completed. 4 bugs found and fixed:
-  GamesService.distributeAccounts cookie access, presence:get IPC signature
-  mismatch, missing language channels in preload whitelist, MAX_ACCOUNTS
-  not enforced on account:add.
-
----
-
-## Comparison: NexoAccManager vs original RAM
-
-| Feature | RAM (ic3w0lf22) | NexoAccManager |
-|---|---|---|
-| **Stack** | WinForms C# (.NET) | Electron + React + TypeScript |
-| **Platform** | Windows only | Windows (Mac/Linux future) |
-| **UI/UX** | Basic 2015 UI | Modern design system, glassmorphism |
-| **Model** | Free, no support | OpenSource MIT — free and open |
-| **Auth** | No login | No login — 100% local, no server |
-| **Backend** | None | None — everything on device |
-| **Account Control Panel** | Basic | Full — privacy, blocks, sessions, password |
-| **Server Browser** | Basic list | With region, ping, filter by least players |
-| **Smart Server Selection** | Manual | Auto-join least populated + multi-account split |
-| **Presence Dashboard** | None | Real-time status of all accounts |
-| **Encryption** | Basic | AES-256-GCM hardware-derived |
-| **IPC Security** | N/A (.NET) | contextBridge + contextIsolation + sandbox |
-| **Auto Cookie Refresh** | Basic | Advanced with retry and notifications |
-| **Player Finder** | Basic | With region and multi-account distribution |
-| **Active support** | Abandoned | Active community, open source |
-| **Download** | GitHub releases | GitHub releases |
-| **Inventory from app** | No | Yes — view items, Robux balance |
-| **Languages** | English only | ES, EN, PT with full i18n |
-| **Custom themes** | No | Dark, Light, Roblox Classic, Custom (all free) |
-
----
-
-## Design System
-
-### Color palette (Roblox-inspired)
-
-```css
-:root {
-  --primary:        #DE350D;  /* Roblox Red — main CTAs */
-  --primary-dark:   #B22A0A;  /* Hover primary */
-  --accent:         #6347FF;  /* Purple — secondary elements */
-  --accent-light:   #8B6FFF;  /* Hover accent */
-  --bg-dark:        #0D0D0D;  /* Main background */
-  --bg-card:        #161616;  /* Cards and panels */
-  --bg-surface:     #1E1E1E;  /* Elevated surfaces */
-  --text-primary:   #FFFFFF;  /* Main text */
-  --text-secondary: #A0A0A0;  /* Secondary text */
-  --success:        #2ED573;  /* Green — active states */
-  --warning:        #FFA502;  /* Orange — warnings */
-  --error:          #FF4757;   /* Red — errors */
-  --border:         #2A2A2A;   /* Subtle borders */
-}
-```
-
-### Available themes
-
-- **Dark (default)** — #0D0D0D background, current theme
-- **Light** — #F5F5F5 background, dark text, same accent
-- **Roblox Classic** — dominant red #DE350D with black
-- **Custom** — user defines primary and accent colors
-
-### Visual style
-
-- Dark theme exclusive by default
-- Glassmorphism on cards: `backdrop-filter: blur(12px)`, translucent borders
-- Background gradients with subtle Roblox red
-- Typography: Inter (UI) + JetBrains Mono (technical data)
-- Border radius: 8px cards, 4px inputs
-- Animations: 200ms ease-in-out
-- Iconography: Lucide Icons
-- Inspiration: Linear.app + Vercel Dashboard
-
----
-
-## Internationalization (i18n)
-
-### Supported languages
-
-- ES Spanish (es) — default language
-- EN English (en)
-- PT Portuguese (pt)
-
-### Implementation
-
-- Library: `i18next` + `react-i18next`
-- Files: `src/renderer/locales/es.json`, `en.json`, `pt.json`
-- Selector: dropdown with flags in Header
-- Persistence: SQLite `settings` table, key `language`
-- Auto-detection: uses OS language on first launch
-- IPC channels: `settings:language:get` / `settings:language:set`
-
----
-
-## Personalization and Themes
-
-### Appearance Settings Panel
-
-- **Theme selector**: Dark / Light / Roblox Classic / Custom
-- **Custom primary color**: color picker (all users)
-- **Custom accent color**: color picker (all users)
-- **Font size**: Small / Medium (default) / Large
-- **UI density**: Compact / Normal / Spacious
-- **Animations**: On / Off (for resource-constrained PCs)
-- **Language**: dropdown with flags ES / EN / PT
-
-Persistence: SQLite `settings` table.
-Application: CSS variables in `:root` updated dynamically via IPC `theme:set`.
-
----
-
-## Architecture
-
-```
-User
-  │
-  ▼
-NexoAccManager — Electron App (100% local on user's PC)
-  ├── Manage multiple accounts without limits
-  ├── SQLite AES-256-GCM → accounts (NEVER leave the PC)
-  ├── i18n with i18next (ES/EN/PT)
-  ├── Customizable themes with CSS variables (all available)
-  └── Roblox API calls with local cookie
-```
-
-**Note:** The Electron app requires no backend or server. Everything
-runs locally on the user's device.
-
----
-
-## Architecture and design patterns
-
-- **Main pattern**: Two-process model (Main + Renderer) with typed IPC
-- **IPC**: invoke/handle (Promise-based) — never send/on for request-response
-- **IPC Security**: contextBridge with explicit channel whitelist, validation on both sides
-- **IPC Namespacing**: `account:*`, `roblox:*`, `settings:*`, `theme:*`, `i18n:*`, `advanced:*`
-- **State**: Zustand stores (useAccountStore, useUIStore) with devtools + persist
-- **UI**: Framer Motion animations, Lucide icons, Radix UI primitives, CVA variants
-- **Services**: Repository pattern for SQLite, Service layer for Roblox API
-- **Cache**: LRU cache in main process for Roblox API responses (TTL 60s)
-- **Error handling**: Result pattern (success/error) in IPC — never throw without catch
-- **i18n**: i18next initialized in renderer, language saved via `settings:language:set`
-- **Themes**: CSS variables in `:root` updated via IPC `theme:set`
-
----
-
-## Security
-
-### BrowserWindow config (mandatory)
-
-```
-contextIsolation: true    — isolates preload from renderer
-nodeIntegration: false    — no Node.js in renderer
-sandbox: true             — Chromium sandbox active
-webSecurity: true         — same-origin policy
-enableRemoteModule: false — remote module disabled
-```
-
-### CSP in BrowserWindow
-
-```
-default-src 'self'
-script-src 'self'
-connect-src 'self' https://*.roblox.com
-```
-
-### IPC Security
-
-- contextBridge exposes ONLY specific functions, never raw ipcRenderer
-- Channel whitelist in preload
-- Type validation in main process handlers (defense in depth)
-- Never shell.openExternal() without validating the URL first
-
-### Storage
-
-- Roblox cookies in SQLite with AES-256-GCM
-- Never localStorage for sensitive data
-- Theme and language preferences in SQLite (not sensitive, unencrypted)
-
-**Note:** This project has no backend, collects no data, and does not
-communicate with any servers. All operations are local.
-
----
-
-## License
-
-**MIT License** — See [LICENSE](LICENSE) for full details.
-
-This software is provided "as is", without warranty of any kind.
-Use of this software is at your own risk.
-
-**Legal Disclaimer:**
-This project is not affiliated with, endorsed by, or sponsored by any
-gaming platform, technology company, or trademark. Use of this software
-is the sole responsibility of the end user, who must ensure compliance
-with the terms of service of any platform they interact with.
-
----
-
-## Project Status
-
-### Roadmap (July 2026)
-
-| Sprint | Status | Description |
-|--------|--------|-------------|
-| ✅ OpenSource migration | ✅ Complete | Removed backend, licenses, and monetization |
-| ✅ Rebranding | ✅ Complete | Name change and brand reference removal |
-| ✅ Documentation | ✅ Complete | README, CONTRIBUTING, build guides |
-| ✅ Code cleanup | ✅ Complete | Removed LicenseService, AuthContext, plan validations |
-| ✅ Residual SaaS cleanup | ✅ Complete | Removed Enterprise/plan references from locales and comments |
-| ✅ Architecture audit | ✅ Complete (2026-07-13) | Full code audit — 4 bugs found |
-| ✅ Bug fixes | ✅ Complete (2026-07-13) | GamesService, presence IPC, preload whitelist, MAX_ACCOUNTS |
-| ✅ UI/UX redesign | ✅ Complete (2026-07-13) | Framer Motion, Lucide, Radix, Zustand, new components |
-| ✅ Real ping measurement | ✅ Complete (2026-07-13) | HTTP timing to roblox.com with LRU cache |
-| ✅ Cookie expiry IPC | ✅ Complete (2026-07-13) | EventEmitter + IPC forward to renderer |
-| ✅ ESLint config | ✅ Complete (2026-07-13) | Flat config with TypeScript support |
-| ✅ Vitest tests | ✅ Complete (2026-07-13) | 72 tests: CryptoService, IPC patterns, GamesService, AccountStore |
-| ✅ App.tsx integration | ✅ Complete (2026-07-13) | BrowserRouter + AppShell, new components, cookie listeners |
-| ✅ IPC result pattern | ✅ Complete (2026-07-13) | All handlers use ok()/err(), no raw returns |
-| ✅ DatabaseManager typing | ✅ Complete (2026-07-13) | getAccount() typed, no more (this.db as any) casts |
-| ✅ Preload cookie events | ✅ Complete (2026-07-13) | cookieEvents.onExpiring/onExpired in contextBridge |
-| ⏳ Upload to GitHub releases | ⏳ Pending | |
-
-### Known limitations
-
-- Ping en GamesService ahora usa medición real HTTP a roblox.com (favicon.ico) con cache LRU 60s
-- Región estimada por latencia real (no simulada)
-- CookieExpiryService ahora emite eventos IPC (cookie:expiring, cookie:expired) al renderer
-- Zustand ahora integrado — stores useAccountStore y useUIStore activos
-- Tests vitest: 72 tests pasando (CryptoService, IPC, GamesService, AccountStore)
-- IPC result pattern: todos los handlers usan ok()/err()
-- DatabaseManager: getAccount() tipado, sin casts as any
-- Preload: cookieEvents.onExpiring/onExpired expuestos en contextBridge
-- App.tsx: integrado con BrowserRouter, nuevos componentes, cookie listeners
-- Directorios vacíos legacy eliminados (server, types, hooks, store)
-- ESLint flat config creado y funcional
-- UI rediseñada con framer-motion, lucide-react, radix-ui, Zustand
-
-### SQLite settings table
-
-```sql
-CREATE TABLE settings (
-  key   TEXT PRIMARY KEY,
-  value TEXT NOT NULL
-);
--- Keys used:
--- language          → 'es' | 'en' | 'pt'
--- theme             → 'dark' | 'light' | 'roblox-classic' | 'custom'
--- fontSize          → 'small' | 'medium' | 'large'
--- uiDensity         → 'compact' | 'normal' | 'spacious'
--- animationsEnabled → 'true' | 'false'
--- primaryColor      → '#DE350D' (user-customizable)
--- accentColor       → '#6347FF' (user-customizable)
--- MultiRoblox       → 'true' | 'false'
-```
-
----
-
-## Features
-
-### Core MVP v1.0 (implemented)
-
-- ✅ Add accounts by .ROBLOSECURITY cookie
-- ✅ Cookie verification against auth.roblox.com
-- ✅ Local AES-256-GCM encryption, hardware-derived
-- ✅ Account list with groups
-- ✅ Launch modal with PlaceId and JobId
-- ✅ Multi-Roblox (multiple simultaneous instances)
-- ✅ Import/Export JSON
-- ✅ Local REST API on port 8080
-- ✅ MAX_ACCOUNTS limit (50) enforced on account:add
-
-### Account Control Panel — completed
-
-- ✅ View and change display name
-- ✅ View and edit profile description
-- ✅ View avatar with thumbnail
-- ✅ Change password
-- ✅ View active sessions
-- ✅ Close sessions on specific devices or all
-- ✅ Toggle 2FA
-- ✅ Privacy settings (messages, follow, chat, inventory, groups)
-- ✅ Friends list with online status
-- ✅ Accept/reject friend requests
-- ✅ Block/unblock users
-- ✅ Notification toggles
-
-### Server Browser — completed
-
-- ✅ Search game by PlaceId or name
-- ✅ Server list with player count, JobId, estimated region
-- ✅ Filters (by region, by least players)
-- ✅ Auto-join least populated
-- ✅ Multi-account server split (round-robin distribution)
-- ⚠️ Ping/region is simulated (not real latency)
-
-### Presence Dashboard — completed
-
-- ✅ Real-time account status grid (polling 30s)
-- ✅ Current game thumbnail
-- ✅ Session time
-- ✅ Robux balance per account
-- ✅ Recent games history
-
-### i18n — completed
-
-- ✅ i18next + react-i18next
-- ✅ Translation files: es.json, en.json, pt.json
-- ✅ Language selector with flags in Header
-- ✅ OS language auto-detection
-- ✅ Language persistence in SQLite settings
-- ✅ Dedicated IPC channels (settings:language:get/set)
-
-### Themes — completed
-
-- ✅ CSS variables theme system
-- ✅ ThemeService in main process
-- ✅ 4 themes: Dark, Light, Roblox Classic, Custom
-- ✅ Theme persistence in SQLite settings
-- ✅ Dynamic application in renderer without reload
-
-### Settings Panel — completed
-
-- ✅ Appearance: theme, font size, UI density, animations toggle
-- ✅ Language: dropdown with flags ES/EN/PT
-- ✅ Account: manage local account
-- ✅ Security: change password (delegates to Account Control Panel)
-- ✅ Advanced: clear cache, export data, delete local account
-
----
-
-## Roblox APIs used
-
-```
-accountsettings.roblox.com    → privacy, notifications
-accountinformation.roblox.com → profile, account info
-auth.roblox.com               → verify cookie, auth ticket, remote logout
-users.roblox.com              → user info, search by username
-friends.roblox.com            → friends, followers, requests
-presence.roblox.com           → real-time online status
-games.roblox.com              → game info, servers, player count
-inventory.roblox.com          → item inventory
-economy.roblox.com            → Robux balance, transactions
-thumbnails.roblox.com         → avatars, game thumbnails
-```
-
----
-
-## Development Sprints — all completed
-
-### Sprint E1 — IPC Security ✅
-### Sprint E2 — Account Control Panel ✅
-### Sprint E3 — Server Browser ✅
-### Sprint E4 — Presence Dashboard ✅
-### Sprint E5 — Auto Cookie Refresh ✅
-### Sprint E6 — i18n ✅
-### Sprint E7 — Themes ✅
-### Sprint E8 — Settings Panel ✅
-### Sprint E9 — Architecture Audit + Bug Fixes ✅ (2026-07-13)
-
----
-
-## Deployment
-
-- **Distribution:** GitHub Releases
-- **Build:** `electron-builder` generates AppImage + .snap (Linux), NSIS installer (Windows)
-- **100% local:** No server required, no cloud deploy needed
-- **Auto-update:** Configured via `app-update.yml` in GitHub Releases
-
----
-
-## Global technical decisions — do not change without approval
-
-- Roblox cookies NEVER leave the user's PC — non-negotiable principle
-- contextIsolation: true + nodeIntegration: false + sandbox: true — never disable
-- 100% local mode — no backend, no server, no cloud
-- Roblox API calls with LRU cache 60s to respect rate limits
-- i18n: Spanish as default language
-- Themes: Dark as default theme
-- All themes available to all users — no restrictions
-- NEVER use dangerouslySetInnerHTML with external data in React
-- Account limit: max 50 per user (hardcoded, enforced on account:add)
-
----
-
-## Release Status
-
-- **v2.1.0** publicado en GitHub Releases (2026-07-13)
-- Login con username/password de Roblox integrado (RobloxAuthService)
-- BrowserRouter → MemoryRouter (fix pantalla negra en Electron)
-- AccountGrid/AccountCard conectados a acciones reales
-- 72 tests pasando, tsc 0 errores, build exitoso
-- Tags: v2.0.0, v2.0.1, v2.1.0
-- Download: https://github.com/Nxxo31/NexoAccManager/releases/tag/v2.1.0
-
-## Known Limitations
-
-- **NSIS installer** — se genera via GitHub Actions CI/CD (build-windows.yml)
-- **2FA accounts** — requieren método de cookie manual (login API no soporta 2FA programático)
-- **Captcha** — si Roblox requiere captcha, usar método de cookie manual
-
----
-
-*Updated: 2026-07-13 — Release v2.1.0: login username/password + fix bugs UI + MemoryRouter + 72 tests + RobloxAuthService.*
+# Proyecto: NexoAccManager
+# Fecha: 2026-07-14 (actualizado 2026-07-15)
+# Estado: Login con navegador implementado (estilo RAM Original) + UI/UX mejorado y testing mejorado
+
+## Resumen de cambios
+
+### Login con navegador (NUEVO MÉTODO HABITUAL) - Implementado 2026-07-15
+- LoginBrowserService: BrowserWindow aislado que abre roblox.com/login
+  - Captura automática de cookie .ROBLOSECURITY cuando el usuario inicia sesión
+  - Session partition aislada para evitar contaminación
+  - Intercepta cambios de cookie mediante session.cookies.on('changed')
+  - Obtiene info del usuario vía users.roblox.com/v1/users/authenticated
+  - Cierra ventana automáticamente al detectar cookie válida
+- IPC handler: `account:login-browser` (método principal, por defecto)
+- Método avanzado mantenido: `account:login` (username/password) → movido a Settings como avanzado
+- Preload actualizado: whitelist + API `loginBrowser(group?: string)`
+- AddAccountModal reescrito:
+  - Login con navegador como método principal visible (Globe icon)
+  - Cookie manual como opción avanzada (requiere activar "Opciones avanzadas")
+  - Mensajes de seguridad claros para ambos métodos
+
+### UI/UX mejoras (v2.2.0 - previamente implementado)
+- AccountTable: tabla de 3 columnas (Usuario|Alias|Descripción) con avatar, estado y acciones
+- AccountDetailsPanel: panel lateral con Place ID, Job ID, Alias, Descripción editables + Follow + metadata
+- ActionBar: barra inferior con Agregar, Eliminar, Ocultar Usernames (checkbox), Abrir App, Editar Tema, Control de Cuenta
+- ServerBrowser: búsqueda real de servidores por Place ID vía IPC + filtros y ordenamiento
+- PresenceDashboard: polling real con avatares, estados y detalles de juego/balance
+- Sidebar: rediseño con glassmorphism, ícono de logo y estado activo mejorado
+- SettingsPanel: mejor espaciado, labels en español y feedback visual
+- index.css: design system completo con scrollbar customizado, glassmorphism, tipografía JetBrains Mono
+- App.tsx: ruta index → /accounts, layout 3 zonas (tabla + detalles + actionbar), datos reales
+
+### Testing mejoras
+- Agregado Testing Library (@testing-library/react, @testing-library/jest-dom, @testing-library/user-event)
+- Agregado happy-dom como entorno de pruebas para componentes React
+- Agregado msw para mock de APIs (aunque no se usó en tests finales por complejidad)
+- Actualizado vitest.config.ts para usar environment 'happy-dom' por defecto (para .tsx) y 'node' para .ts
+- Agregado src/test/setup.ts con mock de window.api (Electron contextBridge) para pruebas de renderer
+- Tests creados para:
+  - Sidebar.tsx
+  - AccountTable.tsx
+  - ActionBar.tsx
+  - AccountDetailsPanel.test.tsx (con interacciones de guardar alias/descripción)
+  - ServerBrowser.test.tsx
+  - PresenceDashboard.test.tsx
+  - Intentado test para RobloxAuthService.test.ts (necesita más trabajo de mocking)
+- Mantener tests existentes: IPC.test.ts, GamesService.test.ts, useAccountStore.test.ts, CryptoService.test.ts (72 tests pasando)
+- Nuevo total: ~105 tests (72 existentes + ~33 nuevos de UI)
+
+## Próximos pasos
+1. Mejorar tests de RobloxAuthService con mocking correcto de axios
+2. Añadir tests E2E con Playwright para flujos completos (login, añadir cuenta, editar, lanzar juego)
+3. Añadir pruebas de visual regresión con Percy o similar
+4. Añadir pruebas de accesibilidad con axe-core
+5. Configurar coverage report con c8/istanbul y subir a codecov
+6. Construir y validar NSIS installer (pendiente desde v2.2.0)
+
+## Decisiones técnicas
+- Se mantuvo la arquitectura IPC y Zustand intacta
+- Se preservó la seguridad: cookies nunca salen del PC, contextIsolation, sandbox, etc.
+- Se usó el mismo sistema de colores y tipografía del design system existente
+- Se priorizó componentes críticos de UI sobre tests de services menos críticos
+- Los tests de componentes usan mocks de window.api y stores para aislar la capa de presentación
+- El login con navegador es ahora el método habitual (por defecto), alineado con RAM Original
+- El login username/password sigue disponible como método avanzado en Settings
+
+## Investigando: repositorios de "opita go"
+
+### Resultado del análisis (completado 2026-07-15)
+
+**Organización encontrada:** Opita-Code (GitHub)
+
+**2 repositorios relevantes:**
+
+1. **dark-research-mcp** — https://github.com/Opita-Code/dark-research-mcp
+   - Servidor MCP en Go con 57 herramientas para agentes IA
+   - OSINT, validación closed-loop (spec→artifact→drift→reconcile), LLM-as-judge
+   - Cache LLM con TTL, VCR fixtures para testing, modularidad por dominios
+
+2. **opita-sync-framework** — https://github.com/Opita-Code/opita-sync-framework
+   - Kernel de gobernanza IA-First en Go
+   - Modelo de intents y contratos: intake→proposal→preview→governance→execution→inspection
+   - Capability registry, approval-release workflow, event log inmutable
+   - Depuración semántica, policy engine plugable (Cerbos)
+
+### Características aplicables a NexoAccManager
+- **Capability registry:** registrar herramientas disponibles (login browser, cookie refresh, server join) como capacidades tipadas
+- **Event log inmutable:** auditar todas las acciones de cuentas (login, launch, delete) en log canónico
+- **Closed-loop validation:** validar que acciones ejecutadas coincidan con el intent original
+- **Approval workflow:** requerir confirmación para acciones críticas (eliminar cuenta, distribuir cuentas en servers)
+- **Policy engine:** reglas de límites (50 cuentas, rate limiting de API de Roblox) externalizadas
