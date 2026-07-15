@@ -7,7 +7,7 @@
 | Métrica | Valor |
 |---------|-------|
 | Versión | 2.5.0 |
-| Último commit | pendiente — fixes de auditoria |
+| Último commit | 2bec9de — fix(v2.5.0): AccountControlPanel + dead code eliminado |
 | tsc | 0 errores |
 | vitest | 91/91 pasando |
 | lint | 0 errores, 155 warnings (src/) |
