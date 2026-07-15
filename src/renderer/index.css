@@ -6,6 +6,7 @@
 
 /* === DESIGN SYSTEM — Minimalista ============================================ */
 :root {
+  /* Colors */
   --primary: #DE350D;
   --primary-dark: #B22A0A;
   --primary-light: #FF5C33;
@@ -23,21 +24,32 @@
   --error: #FF4757;
   --border: #2A2A2A;
   --border-light: #3A3A3A;
+  --border-dark: #1A1A1A;
+
+  /* Layout dimensions */
+  --sidebar-width: 280px;
+  --sidebar-width-collapsed: 72px;
+  --header-height: 48px;
+  --dock-height: 72px;
+  --content-padding: 24px;
+
+  /* Typography */
   --font-size: 14px;
   --transition-duration: 150ms;
+  --border-radius: 4px;
 }
 
 /* Tailwind compat vars */
 :root {
-  --color-primary: #DE350D;
-  --color-secondary: #6347FF;
-  --color-error: #FF4757;
-  --color-warning: #FFA502;
+  --color-primary: var(--primary);
+  --color-secondary: var(--accent);
+  --color-error: var(--error);
+  --color-warning: var(--warning);
   --color-info: #74b9ff;
-  --color-dark-bg: #0D0D0D;
-  --color-dark-primary: #141414;
-  --color-text: #FFFFFF;
-  --color-text-secondary: #A0A0A0;
+  --color-dark-bg: var(--bg-dark);
+  --color-dark-primary: var(--bg-card);
+  --color-text: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
 }
 
 /* .dark/.light themes handled by ThemeService */
@@ -164,10 +176,10 @@ body {
   border: 1px solid var(--border);
   color: var(--text-primary);
   padding: 8px 12px;
-  border-radius: 4px;
+  border-radius: var(--border-radius);
   font-size: 0.875rem;
   font-family: 'Inter', sans-serif;
-  transition: border-color 150ms ease, background 150ms ease;
+  transition: border-color var(--transition-duration) ease, background var(--transition-duration) ease;
   width: 100%;
   box-sizing: border-box;
 }
@@ -196,7 +208,7 @@ textarea.nexo-input {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  border-radius: 4px;
+  border-radius: var(--border-radius);
   cursor: pointer;
   transition: all 100ms ease;
   border: none;
@@ -261,9 +273,8 @@ textarea.nexo-input {
   flex-shrink: 0;
 }
 
-.status-dot.active { background: var(--success); }
-.status-dot.warning { background: var(--warning); }
-.status-dot.error { background: var(--error); }
+.status-dot.online { background: var(--success); }
+.status-dot.ingame { background: var(--error); } /* Using error for in-game red */
 .status-dot.offline { background: #6B6B6B; }
 
 /* === Mono font for data ===================================================== */
@@ -274,72 +285,76 @@ textarea.nexo-input {
 
 /* === Transitions — Minimal ================================================== */
 * {
-  transition: background-color var(--transition-duration, 150ms) ease,
-              color var(--transition-duration, 150ms) ease;
+  transition: background-color var(--transition-duration) ease,
+              color var(--transition-duration) ease;
 }
 
 /* Only apply border-color transitions to specific elements, not globally */
 .nexo-input, .btn, .btn-outline, .nexo-table tbody tr {
-  transition: background-color var(--transition-duration, 150ms) ease,
-              border-color var(--transition-duration, 150ms) ease;
+  transition: background-color var(--transition-duration) ease,
+              border-color var(--transition-duration) ease;
 }
 
 /* === LAYOUT SPECÍFICOS ====================================================== */
 
-/* Header con botones */
+/* Sidebar */
+.sidebar {
+  width: var(--sidebar-width);
+  border-right: 1px solid var(--border);
+  transition: width 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-dark);
+  z-index: 10;
+}
+.sidebar.collapsed {
+  width: var(--sidebar-width-collapsed);
+}
+
+/* Header */
 .header {
+  height: var(--header-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1.5rem;
+  padding: 0 1.5rem;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-}
-
-.header-content {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.header-buttons {
-  display: flex;
-  gap: 0.5rem;
+  z-index: 20;
 }
 
 /* Main content area */
 .main-content {
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem;
+  padding: var(--content-padding);
   display: flex;
   flex-direction: column;
+  gap: 1.5rem;
 }
 
-/* Action bar (footer) */
-.action-bar {
+/* Dock */
+.dock {
+  height: var(--dock-height);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 1.5rem;
   background: var(--bg-card);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
-  gap: 0.75rem;
+  z-index: 20;
 }
-
-.action-bar-left {
+.dock .place-job-row {
   display: flex;
-  align-items: center;
   gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.action-bar-right {
-  display: flex;
   align-items: center;
-  gap: 0.5rem;
+}
+.dock .action-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
 }
 
 /* Input groups */
@@ -413,26 +428,21 @@ textarea.nexo-input {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .sidebar {
+    /* On mobile, we might want to hide the sidebar or make it overlay */
+    /* For now, we'll keep it as is but reduce width */
+    width: 200px;
+  }
+  .sidebar.collapsed {
+    width: 56px;
+  }
   .header {
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    padding: 0 1rem;
   }
-  
-  .header-buttons {
-    flex-wrap: wrap;
-    margin-top: 0.5rem;
+  .dock {
+    padding: 0 1rem;
   }
-  
-  .action-bar {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-  
-  .place-job-row {
-    flex-direction: column;
-  }
-  
-  .input-group {
-    min-width: 100%;
+  .main-content {
+    padding: 1rem;
   }
 }

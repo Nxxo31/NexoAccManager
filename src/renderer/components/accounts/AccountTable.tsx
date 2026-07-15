@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Account } from '@/types/Account';
 import { cn } from '@renderer/lib/utils';
-import { PlusCircle, Play, Pencil, Trash2 } from 'lucide-react';
+import AccountRow from './AccountRow';
 
 interface AccountTableProps {
   accounts: Account[];
@@ -9,11 +9,8 @@ interface AccountTableProps {
   onSelectAccount: (account: Account) => void;
   onDeleteAccount: (id: string) => void;
   onPlayAccount: (account: Account) => void;
+  onFollowAccount: (userId: number) => void;
   hideUsernames: boolean;
-  onAddAccount?: () => void;
-  onEditAlias?: (account: Account) => void;
-  onEditDesc?: (account: Account) => void;
-  onFollow?: (accountId: string, userId: number) => Promise<void>;
 }
 
 const AccountTable: React.FC<AccountTableProps> = ({
@@ -22,53 +19,22 @@ const AccountTable: React.FC<AccountTableProps> = ({
   onSelectAccount,
   onDeleteAccount,
   onPlayAccount,
+  onFollowAccount,
   hideUsernames,
-  onAddAccount,
-  onEditAlias,
-  onEditDesc,
 }) => {
-  const handleDelete = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (window.confirm('¿Eliminar esta cuenta?')) {
-      onDeleteAccount(id);
-    }
-  };
-
-  const getAvatar = (account: Account) => {
-    if (account.avatarUrl) {
-      return (
-        <img
-          src={account.avatarUrl}
-          alt={`${account.username} avatar`}
-          className="h-6 w-6 rounded-full object-cover flex-shrink-0"
-        />
-      );
-    }
-    const initials = (account.displayName || account.username).toUpperCase().charAt(0);
-    return (
-      <div className="h-6 w-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-semibold flex-shrink-0">
-        {initials}
-      </div>
-    );
-  };
-
   if (accounts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <PlusCircle className="h-10 w-10 text-muted-foreground/20 mb-3" />
+        <div className="h-10 w-10 text-muted-foreground/20 mb-3">
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M8 12h.01M12 12h.01M16 12h.01" />
+          </svg>
+        </div>
         <h3 className="text-sm font-medium text-foreground/50">No hay cuentas</h3>
         <p className="text-xs text-muted-foreground/40 mt-1">
           Agrega tu primera cuenta para empezar
         </p>
-        {onAddAccount && (
-          <button
-            onClick={onAddAccount}
-            className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-white text-xs font-medium hover:bg-primary-dark transition-colors"
-          >
-            <PlusCircle className="h-3.5 w-3.5" />
-            Agregar Cuenta
-          </button>
-        )}
       </div>
     );
   }
@@ -87,72 +53,17 @@ const AccountTable: React.FC<AccountTableProps> = ({
           {accounts.map((account) => {
             const isSelected = selectedAccount?.id === account.id;
             return (
-              <tr
+              <AccountRow
                 key={account.id}
-                className={cn(isSelected && 'selected')}
-                onClick={() => onSelectAccount(account)}
-                onDoubleClick={() => onPlayAccount(account)}
-                role="row"
-                title="Doble click para jugar"
-              >
-                {/* Usuario */}
-                <td role="cell">
-                  <div className="flex items-center gap-2">
-                    {getAvatar(account)}
-                    <span className="text-xs font-medium text-foreground truncate">
-                      {hideUsernames ? '••••••' : `@${account.username}`}
-                    </span>
-                    {account.group && account.group !== 'Default' && (
-                      <span className="inline-flex items-center px-1 py-0.5 text-[9px] rounded bg-primary/15 text-primary font-medium flex-shrink-0">
-                        {account.group}
-                      </span>
-                    )}
-                  </div>
-                </td>
-
-                {/* Alias */}
-                <td role="cell">
-                  {onEditAlias ? (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onEditAlias(account); }}
-                      className="text-xs text-foreground/80 hover:text-primary transition-colors truncate block max-w-[200px] text-left"
-                      title="Click para editar alias"
-                    >
-                      {account.displayName || account.username}
-                    </button>
-                  ) : (
-                    <span className="text-xs text-foreground/80 truncate block max-w-[200px]">
-                      {account.displayName || account.username}
-                    </span>
-                  )}
-                </td>
-
-                {/* Descripción */}
-                <td role="cell">
-                  {onEditDesc && account.description ? (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onEditDesc(account); }}
-                      className="text-xs text-muted-foreground/70 hover:text-foreground transition-colors truncate block max-w-[250px] text-left"
-                      title="Click para editar"
-                    >
-                      {account.description}
-                    </button>
-                  ) : account.description ? (
-                    <span className="text-xs text-muted-foreground/70 truncate block max-w-[250px]">
-                      {account.description}
-                    </span>
-                  ) : onEditDesc ? (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onEditDesc(account); }}
-                      className="text-xs text-muted-foreground/30 hover:text-muted-foreground transition-colors italic"
-                    >
-                     Sin descripción
-                    </button>
-                  ) : (
-                    <span className="text-xs text-muted-foreground/30 italic">Sin descripción</span>
-                  )}
-                </td>
-              </tr>
+                index={account.id} // Using id as index for simplicity; in a real app you might want to use a separate index
+                account={account}
+                selectedAccountId={selectedAccount?.id ?? null}
+                onSelectAccount={onSelectAccount}
+                onDeleteAccount={onDeleteAccount}
+                onPlayAccount={onPlayAccount}
+                onFollowAccount={onFollowAccount}
+                hideUsernames={hideUsernames}
+              />
             );
           })}
         </tbody>

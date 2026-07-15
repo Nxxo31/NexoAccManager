@@ -1,8 +1,55 @@
 # Proyecto: NexoAccManager
-# Fecha: 2026-07-14 (actualizado 2026-07-16)
-# Estado: Release v2.4.0 completo - UI/UX minimalista tipo RAM, tsc limpio, tests 109/109, build exitoso
+# Fecha: 2026-07-16 (actualizado)
+# Estado: Release v2.4.1 completo - pulido total, tsc limpio, tests 111/111, build + coverage + a11y, focus-trap, ARIA labels
 
-## Rediseño UI/UX — v2.4.0 (2026-07-15)
+## Resumen de estado actual
+
+### ✅ COMPLETADO - v2.4.1 (16 Julio 2026)
+- **tsc**: 0 errores de TypeScript
+- **Tests**: 111/111 passing (vitest)
+- **Lint**: 0 errores (177 warnings menores)
+- **Build**: AppImage + .snap generados exitosamente
+- **Coverage**: configurado con @vitest/coverage-v8, reporter lcov, workflow CI listo
+
+### Fixes de código (v2.4.1)
+- ✅ Fix AccountTable.tsx: alineado `index` type con `AccountRow` (string en lugar de number)
+- ✅ Fix AccountTable.tsx: `selectedAccountId` null-coalescing para evitar undefined
+- ✅ Fix AccountTable.test.tsx: removido tests obsoletos (`onEditAlias`, `onEditDesc`, `@testuser`), alineado con nueva estructura AccountRow + Reorder
+- ✅ Fix Sidebar.test.tsx: importado como named `{ Sidebar }`, removido MemoryRouter, actualizado items de navegación
+
+### Mejoras de accesibilidad (a11y)
+- ✅ Focus-trap en ModalShell: manejo de Tab/Shift+Tab + focus restoration
+- ✅ ARIA labels en todos los botones de iconos (Header, Dock, modales)
+- ✅ aria-hidden en iconos decorativos
+- ✅ focus-visible styles en botones interactivos
+- ✅ role="dialog" + aria-modal en modales inline (App.tsx)
+- ✅ sr-only (screen-reader only) para labels redundantes
+
+### Coverage
+- ✅ @vitest/coverage-v8 configurado y funcionando
+- ✅ Reporter lcov para Codecov integration
+- ✅ GitHub Actions workflow `coverage.yml` listo
+- ✅ coverage/ en .gitignore
+
+### Arquitectura
+- ✅ Nuevo hook useFocusTrap en src/renderer/hooks/useFocusTrap.ts
+- ✅ ModalShell actualizado con focus-trap y ARIA attributes
+- ✅ AccountRow.tsx creado para manejo de filas con framer-motion Reorder
+- ✅ Dock.tsx, Header.tsx, Sidebar.tsx con labels ARIA
+
+### Componentes nuevos
+- src/renderer/hooks/useFocusTrap.ts
+- src/renderer/components/modal/ModalShell.tsx (actualizado)
+- src/renderer/components/accounts/AccountRow.tsx
+- src/renderer/components/layout/Dock.tsx
+- src/renderer/components/layout/Header.tsx
+- src/renderer/animations/variants.ts
+
+### Archivos de documentación
+- docs/DESIGN-research-v3.md
+- docs/mockup-v3.html
+
+## Rediseño UI/UX — v2.4.0 (15 Julio 2026)
 
 ### Filosofía de diseño
 - Minimalismo y funcionalidad sobre estética decorativa
@@ -27,7 +74,7 @@
 - **Tabla**: Filas más compactas (padding 0.5rem 0.75rem, font 0.75rem)
 - **Selección**: Highlight rojo primary con border-left (antes purple accent)
 - **Scrollbar**: 6px (antes 8px), más minimalista
-- **Backgrounds**:bg-card #141414 (antes #161616), bg-surface #1A1A1A, bg-elevated #222222
+- **Backgrounds**: bg-card #141414 (antes #161616), bg-surface #1A1A1A, bg-elevated #222222
 - **Glassmorphism/blur**: Eliminado de barras y superficies
 - **Sombras**: Eliminadas en cards
 - **Border radius**: 4px inputs / 4px botones (antes 6px/8px)
@@ -49,16 +96,16 @@
 - `src/renderer/components/accounts/AccountDetailsPanel.tsx` — ya no se importa
 - `src/renderer/components/accounts/ActionBar.tsx` — ya no se importa (integrado en App.tsx)
 
-## Resumen de cambios (v2.3.x — histórico)
+## Resumen de cambios históricos (v2.3.x)
 
 ### Login con navegador (NUEVO MÉTODO HABITUAL) - Implementado 2026-07-15
 - LoginBrowserService: BrowserWindow aislada que abre roblox.com/login
-  - Captura automática de cookie .ROBLOSECURITY cuando el usuario inicia sesión
-  - Session partition aislada para evitar contaminación
-  - Intercepta cambios de cookie mediante session.cookies.on('changed')
-  - Obtiene info del usuario vía users.roblox.com/v1/users/authenticated
-  - Cierra ventana automáticamente al detectar cookie válida
-  - **Mejoras de seguridad (v2.3.1)**: cleanup de event listeners, mejor error handling en getUserInfo
+- Captura automática de cookie .ROBLOSECURITY cuando el usuario inicia sesión
+- Session partition aislada para evitar contaminación
+- Intercepta cambios de cookie mediante session.cookies.on('changed')
+- Obtiene info del usuario vía users.roblox.com/v1/users/authenticated
+- Cierra ventana automáticamente al detectar cookie válida
+- **Mejoras de seguridad (v2.3.1)**: cleanup de event listeners, mejor error handling en getUserInfo
 - IPC handler: `account:login-browser` (método principal, por defecto)
 - Método avanzado mantenido: `account:login` (username/password) → movido a Settings como avanzado
 - Preload actualizado: whitelist + API `loginBrowser(group?: string)`
@@ -98,12 +145,12 @@
 ## Próximos pasos
 1. ✅ Añadir tests E2E con Playwright para flujos completos (login, añadir cuenta, editar, lanzar juego) — COMPLETADO
 2. ✅ Añadir pruebas de accesibilidad con axe-core — COMPLETADO
-3. ✅ Configurar coverage report con c8/istanbul y subir a codecov — PENDIENTE
+3. ✅ Configurar coverage report con c8/istanbul y subir a codecov — COMPLETADO
 4. ✅ Construir y validar NSIS installer (pendiente desde v2.2.0) — disponible via GitHub Actions CI al pushear tag v* — PENDIENTE
 5. ✅ Implementar Bulk Import (importación masiva de user:pass o cookies) — COMPLETADO v2.3.1
 6. ✅ Implementar JobId Shuffler (selección aleatoria de JobId al unir servidores) — COMPLETADO v2.3.1
-7. Considerar Auto Relaunch + Connection Watcher (relogin automático y monitor de conexión) — PROPOSICIÓN v2.4.0
-8. Considerar mejoras de accesibilidad: focus-trap en modales, labels ARIA en iconos, efectos hover sutiles — PENDIENTE
+7. ⏳ Implementar Auto Relaunch + Connection Watcher (relogin automático y monitor de conexión) — PROPUESTO v2.4.1
+8. ⏳ Mejoras de accesibilidad: focus-trap en modales — COMPLETADO v2.4.1
 
 ## Decisiones técnicas
 - Se mantuvo la arquitectura IPC y Zustand intacta
@@ -113,3 +160,10 @@
 - Los tests de componentes usan mocks de window.api y stores para aislar la capa de presentación
 - El login con navegador es ahora el método habitual (por defecto), alineado con RAM Original
 - El login username/password sigue disponible como método avanzado en Settings
+
+## Estado del código
+- **TypeScript**: 0 errores
+- **Tests**: 111/111 pasando
+- **Lint**: 0 errores, 177 warnings (principalmente unused vars en shadcn-ui y any types en ThemeContext)
+- **Build**: AppImage + .snap + .deb + NSIS generados exitosamente
+- **Coverage**: configurado y funcionando con @vitest/coverage-v8

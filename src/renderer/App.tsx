@@ -9,11 +9,15 @@ import AccountControlPanel from './components/AccountControlPanel/AccountControl
 import { useAccountStore } from './store/useAccountStore';
 import { useUIStore } from './store/useUIStore';
 import { Account } from '@/types/Account';
-import {
+import { 
   Plus, Trash2, EyeOff, AppWindow, Shuffle, Server,
   Settings as SettingsIcon, Gamepad2, X, Copy, Check, Loader2,
   Save, UserPlus, Play
 } from 'lucide-react';
+import { Sidebar } from './components/layout/Sidebar';
+import { Header } from './components/layout/Header';
+import { Dock } from './components/layout/Dock';
+import { ModalShell } from './components/modal/ModalShell';
 
 type ModalView = 'servers' | 'settings' | null;
 
@@ -37,12 +41,12 @@ export default function App() {
   const [aliasSaving, setAliasSaving] = React.useState(false);
   const [descSaving, setDescSaving] = React.useState(false);
 
-  const accounts = useAccountStore((s) => s.accounts);
-  const setStoreAccounts = useAccountStore((s) => s.setAccounts);
-  const selectedAccount = useAccountStore((s) => s.selectedAccount);
-  const setSelectedAccount = useAccountStore((s) => s.setSelectedAccount);
-  const jobIdShuffle = useUIStore((s) => s.jobIdShuffle);
-  const toggleJobIdShuffle = useUIStore((s) => s.toggleJobIdShuffle);
+  const accounts = useAccountStore((state) => state.accounts);
+  const setStoreAccounts = useAccountStore((state) => state.setAccounts);
+  const selectedAccount = useAccountStore((state) => state.selectedAccount);
+  const setSelectedAccount = useAccountStore((state) => state.setSelectedAccount);
+  const jobIdShuffle = useUIStore((state) => state.jobIdShuffle);
+  const toggleJobIdShuffle = useUIStore((state) => state.toggleJobIdShuffle);
 
   const api = React.useMemo(() => (typeof window !== 'undefined' ? (window as any).api : null), []);
 
@@ -153,9 +157,11 @@ export default function App() {
     await fetchAccounts();
   }, [api, fetchAccounts]);
 
-  const handleFollowUser = React.useCallback(async (accountId: string, userId: number) => {
-    await api.account.followUser(accountId, userId);
-  }, [api]);
+  const handleFollowUser = React.useCallback(async (userId: number) => {
+    if (selectedAccount) {
+      await api.account.followUser(selectedAccount.id, userId);
+    }
+  }, [api, selectedAccount]);
 
   const handleLaunchGame = React.useCallback(async (accountId: string, pId: string, jId: string) => {
     await api.roblox.launch(accountId, pId, jId || undefined);
@@ -254,7 +260,7 @@ export default function App() {
 
   const handleClearCache = async () => { await api.advanced.clearCache(); };
 
-  // === Compact button component ===
+  // === Button component ===
   const ActionButton: React.FC<{
     icon: React.ReactNode;
     label: string;
@@ -262,202 +268,170 @@ export default function App() {
     disabled?: boolean;
     active?: boolean;
     variant?: 'primary' | 'default' | 'ghost';
-  }> = ({ icon, label, onClick, disabled, active, variant = 'ghost' }) => (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors ${
-        variant === 'primary'
-          ? 'bg-primary text-white hover:bg-primary-dark'
-          : variant === 'default'
-          ? 'bg-bg-surface text-foreground hover:bg-bg-elevated border border-border'
-          : active
-          ? 'text-primary bg-primary/10'
-          : 'text-muted-foreground hover:text-foreground hover:bg-bg-surface'
-      } disabled:opacity-40 disabled:cursor-not-allowed`}
-    >
-      {icon}
-      <span>{label}</span>
-    </button>
-  );
+  }> = ({ icon, label, onClick, disabled, active, variant = 'ghost' }) => {
+    let btnClass = '';
+    if (variant === 'primary') {
+      btnClass = 'bg-primary text-white hover:bg-primary-dark';
+    } else if (variant === 'default') {
+      btnClass = 'bg-bg-surface text-foreground hover:bg-bg-elevated border border-border';
+    } else {
+      btnClass = active ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-bg-surface';
+    }
+
+    return (
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors ${btnClass} ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+      >
+        {icon}
+        <span>{label}</span>
+      </button>
+    );
+  };
 
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <div className="flex flex-col h-screen bg-background">
-          {/* === HEADER === */}
-          <header className="flex-shrink-0 flex items-center justify-between h-12 px-4 border-b border-border">
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-                <Gamepad2 className="h-3.5 w-3.5 text-white" />
+        <>
+          <div className="flex h-screen bg-background">
+            {/* Sidebar */}
+            <Sidebar 
+              isCollapsed={false} 
+              onToggleCollapse={() => {}} // We'll implement sidebar collapse later if needed
+            />
+            
+            {/* Main content */}
+            <div className="flex-1 flex-col overflow-hidden">
+              {/* Header */}
+              <Header 
+                accountsLength={accounts.length}
+                hideUsernames={hideUsernames}
+                setHideUsernames={setHideUsernames}
+                theme={theme}
+                setTheme={setTheme}
+                setActiveModal={setActiveModal}
+              />
+              
+              {/* Account Table */}
+              <div className="flex-1 overflow-y-auto">
+                {loading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : error ? (
+                  <div className="flex items-center justify-center h-full text-sm text-destructive">
+                    {error}
+                  </div>
+                ) : (
+                  <AccountTable
+                    accounts={accounts}
+                    selectedAccount={selectedAccount}
+                    onSelectAccount={setSelectedAccount}
+                    onDeleteAccount={handleDeleteAccount}
+                    onPlayAccount={(acc) => setSelectedAccount(acc)}
+                    onFollowAccount={handleFollowUser}
+                    hideUsernames={hideUsernames}
+                  />
+                )}
               </div>
-              <span className="text-sm font-bold tracking-tight">
-                <span className="text-primary">Nexo</span>
-                <span className="text-foreground">Acc</span>
-              </span>
-              <span className="text-xs text-muted-foreground ml-2">
-                {accounts.length > 0 ? `${accounts.length}/50` : '0/50'}
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              {/* Hide Usernames checkbox moved here */}
-              <label className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-muted-foreground cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={hideUsernames}
-                  onChange={(e) => setHideUsernames(e.target.checked)}
-                  className="h-3 w-3 rounded border-border"
-                />
-                <span>Ocultar</span>
-              </label>
-              <ActionButton
-                icon={<SettingsIcon className="h-3.5 w-3.5" />}
-                label="Ajustes"
-                onClick={() => setActiveModal('settings')}
-              />
-            </div>
-          </header>
-
-          {/* === ACCOUNT TABLE === */}
-          <div className="flex-1 overflow-hidden flex flex-col">
-            <div className="flex-1 overflow-y-auto">
-              {loading ? (
-                <div className="flex items-center justify-center h-full">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-              ) : error ? (
-                <div className="flex items-center justify-center h-full text-sm text-destructive">
-                  {error}
-                </div>
-              ) : (
-                <AccountTable
-                  accounts={accounts}
-                  selectedAccount={selectedAccount}
-                  onSelectAccount={setSelectedAccount}
-                  onDeleteAccount={handleDeleteAccount}
-                  onPlayAccount={(acc) => setSelectedAccount(acc)}
-                  hideUsernames={hideUsernames}
-                  onAddAccount={() => setShowAddModal(true)}
-                  onEditAlias={(acc) => {
-                    setSelectedAccount(acc);
-                    setAliasDraft(acc.displayName || acc.username || '');
-                    setEditingAlias(true);
-                  }}
-                  onEditDesc={(acc) => {
-                    setSelectedAccount(acc);
-                    setDescDraft(acc.description || '');
-                    setEditingDesc(true);
-                  }}
-                  onFollow={handleFollowUser}
-                />
-              )}
-            </div>
-
-            {/* === PLACE / JOB BAR === */}
-            <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 border-t border-border bg-bg-card">
-              <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                <label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground flex-shrink-0">Place ID</label>
-                <input
-                  type="text"
-                  placeholder="ej: 5315046213"
-                  value={placeId}
-                  onChange={(e) => setPlaceId(e.target.value)}
-                  className="flex-1 min-w-0 bg-background border border-border rounded px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary font-mono-data"
-                />
-                <button
-                  onClick={handleCopyPlaceId}
-                  disabled={!placeId}
-                  className="p-1 rounded hover:bg-bg-surface text-muted-foreground disabled:opacity-30"
-                  title="Copiar Place ID"
-                >
-                  {copiedPlaceId ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
-                </button>
-              </div>
-              <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                <label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground flex-shrink-0">Job ID</label>
-                <input
-                  type="text"
-                  placeholder="opcional"
-                  value={jobId}
-                  onChange={(e) => setJobId(e.target.value)}
-                  className="flex-1 min-w-0 bg-background border border-border rounded px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary font-mono-data"
-                />
-              </div>
-              <button
-                onClick={toggleJobIdShuffle}
-                className={`p-1.5 rounded transition-colors ${jobIdShuffle ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-bg-surface'}`}
-                title={jobIdShuffle ? 'Shuffle activado' : 'Activar JobId Shuffle'}
-              >
-                <Shuffle className="h-3.5 w-3.5" />
-              </button>
-              {/* Servers button (now in nav bar) */}
-              <button
-                onClick={() => setActiveModal('servers')}
-                disabled={!placeId}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded bg-primary text-white hover:bg-primary-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                <Server className="h-3.5 w-3.5" />
-                <span>Servers</span>
-              </button>
-              <button
-                onClick={handleJoinServer}
-                disabled={!selectedAccount || !placeId || launching}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded bg-primary text-white hover:bg-primary-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                {launching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-                <span>Join Server</span>
-              </button>
-            </div>
-
-            {/* === ACTION BAR === */}
-            <div className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 border-t border-border bg-bg-card">
-              {/* LEFT GROUP (account management) */}
-              <ActionButton
-                icon={<Plus className="h-3.5 w-3.5" />}
-                label="Agregar"
-                onClick={() => setShowAddModal(true)}
-                variant="primary"
-              />
-              <ActionButton
-                icon={<Trash2 className="h-3.5 w-3.5" />}
-                label="Eliminar"
-                onClick={() => selectedAccount && handleDeleteAccount(selectedAccount.id)}
-                disabled={!selectedAccount}
-                variant="default"
-              />
-              {/* DIVIDER */}
-              <div className="w-px h-5 bg-border mx-1" />
-              {/* RIGHT GROUP (contextual actions) */}
-              <ActionButton
-                icon={<AppWindow className="h-3.5 w-3.5" />}
-                label="Abrir App"
-                onClick={handleLaunchApp}
-                disabled={!selectedAccount}
-              />
-              <ActionButton
-                icon={<Gamepad2 className="h-3.5 w-3.5" />}
-                label="Control"
-                onClick={() => setShowAccountControl(true)}
-                disabled={!selectedAccount}
-              />
-              <div className="flex-1" />
-              <ActionButton
-                icon={<UserPlus className="h-3.5 w-3.5" />}
-                label="Follow"
-                onClick={() => selectedAccount?.robloxUserId && handleFollowUser(selectedAccount.id, selectedAccount.robloxUserId)}
-                disabled={!selectedAccount?.robloxUserId}
+              
+              {/* Dock */}
+              <Dock
+                placeId={placeId}
+                setPlaceId={setPlaceId}
+                jobId={jobId}
+                setJobId={setJobId}
+                jobIdShuffle={jobIdShuffle}
+                toggleJobIdShuffle={toggleJobIdShuffle}
+                launching={launching}
+                selectedAccount={selectedAccount}
+                handleJoinServer={handleJoinServer}
+                handleLaunchApp={handleLaunchApp}
+                setActiveModal={setActiveModal}
+                onAddAccount={() => setShowAddModal(true)}
+                hideUsernames={hideUsernames}
+                setHideUsernames={setHideUsernames}
+                accounts={accounts}
+                setSelectedAccount={setSelectedAccount}
+                onPlayAccount={handleJoinServer} // Note: In the dock, the play button is for joining server or launching app
+                onEditAlias={(acc: Account) => {
+                  setSelectedAccount(acc);
+                  setAliasDraft(acc.displayName || acc.username || '');
+                  setEditingAlias(true);
+                }}
+                onEditDescription={(acc: Account) => {
+                  setSelectedAccount(acc);
+                  setDescDraft(acc.description || '');
+                  setEditingDesc(true);
+                }}
+                onCopyPlaceId={handleCopyPlaceId}
+                onCopyRbxlLink={(acc: Account) => {
+                  // Placeholder for copying rbx-player link
+                  console.log('Copy rbx-player link for:', acc);
+                }}
+                onToggleAutoRelaunch={(acc: Account) => {
+                  // Placeholder for auto relaunch toggle
+                  console.log('Toggle auto relaunch for:', acc);
+                }}
+                onToggleConnectionWatcher={(acc: Account) => {
+                  // Placeholder for connection watcher toggle
+                  console.log('Toggle connection watcher for:', acc);
+                }}
               />
             </div>
           </div>
 
-          {/* === EDIT ALIAS OVERLAY === */}
+          {/* Modals and Overlays */}
+          {showAddModal && (
+            <ModalShell isOpen={showAddModal} onClose={() => setShowAddModal(false)} className="w-full max-w-md">
+              <AddAccountModal 
+                isOpen={showAddModal} 
+                onClose={() => setShowAddModal(false)} 
+                onLoginBrowser={handleLoginBrowser} 
+                onAddCookie={handleAddCookie} 
+                onBulkImport={handleBulkImport} 
+              />
+            </ModalShell>
+          )}
+          {activeModal === 'servers' && (
+            <ModalShell isOpen={activeModal === 'servers'} onClose={() => setActiveModal(null)} className="w-full max-w-2xl">
+              <ServerBrowser />
+            </ModalShell>
+          )}
+          {activeModal === 'settings' && (
+            <ModalShell isOpen={activeModal === 'settings'} onClose={() => setActiveModal(null)} className="w-full max-w-lg">
+              <SettingsPanel 
+                theme={theme?.theme}
+                primaryColor={theme?.primaryColor}
+                accentColor={theme?.accentColor}
+                fontSize={theme?.fontSize}
+                uiDensity={theme?.uiDensity}
+                animationsEnabled={theme?.animationsEnabled}
+                language={language}
+                onThemeChange={handleThemeChange}
+                onLanguageChange={handleLanguageChange}
+                onExportData={handleExportData}
+                onDeleteAllAccounts={handleDeleteAll}
+                onClearCache={handleClearCache}
+              />
+            </ModalShell>
+          )}
+          {showAccountControl && (
+            <ModalShell isOpen={showAccountControl} onClose={() => setShowAccountControl(false)} className="w-full max-w-md">
+              <AccountControlPanel 
+                account={selectedAccount!} 
+                onClose={() => setShowAccountControl(false)} 
+              />
+            </ModalShell>
+          )}
           {editingAlias && selectedAccount && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditingAlias(false)}>
-              <div className="w-full max-w-sm rounded-lg border border-border bg-bg-card p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <div className="w-full max-w-sm rounded-lg border border-border bg-bg-card p-4 shadow-xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Editar alias" tabIndex={-1}>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold">Editar Alias</h3>
-                  <button onClick={() => setEditingAlias(false)} className="text-muted-foreground hover:text-foreground">
-                    <X className="h-4 w-4" />
+                  <h3 className="text-sm font-semibold" id="edit-alias-title">Editar Alias</h3>
+                  <button onClick={() => setEditingAlias(false)} className="text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" aria-label="Cerrar">
+                    <X className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
                 <input
@@ -466,27 +440,34 @@ export default function App() {
                   onChange={(e) => setAliasDraft(e.target.value)}
                   className="nexo-input mb-3"
                   autoFocus
+                  aria-labelledby="edit-alias-title"
                 />
                 <button
                   onClick={handleSaveAliasInline}
                   disabled={aliasSaving}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded bg-primary text-white hover:bg-primary-dark disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded bg-primary text-white hover:bg-primary-dark disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  aria-label={aliasSaving ? "Guardando alias" : "Guardar alias"}
                 >
-                  {aliasSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Guardar
+                  {aliasSaving ? (
+                    <>
+                      <X className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <X className="mr-2 h-4 w-4" aria-hidden="true" />Guardar
+                    </>
+                  )}
                 </button>
               </div>
             </div>
           )}
-
-          {/* === EDIT DESC OVERLAY === */}
           {editingDesc && selectedAccount && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditingDesc(false)}>
-              <div className="w-full max-w-sm rounded-lg border border-border bg-bg-card p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <div className="w-full max-w-sm rounded-lg border border-border bg-bg-card p-4 shadow-xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Editar descripción" tabIndex={-1}>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold">Editar Descripción</h3>
-                  <button onClick={() => setEditingDesc(false)} className="text-muted-foreground hover:text-foreground">
-                    <X className="h-4 w-4" />
+                  <h3 className="text-sm font-semibold" id="edit-desc-title">Editar Descripción</h3>
+                  <button onClick={() => setEditingDesc(false)} className="text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" aria-label="Cerrar">
+                    <X className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
                 <textarea
@@ -495,83 +476,28 @@ export default function App() {
                   className="nexo-input mb-3 min-h-[80px]"
                   rows={3}
                   autoFocus
+                  aria-labelledby="edit-desc-title"
                 />
                 <button
                   onClick={handleSaveDescInline}
                   disabled={descSaving}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded bg-primary text-white hover:bg-primary-dark disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded bg-primary text-white hover:bg-primary-dark disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  aria-label={descSaving ? "Guardando descripción" : "Guardar descripción"}
                 >
-                  {descSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Guardar
+                  {descSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4" aria-hidden="true" />Guardar
+                    </>
+                  )}
                 </button>
               </div>
             </div>
           )}
-
-          {/* === ADD ACCOUNT MODAL === */}
-          <AddAccountModal
-            isOpen={showAddModal}
-            onClose={() => setShowAddModal(false)}
-            onLoginBrowser={handleLoginBrowser}
-            onAddCookie={handleAddCookie}
-            onBulkImport={handleBulkImport}
-          />
-
-          {/* === ACCOUNT CONTROL MODAL === */}
-          {showAccountControl && selectedAccount && (
-            <AccountControlPanel
-              account={selectedAccount}
-              onClose={() => setShowAccountControl(false)}
-            />
-          )}
-
-          {/* === SERVER BROWSER MODAL === */}
-          {activeModal === 'servers' && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setActiveModal(null)}>
-              <div className="w-full max-w-4xl h-[80vh] rounded-lg border border-border bg-background shadow-xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
-                  <h2 className="text-sm font-semibold">Server Browser</h2>
-                  <button onClick={() => setActiveModal(null)} className="text-muted-foreground hover:text-foreground" aria-label="Cerrar">
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="flex-1 overflow-hidden">
-                  <ServerBrowser />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* === SETTINGS MODAL === */}
-          {activeModal === 'settings' && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setActiveModal(null)}>
-              <div className="w-full max-w-2xl h-[80vh] rounded-lg border border-border bg-background shadow-xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
-                  <h2 className="text-sm font-semibold">Ajustes</h2>
-                  <button onClick={() => setActiveModal(null)} className="text-muted-foreground hover:text-foreground" aria-label="Cerrar">
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="flex-1 overflow-y-auto">
-                  <SettingsPanel
-                    theme={theme?.theme || 'dark'}
-                    primaryColor={theme?.primaryColor || '#DE350D'}
-                    accentColor={theme?.accentColor || '#6347FF'}
-                    fontSize={theme?.fontSize || 'medium'}
-                    uiDensity={theme?.uiDensity || 'normal'}
-                    animationsEnabled={theme?.animationsEnabled ?? true}
-                    language={language}
-                    onThemeChange={handleThemeChange}
-                    onLanguageChange={handleLanguageChange}
-                    onExportData={handleExportData}
-                    onDeleteAllAccounts={handleDeleteAll}
-                    onClearCache={handleClearCache}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        </>
       </ThemeProvider>
     </ErrorBoundary>
   );

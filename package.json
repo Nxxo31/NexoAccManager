@@ -18,7 +18,7 @@
     "electron:preview": "electron-builder --dir",
     "test": "vitest",
     "test:unit": "vitest run",
-    "lint": "eslint . --ext .ts,.tsx",
+    "lint": "eslint . --ext .ts,.tsx --ignore-pattern '*.config.*' --ignore-pattern 'playwright-*.js' --ignore-pattern 'public/**' --ignore-pattern 'dist/**'",
     "test:e2e": "playwright test tests/e2e",
     "test:e2e:browser": "BROWSER_ONLY=1 playwright test tests/e2e-browser --config playwright.browser.config.ts",
     "test:visual": "BROWSER_ONLY=1 playwright test tests/visual --config playwright.browser.config.ts",
@@ -75,7 +75,7 @@
     "typescript-eslint": "^8.64.0",
     "vite": "^5.0.0",
     "vite-plugin-electron": "^0.15.0",
-    "vitest": "^1.0.0",
+    "vitest": "^4.1.10",
     "wait-on": "^7.2.0",
     "zustand": "^5.0.14"
   },
