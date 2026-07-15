@@ -1,184 +1,173 @@
-# Proyecto: NexoAccManager
-# Fecha: 2026-07-16 (actualizado)
-# Estado: Release v2.4.1 completo - pulido total, tsc limpio, tests 111/111, build + coverage + a11y, focus-trap, ARIA labels
+# NexoAccManager — PROJECT.md
+# Última actualización: 2026-07-16
+# Versión actual: 2.5.0 (en desarrollo)
 
-## Resumen de estado actual
+## Estado actual
 
-### ✅ COMPLETADO - v2.4.1 (16 Julio 2026)
-- **tsc**: 0 errores de TypeScript
-- **Tests**: 111/111 passing (vitest)
-- **Lint**: 0 errores (177 warnings menores)
-- **Build**: AppImage + .snap generados exitosamente
-- **Coverage**: configurado con @vitest/coverage-v8, reporter lcov, workflow CI listo
+| Métrica | Valor |
+|---------|-------|
+| Versión | 2.5.0 |
+| tsc | 0 errores |
+| vitest | 95/95 pasando |
+| lint | 0 errores, 177 warnings |
+| build | Pendiente — no ejecutado en v2.5.0 |
+| NSIS | Desactualizado — último: v2.4.1 (NexoAccManager.Setup.2.4.0.exe) |
+| Playwright | 5/19 pasando (browser-mode) |
+| Coverage | Configurado (@vitest/coverage-v8 + Codecov CI) |
 
-### Fixes de código (v2.4.1)
-- ✅ Fix AccountTable.tsx: alineado `index` type con `AccountRow` (string en lugar de number)
-- ✅ Fix AccountTable.tsx: `selectedAccountId` null-coalescing para evitar undefined
-- ✅ Fix AccountTable.test.tsx: removido tests obsoletos (`onEditAlias`, `onEditDesc`, `@testuser`), alineado con nueva estructura AccountRow + Reorder
-- ✅ Fix Sidebar.test.tsx: importado como named `{ Sidebar }`, removido MemoryRouter, actualizado items de navegación
+## Bloqueos conocidos
 
-### Mejoras de accesibilidad (a11y)
-- ✅ Focus-trap en ModalShell: manejo de Tab/Shift+Tab + focus restoration
-- ✅ ARIA labels en todos los botones de iconos (Header, Dock, modales)
-- ✅ aria-hidden en iconos decorativos
-- ✅ focus-visible styles en botones interactivos
-- ✅ role="dialog" + aria-modal en modales inline (App.tsx)
-- ✅ sr-only (screen-reader only) para labels redundantes
+### BLOCK-1: Modales inaccesibles desde el UI
+- **SettingsPanel** y **ServerBrowser** existen en App.tsx (líneas 391-398) pero no hay botón en el Dock ni Header que los abra.
+- `setActiveModal('settings')` y `setActiveModal('servers')` nunca se llaman desde el UI actual.
+- **Causa**: La Sidebar se eliminó en v2.4.0 y los botones de navegación (Servers, Presencia, Ajustes) no se migraron.
+- **Acción**: Agregar botones al Dock (o Header) para abrir Settings y Servers.
 
-### Coverage
-- ✅ @vitest/coverage-v8 configurado y funcionando
-- ✅ Reporter lcov para Codecov integration
-- ✅ GitHub Actions workflow `coverage.yml` listo
-- ✅ coverage/ en .gitignore
+### BLOCK-2: PresenceDashboard no se importa en App.tsx
+- `PresenceDashboard.tsx` existe pero no se usa en el render de App.tsx.
+- **Acción**: Decidir si PresenceDashboard se integra como panel o modal, o si se elimina.
 
-### Arquitectura
-- ✅ Nuevo hook useFocusTrap en src/renderer/hooks/useFocusTrap.ts
-- ✅ ModalShell actualizado con focus-trap y ARIA attributes
-- ✅ AccountRow.tsx creado para manejo de filas con framer-motion Reorder
-- ✅ Dock.tsx, Header.tsx, Sidebar.tsx con labels ARIA
+### BLOCK-3: Tests E2E/a11y/visual fallan (15/19)
+- Tests escritos asumiendo selectores que no existen en el DOM real.
+- `button[aria-label="Ajustes"]` no existe en el Dock actual.
+- Modales de Settings y Servers no abren → tests de modal fallan.
+- Baselines de visual regression eliminados (necesitan regenerarse después de fix BLOCK-1).
+- **Acción**: Reescribir tests después de fix BLOCK-1, usando selectores del DOM real.
 
-### Componentes nuevos
-- src/renderer/hooks/useFocusTrap.ts
-- src/renderer/components/modal/ModalShell.tsx (actualizado)
-- src/renderer/components/accounts/AccountRow.tsx
-- src/renderer/components/layout/Dock.tsx
-- src/renderer/components/layout/Header.tsx
-- src/renderer/animations/variants.ts
+### BLOCK-4: focus-trap duplicado
+- `AddAccountModal.tsx` tiene su propio focus-trap (líneas 119-158).
+- `ModalShell.tsx` YA tiene focus-trap integrado (líneas 26-87).
+- Dos focus-traps compitiendo pueden causar comportamiento errático.
+- **Acción**: Eliminar focus-trap de AddAccountModal, delegar a ModalShell.
 
-### Archivos de documentación
-- docs/DESIGN-research-v3.md
-- docs/mockup-v3.html
+### BLOCK-5: Archivos duplicados
+- `src/store/useUIStore.ts` — duplicado, no importado por nadie. Usar `src/renderer/store/useUIStore.ts`.
+- `src/lib/utils.ts` — duplicado, no importado por nadie. Usar `src/renderer/lib/utils.ts`.
+- **Acción**: Eliminar duplicados.
 
-## Rediseño UI/UX — v2.4.0 (15 Julio 2026)
+## Resumen de cambios v2.5.0 (16 Julio 2026)
 
-### Filosofía de diseño
-- Minimalismo y funcionalidad sobre estética decorativa
-- Layout tipo RAM (ic3w0lf22) pero más organizado y limpio
-- Vista única compacta, sin sidebar ni routing
-- Espaciado tight, glassmorphism eliminado
+### Limpieza legacy (COMPLETADO)
+- ✅ 26 archivos legacy eliminados: .bak (6), componentes v2.2/v2.3 (Sidebar, AppShell, AccountDetailsPanel, ActionBar, AccountCard, AccountGrid, AccountList, AddAccountForm, Header viejo, SettingsPanel viejo, PresenceDashboard viejo, ServerBrowser viejo, ui/toast)
+- ✅ 3 tests de componentes legacy eliminados (Sidebar.test, AccountDetailsPanel.test, ActionBar.test)
+- ✅ Directorios tests/e2e/ y tests/a11y/ eliminados (Electron-mode, selectores de routing)
+- ✅ Configs obsoletas eliminadas: playwright-test.js, playwright.config.ts
+- ✅ Baselines de visual regression eliminados (regenerar después de fixes)
+- ✅ package.json limpiado: removido react-router-dom, @radix-ui/react-toast, @types/react-router-dom, scripts obsoletos
+- ✅ Version bumped a 2.5.0
+- ✅ Commit: `refactor(v2.5.0): eliminacion completa de codigo legacy v2.2/v2.3`
 
-### Cambios de layout
-- **Eliminado**: Sidebar (AppShell.tsx), routing con react-router, AccountDetailsPanel lateral (320px)
-- **Eliminado**: Rutas /accounts, /servers, /presence, /settings → todo en una vista
-- **Nuevo**: Header compacto (h-12) con logo + contador + botones Servers/Presencia/Ajustes
-- **Nuevo**: Tabla de cuentas ocupa toda el área central (3 columnas: Usuario | Alias | Descripción)
-- **Nuevo**: Barra Place ID/Job ID integrada directamente debajo de la tabla (estilo RAM)
-- **Nuevo**: Action bar inferior compacta con todos los botones agrupados
-- **Nuevo**: ServerBrowser, PresenceDashboard, SettingsPanel → modales overlay (no routes)
-- **Nuevo**: Editar Alias y Descripción → modales overlay inline (no panel lateral)
-- **Nuevo**: JobId Shuffle toggle integrado en la barra Place/Job
-- **Nuevo**: Doble-click en fila para jugar (estilo RAM)
+### Arquitectura limpiada
+- 0 archivos .bak
+- 0 imports de react-router-dom
+- 1 config de Playwright (playwright.browser.config.ts)
+- Componentes duplicados eliminados (PresenceDashboard, ServerBrowser)
+- Solo queda 1 playwright config
 
-### Cambios visuales
-- **index.css**: Reducido espaciado global (font-size 14px, transiciones 150ms)
-- **Tabla**: Filas más compactas (padding 0.5rem 0.75rem, font 0.75rem)
-- **Selección**: Highlight rojo primary con border-left (antes purple accent)
-- **Scrollbar**: 6px (antes 8px), más minimalista
-- **Backgrounds**: bg-card #141414 (antes #161616), bg-surface #1A1A1A, bg-elevated #222222
-- **Glassmorphism/blur**: Eliminado de barras y superficies
-- **Sombras**: Eliminadas en cards
-- **Border radius**: 4px inputs / 4px botones (antes 6px/8px)
+## Resumen de cambios v2.4.1 (anterior)
 
-### Cambios de arquitectura
-- **Account.ts**: Agregado `savedPlaceId?` y `savedJobId?` al tipo Account
-- **postcss.config.js** → renombrado a `postcss.config.cjs` (fix ESM con type:module)
-- **Backups**: App.tsx.bak.v2.3, index.css.bak.v2.3 preservados
+### Fixes de código
+- AccountTable.tsx: `index` type (number → string) alineado con AccountRow
+- null-coalescing en `selectedAccountId`
+- vitest 2.x upgrade para coverage
 
-### Componentes modificados
-- `src/renderer/App.tsx` — Reescrito completo (vista única, modales, header compacto)
-- `src/renderer/components/accounts/AccountTable.tsx` — Reescrito (3 columnas, edición inline)
-- `src/renderer/index.css` — Reescrito (minimalista, tighter spacing)
-- `src/types/Account.ts` — Agregados savedPlaceId, savedJobId
+### Accesibilidad
+- Focus-trap hook en ModalShell
+- ARIA labels en todos los icon buttons (Header, Dock)
+- role="dialog" + aria-modal en modales
+- aria-hidden en iconos decorativos
 
-### Componentes no usados (preservados, no eliminados)
-- `src/renderer/components/layout/Sidebar.tsx` — ya no se importa
-- `src/renderer/components/layout/AppShell.tsx` — ya no se importa
-- `src/renderer/components/accounts/AccountDetailsPanel.tsx` — ya no se importa
-- `src/renderer/components/accounts/ActionBar.tsx` — ya no se importa (integrado en App.tsx)
+### Build y Release
+- GitHub Release v2.4.1 con NSIS installer (77.7 MB)
+- GitHub Actions: Build Windows Release (éxito), Coverage (éxito)
 
-## Resumen de cambios históricos (v2.3.x)
+## Arquitectura — v2.5.0
 
-### Login con navegador (NUEVO MÉTODO HABITUAL) - Implementado 2026-07-15
-- LoginBrowserService: BrowserWindow aislada que abre roblox.com/login
-- Captura automática de cookie .ROBLOSECURITY cuando el usuario inicia sesión
-- Session partition aislada para evitar contaminación
-- Intercepta cambios de cookie mediante session.cookies.on('changed')
-- Obtiene info del usuario vía users.roblox.com/v1/users/authenticated
-- Cierra ventana automáticamente al detectar cookie válida
-- **Mejoras de seguridad (v2.3.1)**: cleanup de event listeners, mejor error handling en getUserInfo
-- IPC handler: `account:login-browser` (método principal, por defecto)
-- Método avanzado mantenido: `account:login` (username/password) → movido a Settings como avanzado
-- Preload actualizado: whitelist + API `loginBrowser(group?: string)`
-- AddAccountModal reescrito:
-  - Login con navegador como método principal visible (Globe icon)
-  - Cookie manual como opción avanzada (requiere activar "Opciones avanzadas")
-  - Mensajes de seguridad claros para ambos métodos
+### UI Layout (single-view, no routing)
+```
+┌─────────────────────────────────────────────┐
+│ Header: NexoAcc | 0/50 | [Ocultar] [⚙]    │
+├─────────────────────────────────────────────┤
+│                                             │
+│        AccountTable (3 cols)               │
+│        Usuario | Alias | Descripción        │
+│        (o "No hay cuentas" empty state)     │
+│                                             │
+├─────────────────────────────────────────────┤
+│ Place ID [____] | Job ID [____] | 🔀        │
+│ [+ Agregar] [Eliminar] [Abrir App] [⋮ Más]  │
+└─────────────────────────────────────────────┘
+```
 
-### UI/UX mejoras (v2.2.0 - previamente implementado)
-- AccountTable: tabla de 3 columnas (Usuario|Alias|Descripción) con avatar, estado y acciones
-- AccountDetailsPanel: panel lateral con Place ID (solo lectura + copiar), Job ID editable, Alias editable + guardar, Descripción textarea + guardar, botón Follow y metadata
-- ActionBar: barra inferior con Agregar Cuenta, Eliminar, Ocultar Usernames (checkbox), Abrir App, Editar Tema, Control de Cuenta
-- ServerBrowser mejorado: búsqueda real de servidores por Place ID vía IPC + filtros + unión al juego
-- PresenceDashboard mejorado: polling real con avatares, estados (Online/En juego/Offline), juego actual y balance de Robux
-- Sidebar: rediseño con glassmorphism, ícono de logo, estado activo mejorado y footer con versión
-- SettingsPanel: mejor espaciado, labels en español y feedback visual
-- index.css: sistema de diseño completo con scrollbar customizado, glassmorphism, tipografía Inter + JetBrains Mono, animaciones suaves
-- App.tsx: ruta index → /accounts redirección automática, layout de 3 zonas (tabla + panel detalles + barra acciones), datos reales conectados vía IPC
+### Componentes activos (importados por App.tsx)
+- Header (layout/Header.tsx) — logo, contador, checkbox Ocultar, botón Cambiar tema
+- AccountTable (accounts/AccountTable.tsx) — tabla 3 columnas con drag-drop
+- AccountRow (accounts/AccountRow.tsx) — fila con framer-motion Reorder
+- AddAccountModal (accounts/AddAccountModal.tsx) — tabs: login/cookie/bulk import
+- Dock (layout/Dock.tsx) — Place ID, Job ID, Shuffle, botones de acción
+- ModalShell (modal/ModalShell.tsx) — overlay modal con focus-trap + ARIA
+- SettingsPanel (settings/SettingsPanel.tsx) — tema + idioma (INACCESIBLE desde UI)
+- ServerBrowser (server-browser/ServerBrowser.tsx) — búsqueda de servidores (INACCESIBLE desde UI)
+- AccountControlPanel (AccountControlPanel/) — profile, security, privacy, friends, notifications (INACCESIBLE desde UI)
 
-### Testing mejoras
-- Agregado Testing Library (@testing-library/react, @testing-library/jest-dom, @testing-library/user-event)
-- Agregado happy-dom como entorno de prueba para componentes React
-- Agregado msw (Mock Service Worker) para mock de APIs
-- Actualizado vitest.config.ts para usar entorno 'happy-dom' por defecto (para .tsx) y 'node' para .ts
-- Agregado src/test/setup.ts con mock de window.api (Electron contextBridge) para pruebas de renderer
-- Tests creados para:
-  - Sidebar.tsx
-  - AccountTable.tsx
-  - ActionBar.tsx
-  - AccountDetailsPanel.test.tsx (con interacciones de guardar alias/descripción)
-  - ServerBrowser.test.tsx
-  - PresenceDashboard.test.tsx
-  - RobloxAuthService.test.ts (arreglado con mocks correctos de axios)
-- Mantener tests existentes: IPC.test.ts, GamesService.test.ts, useAccountStore.test.ts, CryptoService.test.ts (72 tests pasando)
-- Nuevo total: **111 tests** (72 existentes + 39 nuevos de UI/services)
+### Componentes no importados
+- PresenceDashboard (presence/PresenceDashboard.tsx) — feature muerta, no se usa
+- ui/badge (ui/badge.tsx) — no importado directamente por App.tsx (importado por card/ServerBrowser)
 
-## Testing E2E y Accesibilidad (v2.4.1)
-- ✅ **Tests unitarios**: 111/111 passing (vitest)
-- ✅ **Tests de accesibilidad (axe-core)**: Configurado y funcionando (tests/a11y-browser/)
-- ✅ **Tests E2E (Playwright)**: 
-  - Browser mode tests: 16/27 passing (visual regression baselines need update, some modal timing)
-  - Electron mode tests: Marcados como skip para non-Windows (expected)
-  - Visual regression: Baselines actualizados para vistas críticas (header, dock, modales)
-  - Consola: Filtrado de errores esperados de window.api en modo browser
-- ✅ **Coverage report**: Configurado con c8/istanbul y subiendo a codecov
+### Stores Zustand
+- useAccountStore (renderer/store/useAccountStore.ts) — estado de cuentas
+- useUIStore (renderer/store/useUIStore.ts) — estado de UI (sidebar collapsed, etc.)
 
-## Build y Distribución
-- ✅ **AppImage**: Generado exitosamente (Linux)
-- ✅ **Snap**: Generado exitosamente (Linux)
-- ✅ **NSIS Installer**: Disponible via GitHub Actions CI (NexoAccManager.Setup.2.4.0.exe, 77.7 MB)
-- ✅ **GitHub Actions workflows**:
-  - "Build Windows Release": éxito (2m1s)
-  - "Coverage": éxito (54s)
-  - "Release": configurado para publicar al pushear tag v*
+### Hooks
+- useFocusTrap (renderer/hooks/useFocusTrap.ts) — focus-trap callback ref
 
-## Próximos pasos
-1. ✅ Actualizar baselines de screenshots de regresión visual (pendiente)
-2. ✅ Ajustar timeouts de modales en tests E2E (pendiente)
-3. ⏳ Implementar Auto Relaunch + Connection Watcher (relogin automático y monitor de conexión) — PROPUESTO v2.4.1
-4. ⏳ Mejoras de accesibilidad adicionales: testing de teclado completo, niveles de contraste AA+ — PROPUESTO v2.4.1
+### Main process services
+- AccountManager — CRUD + cifrado AES-256-GCM
+- CryptoService — cifrado hardware-derived
+- ThemeService — CSS variables via IPC
+- AccountSettingsService — Roblox account settings
+- MultiRobloxService — múltiples instancias
+- CookieExpiryService — auto-refresh cookies
+- GamesService — game/server search
+- PresenceService — real-time online status
+- LoginBrowserService — BrowserWindow login (.ROBLOSECURITY capture)
+- RobloxAuthService — cookie verification
+
+### Testing
+- **Unit (vitest)**: 95/95 — IPC (31), GamesService (14), CryptoService (14), useAccountStore (13), AccountTable (9), ServerBrowser (6), PresenceDashboard (4), RobloxAuthService (4)
+- **E2E browser (Playwright)**: 5/19 pasando — smoke (theme toggle, checkbox), visual (empty state, header, dock)
+- **a11y browser (axe-core)**: 0/3 pasando — axe import incorrecto + modales inaccesibles
+- **Visual regression**: 3/5 pasando — baselines de modales no generados (modales inaccesibles)
 
 ## Decisiones técnicas
-- Se mantuvo la arquitectura IPC y Zustand intacta
-- Se preservó la seguridad: cookies nunca salen del PC, contextIsolation, sandbox, etc.
-- Se usó el mismo sistema de colores y tipografía del design system existente
-- Se priorizó componentes críticos de UI sobre tests de services menos críticos
-- Los tests de componentes usan mocks de window.api y stores para aislar la capa de presentación
-- El login con navegador es ahora el método habitual (por defecto), alineado con RAM Original
-- El login username/password sigue disponible como método avanzado en Settings
 
-## Estado del código
-- **TypeScript**: 0 errores
-- **Tests**: 111/111 pasando
-- **Lint**: 0 errores, 177 warnings (principalmente unused vars en shadcn-ui y any types en ThemeContext)
-- **Build**: AppImage + .snap + .deb + NSIS generados exitosamente
-- **Coverage**: configurado y funcionando con @vitest/coverage-v8
+1. **react-router-dom eliminado** — single-view sin routing. Modales via `activeModal` state.
+2. ** framer-motion Reorder** — drag-drop de cuentas con animación fluida.
+3. **ModalShell unificado** — todos los modales usan el mismo shell con focus-trap integrado.
+4. **BrowserWindow login** — método principal: LoginBrowserService captura .ROBLOSECURITY.
+5. **Cookie manual como avanzado** — método secundario en AddAccountModal.
+6. **AES-256-GCM** — cifrado hardware-derived, cookies nunca salen del PC.
+7. **Browser-mode tests** — Playwright ejecuta contra `BROWSER_ONLY=1 vite --port 5174`, no contra Electron.
+
+## Plan de desarrollo v2.5.0
+
+Plan completo en: `docs/plans/2026-07-16-v2.5.0-cleanup-restructure.md`
+
+### Pendiente
+1. ⏳ Fix BLOCK-1: Agregar botones de Settings y Servers al Dock
+2. ⏳ Fix BLOCK-2: Integrar o eliminar PresenceDashboard
+3. ⏳ Fix BLOCK-3: Reescribir tests E2E con selectores del DOM real
+4. ⏳ Fix BLOCK-4: Eliminar focus-trap duplicado de AddAccountModal
+5. ⏳ Fix BLOCK-5: Eliminar archivos duplicados (src/store/useUIStore.ts, src/lib/utils.ts)
+6. ⏳ Eliminar ui/badge si no se usa en ningún componente activo
+7. ⏳ Regenerar baselines de visual regression
+8. ⏳ Build completo + tag v2.5.0 + NSIS actualizado
+9. ⏳ Validación visual con computer-use
+
+## Historial de versiones
+- v2.0.1 (2026-07-13): OpenSource migration, NSIS publicado
+- v2.2.0: AccountTable, AccountDetailsPanel, ActionBar, ServerBrowser, PresenceDashboard, Sidebar
+- v2.3.x: LoginBrowserService, BrowserWindow login
+- v2.4.0: Rediseño single-view, eliminada Sidebar, eliminado routing
+- v2.4.1: tsc limpio, coverage, a11y (focus-trap, ARIA), NSIS publicado
+- v2.5.0 (en desarrollo): Limpieza legacy completa, eliminación de 26 archivos, estructura coherente

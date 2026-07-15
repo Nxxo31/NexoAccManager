@@ -1,69 +1,54 @@
 import { test, expect } from '@playwright/test';
-import AxeBuilder from '@axe-core/playwright';
+import axe from '@axe-core/playwright';
 
-// A11Y BROWSER TESTS — axe-core en navegador real.
-// v2.4.0 Layout: header → table → dock. Modals: AddAccount, Settings.
-
-test.describe('Accesibilidad — axe-core browser mode', () => {
-  test('vista de cuentas (cuentas vacías) pasa axe WCAG', async ({ page }) => {
-    await page.goto('/');
+test.describe('Accessibility tests - NexoAccManager v2.5.0', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('http://localhost:5174');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
-
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa'])
-      .analyze();
-
-    expect(results.violations.filter(v => v.impact === 'critical')).toEqual([]);
   });
 
-  test('header pasa axe WCAG', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
-
-    const results = await new AxeBuilder({ page })
-      .include('header')
-      .withTags(['wcag2a', 'wcag2aa'])
-      .analyze();
-
-    expect(results.violations.filter(v => v.impact === 'critical')).toEqual([]);
+  test('should have no accessibility violations on initial load', async ({ page }) => {
+    const accessibilityScanResults = await axe.run(page);
+    expect(accessibilityScanResults.violations).toEqual([]);
   });
 
-  test('modal agregar cuenta pasa axe WCAG', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
-
-    // Click "Agregar" button in dock
-    await page.locator('button:has-text("Agregar")').first().click();
-    await page.waitForTimeout(2000);
-
-    // Ensure modal is visible
-    await expect(page.locator('[class*="fixed inset-0"]').first()).toBeVisible({ timeout: 5000 });
-
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa'])
-      .analyze();
-
-    expect(results.violations.filter(v => v.impact === 'critical')).toEqual([]);
+  test('should have no accessibility violations in add account modal', async ({ page }) => {
+    // Open add account modal
+    await page.click('button:has-text("Agregar")');
+    
+    // Wait for modal to be visible
+    await page.waitForSelector('[role="dialog"]', { state: 'visible' });
+    
+    // Get the modal element
+    const modal = await page.$('[role="dialog"]');
+    expect(modal).toBeTruthy();
+    
+    // Run axe on the modal only
+    const accessibilityScanResults = await axe.run(page, { include: [modal] });
+    expect(accessibilityScanResults.violations).toEqual([]);
+    
+    // Clean up
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('[role="dialog"]', { state: 'hidden' });
   });
 
-  test('modal Ajustes pasa axe WCAG', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
-
-    // Click "Ajustes" button in header
-    await page.locator('header button[aria-label="Cambiar tema"]').click();
-    await page.waitForTimeout(1000);
-
-    await expect(page.locator('[class*="fixed inset-0"]')).toBeVisible({ timeout: 5000 });
-
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa'])
-      .analyze();
-
-    expect(results.violations.filter(v => v.impact === 'critical')).toEqual([]);
+  test('should have no accessibility violations in settings modal', async ({ page }) => {
+    // Open settings modal
+    await page.click('button[aria-label="Ajustes"]');
+    
+    // Wait for modal to be visible
+    await page.waitForSelector('[role="dialog"]', { state: 'visible' });
+    
+    // Get the modal element
+    const modal = await page.$('[role="dialog"]');
+    expect(modal).toBeTruthy();
+    
+    // Run axe on the modal only
+    const accessibilityScanResults = await axe.run(page, { include: [modal] });
+    expect(accessibilityScanResults.violations).toEqual([]);
+    
+    // Clean up
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('[role="dialog"]', { state: 'hidden' });
   });
 });

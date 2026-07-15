@@ -5,15 +5,17 @@ Open-source multi-account manager for gaming platforms.
 Modern, secure evolution of RAM (ic3w0lf22) focused on privacy.
 Repository: https://github.com/Nxxo31/NexoAccManager
 Max accounts: 50 per user
+License: MIT
 
 ## Stack
-- **App**: Electron + React + TypeScript + Zustand
+- **App**: Electron 30 + React 18 + TypeScript 5 + Zustand 5 + framer-motion 12
 - **Main process**: Node.js + better-sqlite3
 - **Encryption**: AES-256-GCM hardware-derived
-- **IPC**:Typed contextBridge — invoke/handle only
+- **IPC**: Typed contextBridge — invoke/handle only, never send/on
 - **i18n**: i18next + react-i18next (ES/EN/PT)
 - **Themes**: CSS variables in :root via IPC theme:set
-- **Build**: electron-builder
+- **Build**: electron-builder (AppImage, snap, NSIS)
+- **Testing**: vitest (unit) + Playwright (E2E/a11y/visual browser-mode) + axe-core
 - **No backend**: 100% local, no servers, no cloud
 
 ## Critical rules — NEVER violate
@@ -24,6 +26,8 @@ Max accounts: 50 per user
 - Never expose raw ipcRenderer — only contextBridge
 - Never commit with unresolved tsc errors
 - Never weaken tests to make them pass
+- Never create .bak files — use git for versioning
+- Never write code without reading PROJECT.md first
 
 ## IPC Architecture — mandatory namespacing
 ```
@@ -41,88 +45,114 @@ Result pattern in IPC: `{ success, data }` | `{ success: false, error }` — nev
 - Maximum 50 accounts per user
 - Hardcoded in the account counter
 
-## Current status — July 2026 (OpenSource + Bug Fixes COMPLETED)
-```
-✅ OpenSource migration — SaaS backend and licenses removed
-✅ MIT License — established with legal disclaimers
-✅ PROJECT.md, README.md, CONTRIBUTING.md — updated
-✅ LICENSE — created
-✅ Code cleanup — AuthService, LicenseService, WebServer removed
-✅ Locales cleaned — auth/license/plan keys removed (es/en/pt)
-✅ tsc compiles clean — 0 errors
-✅ Successful build — AppImage + .snap + .deb + NSIS generated
-✅ README.md — complete installation guide
-✅ Architecture audit — 2026-07-13, 4 bugs found and fixed
-✅ Bug fixes — GamesService cookie, presence IPC, preload whitelist, MAX_ACCOUNTS
-✅ Upload to GitHub releases — v2.0.1 publicado (2026-07-13), NSIS 77MB, CI success
-⏳ UI testing with Playwright — PENDIENTE (fix aplicado, requiere restart)
-```
+## UI Architecture — v2.5.0 single-view (no routing)
+- **No sidebar, no router** — react-router-dom removed
+- **Layout**: Header (h-12) → main content → Dock (bottom bar)
+- **Modals**: SettingsPanel, ServerBrowser open via `activeModal` state in App.tsx
+- **Animations**: framer-motion (Reorder drag-drop, modal transitions, dock micro-interactions)
+- **Styling**: Tailwind CSS + custom CSS variables, no external UI library except shadcn-ui primitives
+
+## PROJECT.md — living document (PRIORITY)
+- PROJECT.md is the single source of truth for project state
+- Read PROJECT.md FIRST at session start, before any action
+- Complete task → mark ✅ with date immediately
+- New subtasks discovered → add immediately
+- Technical decisions → document with rationale immediately
+- Known limitations → document immediately
+- PROJECT.md vs code inconsistency → code wins, update PROJECT.md
+- Never let PROJECT.md be outdated by more than one commit
+- Never claim "done" without verifying with real tool output
 
 ## Development loop for this project
-1. `cat PROJECT.md` → check active phase
+1. Read PROJECT.md → check active phase and known limitations
 2. Read only necessary files — do not scan the entire project
-3. `npm run typecheck && npm run lint && npm run build`
-4. Update `PROJECT.md` first — mark ✅ with date
-5. `git add -A && git commit -m "tipo(scope): descripcion en español"`
-6. `git push` → next task immediately
-7. Check `PROJECT.md` only to see what's next or on ambiguity
+3. `npx tsc --noEmit` — must be 0 errors
+4. `npx vitest run` — must pass
+5. `npm run lint` — must pass
+6. Update PROJECT.md with results BEFORE commit
+7. `git add -A && git commit -m "tipo(scope): descripcion en español"`
+8. `git push` → next task immediately
 
 ## Editing code files (TSX/JSX/TS/JS)
 - NEVER use `sed -i` with multiline regex or JSX/TSX tag replacements
-  (e.g. <Link> -> <button>) in .tsx, .jsx, .ts, .js files.
 - For any change involving more than one line or JSX structure,
   read the full file, apply the change in memory, and write the
   entire file at once.
-- Before writing, make a backup (.bak) only if a recent one doesn't exist.
-- After writing, validate syntax (build or linter) before marking
-  the task as complete.
+- NEVER create .bak files — git is the versioning system
+- After writing, validate: `npx tsc --noEmit` before marking complete
 - If an edit fails 2 times with the same approach, stop and report
-  instead of retrying variations of the same command.
 
-## PROJECT.md — living document
-- Complete task → ✅ with date immediately
-- New subtasks discovered → add them immediately
-- Technical decisions → document immediately
-- PROJECT.md vs code inconsistency → code wins, update PROJECT.md
-- Never outdated by more than one commit
-
-## Key file structure
+## Key file structure — ACTUAL v2.5.0
 ```
 src/
+  lib/
+    utils.ts                  → DUPLICATE: not imported anywhere, delete candidate
   main/
-    main.ts                    → Electron main process
+    main.ts                   → Electron main process
     core/
-      AccountManager.ts        → account management + encryption
-      CryptoService.ts         → AES-256-GCM encryption
-      ThemeService.ts          → CSS theme system
+      AccountManager.ts       → account management + encryption
+      CryptoService.ts        → AES-256-GCM encryption
+      ThemeService.ts         → CSS theme system
       AccountSettingsService.ts → Roblox account settings
-      MultiRobloxService.ts    → multiple instances
+      MultiRobloxService.ts   → multiple instances
     services/
-      CookieExpiryService.ts   → auto-refresh cookies
-      GamesService.ts          → game and server search
-      PresenceService.ts       → real-time online status
+      CookieExpiryService.ts → auto-refresh cookies
+      GamesService.ts         → game and server search
+      PresenceService.ts      → real-time online status
+      LoginBrowserService.ts  → BrowserWindow login (captures .ROBLOSECURITY)
+      RobloxAuthService.ts     → cookie verification
     storage/
-      DatabaseManager.ts       → local SQLite
+      DatabaseManager.ts      → local SQLite
   renderer/
-    App.tsx                    → renderer root
+    App.tsx                   → renderer root (single-view, no routing)
     context/
-      ThemeContext.tsx         → React context for themes
+      ThemeContext.tsx        → React context for themes
+    hooks/
+      useFocusTrap.ts         → focus-trap for modals
+    animations/
+      variants.ts             → framer-motion variants
     components/
-      AccountList.tsx
-      AddAccountForm.tsx
-      Header.tsx
-      SettingsPanel.tsx
-      AccountControlPanel/     → profile, security, privacy, friends, notifications
-      PresenceDashboard/       → real-time status grid
-      ServerBrowser/           → server search and list
-    locales/                   → es.json, en.json, pt.json
+      accounts/
+        AccountTable.tsx      → 3-column table (Usuario|Alias|Descripción)
+        AccountRow.tsx        → draggable row with framer-motion Reorder
+        AddAccountModal.tsx   → login/cookie/bulk import tabs
+      layout/
+        Header.tsx            → logo + counter + checkbox + theme toggle
+        Dock.tsx              → Place ID + Job ID + action buttons
+      modal/
+        ModalShell.tsx        → overlay modal with focus-trap + ARIA
+      presence/
+        PresenceDashboard.tsx → real-time status grid
+      server-browser/
+        ServerBrowser.tsx     → server search and list
+      settings/
+        SettingsPanel.tsx     → theme + language settings
+      AccountControlPanel/    → profile, security, privacy, friends, notifications
+      ui/                     → shadcn-ui primitives (button, input, card, badge)
+    store/
+      useAccountStore.ts      → Zustand account state
+      useUIStore.ts           → Zustand UI state
+    lib/
+      utils.ts                → cn() helper for Tailwind merge
+    locales/                  → es.json, en.json, pt.json
     themeDefinitions.ts
     index.css
     main.tsx
   preload/
-    preload.ts                 → contextBridge — channel whitelist
+    preload.ts                → contextBridge — channel whitelist
+  store/
+    useUIStore.ts             → DUPLICATE: not imported, delete candidate
   types/
     Account.ts
+
+tests/
+  e2e-browser/                → Playwright browser-mode E2E
+    smoke.spec.ts             → app loads, elements visible, modals open
+    navigation.spec.ts        → modal open/close, aria labels, focus trap
+  a11y-browser/               → axe-core accessibility tests
+    accessibility.spec.ts     → WCAG compliance on page + modals
+  visual/                     → Visual regression
+    screenshots.spec.ts       → screenshot comparison
 ```
 
 ## Design system — do not improvise
@@ -137,21 +167,20 @@ src/
 --error:          #FF4757;
 --border:         #2A2A2A;
 ```
-- Glassmorphism: `backdrop-filter: blur(12px)` on cards
 - Typography: Inter (UI) + JetBrains Mono (data)
 - Border radius: 8px cards / 4px inputs
-- Animations: 200ms ease-in-out
+- Animations: framer-motion (200ms transitions)
 - Icons: Lucide Icons
 
-## Themes — all available (no restrictions)
+## Themes
 ```
 Dark (default)  → bg: #0D0D0D
 Light           → bg: #F5F5F5, dark text
 Roblox Classic  → dominant red #DE350D with black
-Custom          → primary + accent color picker (all users)
+Custom          → primary + accent color picker
 ```
 
-## i18n — implemented in E6
+## i18n
 - Default language: Spanish (es)
 - IPC: `settings:language:get` / `settings:language:set`
 - Persistence: SQLite `settings` table, key `language`
@@ -174,6 +203,6 @@ LRU cache 60s in main process — respect rate limits
 ## Human intervention — only if
 - Risk of permanent data loss
 - Product decision missing from PROJECT.md
-- Contradiction with "Global technical decisions" section of PROJECT.md
+- Contradiction with "Critical rules" section above
 - Missing credentials or external access
 - Architectural change affecting more than one core module

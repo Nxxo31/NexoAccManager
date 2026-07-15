@@ -1,102 +1,147 @@
 import { test, expect } from '@playwright/test';
 
-// E2E BROWSER TESTS — navegación e interacciones en navegador real (sin Electron).
-// v2.4.0 Layout: header → table → dock. Modales: AddAccount, Settings.
-
-test.describe('Navegación E2E — browser mode', () => {
-  test('header visible con Ocultar checkbox y botón Ajustes', async ({ page }) => {
-    await page.goto('/');
+test.describe('Navigation tests - NexoAccManager v2.5.0', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('http://localhost:5174');
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
-
-    await expect(page.locator('header')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByRole('checkbox', { name: 'Ocultar' })).toBeVisible();
-    await expect(page.locator('header button[aria-label="Cambiar tema"]')).toBeVisible();
   });
 
-  test('boton Ajustes abre modal SettingsPanel', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
-
-    await page.locator('header button[aria-label="Cambiar tema"]').click();
-    await page.waitForTimeout(1000);
-
-    // Wait for the modal overlay to appear
-    const modalOverlay = page.locator('[role="dialog"]');
-    await expect(modalOverlay).toBeVisible({ timeout: 5000 });
-  });
-
-  test('cerrar modales con click fuera', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
-
-    // Open Settings modal
-    await page.locator('header button[aria-label="Cambiar tema"]').click();
-    await page.waitForTimeout(500);
-    await expect(page.locator('[role="dialog"]')).toBeVisible();
-
-    // Click at top-left corner (backdrop area)
-    await page.mouse.click(5, 5);
-    await page.waitForTimeout(500);
-    await expect(page.locator('[class*="fixed inset-0"]')).not.toBeVisible({ timeout: 3000 });
-  });
-
-  test('vista de cuentas muestra estado vacío por defecto', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1500);
-
-    await expect(page.locator('text=No hay cuentas')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('text=Agrega tu primera cuenta')).toBeVisible();
-  });
-
-  test('dock muestra botones correctos (agrupados)', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
-
-    // v2.4.0 Dock: Agregar, Eliminar, Abrir App, More (dropdown)
-    await expect(page.locator('button:has-text("Agregar")').first()).toBeVisible();
-    await expect(page.locator('button:has-text("Eliminar")')).toBeVisible();
-
-    // Divider
-    await expect(page.locator('div.w-px.h-5.bg-border')).toBeVisible();
-
-    await expect(page.locator('button:has-text("Abrir App")')).toBeVisible();
-
-    // More dropdown button (aria-label="Más opciones")
-    await expect(page.getByRole('button', { name: 'Más opciones' })).toBeVisible();
-  });
-
-  test('checkbox ocultar usernames funciona (en header)', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
-
-    const checkbox = page.getByRole('checkbox', { name: 'Ocultar' });
-    await expect(checkbox).not.toBeChecked();
-
-    await checkbox.click();
-    await expect(checkbox).toBeChecked();
-  });
-
-  test('modal agregar cuenta abre y cierra', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
-
-    // Open modal from dock "Agregar" button
-    await page.locator('button:has-text("Agregar")').first().click();
+  test('should open settings modal when clicking Ajustes button in dock', async ({ page }) => {
+    const settingsBtn = page.locator('button[aria-label="Ajustes"]');
+    await expect(settingsBtn).toBeVisible();
+    await settingsBtn.click();
+    
+    // Wait for modal to appear
     const modal = page.locator('[role="dialog"]');
     await expect(modal).toBeVisible({ timeout: 5000 });
-
-    // Modal content
-    await expect(page.locator('text=Agregar Cuenta')).toBeVisible({ timeout: 5000 });
-
-    // Close with Escape
+    
+    // Check modal has expected elements
+    await expect(modal.locator('text=Ajustes')).toBeVisible();
+    await expect(modal.locator('text=Tema')).toBeVisible();
+    await expect(modal.locator('text=Idioma')).toBeVisible();
+    await expect(modal.locator('button:has-text("Cerrar")')).toBeVisible();
+    
+    // Close modal
     await page.keyboard.press('Escape');
-    await expect(modal).toBeHidden({ timeout: 3000 });
+    await expect(modal).not.toBeVisible();
+  });
+
+  test('should open add account modal when clicking Agregar button in dock', async ({ page }) => {
+    const addBtn = page.locator('button:has-text("Agregar")');
+    await expect(addBtn).toBeVisible();
+    await addBtn.click();
+    
+    // Wait for modal to appear
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 5000 });
+    await expect(modal.locator('text=Agregar cuenta')).toBeVisible();
+    
+    // Close modal
+    await page.keyboard.press('Escape');
+    await expect(modal).not.toBeVisible();
+  });
+
+  test('should close modals when clicking outside (backdrop)', async ({ page }) => {
+    // Open add account modal
+    await page.click('button:has-text("Agregar")');
+    let modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible();
+    
+    // Click on backdrop (top-left corner of modal)
+    await page.click('[role="dialog"] >> nth=0', { position: { x: 10, y: 10 } });
+    await expect(modal).not.toBeVisible({ timeout: 3000 });
+    
+    // Open settings modal
+    await page.click('button[aria-label="Ajustes"]');
+    modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible();
+    
+    // Click on backdrop
+    await page.click('[role="dialog"] >> nth=0', { position: { x: 10, y: 10 } });
+    await expect(modal).not.toBeVisible({ timeout: 3000 });
+  });
+
+  test('should close modals when pressing Escape key', async ({ page }) => {
+    // Test add account modal
+    await page.click('button:has-text("Agregar")');
+    let modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible();
+    
+    await page.keyboard.press('Escape');
+    await expect(modal).not.toBeVisible({ timeout: 3000 });
+    
+    // Test settings modal
+    await page.click('button[aria-label="Ajustes"]');
+    modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible();
+    
+    await page.keyboard.press('Escape');
+    await expect(modal).not.toBeVisible({ timeout: 3000 });
+  });
+
+  test('should open and close add account modal via dock button', async ({ page }) => {
+    const addBtn = page.locator('button:has-text("Agregar")');
+    await expect(addBtn).toBeVisible();
+    await addBtn.click();
+    
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 5000 });
+    await expect(modal.locator('text=Agregar cuenta')).toBeVisible();
+    
+    // Close via clicking the cancel button in modal
+    await page.click('button:has-text("Cancelar")');
+    await expect(modal).not.toBeVisible();
+  });
+
+  test('should have correct aria labels on all interactive elements', async ({ page }) => {
+    // Header
+    await expect(page.locator('button[aria-label="Cambiar tema"]')).toBeVisible();
+    await expect(page.locator('label:has-text("Ocultar")')).toBeVisible();
+    
+    // Dock inputs
+    await expect(page.locator('input[aria-label="Place ID"]')).toBeVisible();
+    await expect(page.locator('input[aria-label="Job ID"]')).toBeVisible();
+    await expect(page.locator('button:has-text("Agregar")')).toHaveAttribute('aria-label', /Añadir cuenta/i);
+    await expect(page.locator('button:has-text("Eliminar")')).toHaveAttribute('aria-label', /Eliminar cuenta/i);
+    await expect(page.locator('button:has-text("Abrir App")')).toHaveAttribute('aria-label', /Abrir Roblox/i);
+    await expect(page.locator('button[aria-label="Más opciones"]')).toBeVisible();
+    await expect(page.locator('button[aria-label="Ajustes"]')).toBeVisible();
+    
+    // In modals
+    await page.click('button:has-text("Agregar")');
+    await expect(page.locator('[role="dialog"]')).toBeVisible();
+    await expect(page.locator('button:has-text("Cancelar")')).toHaveAttribute('aria-label', /Cancelar/i);
+    await expect(page.locator('button:has-text("Iniciar sesión")')).toHaveAttribute('aria-label', /Iniciar sesión/i);
+    await page.keyboard.press('Escape');
+    
+    await page.click('button[aria-label="Ajustes"]');
+    await expect(page.locator('[role="dialog"]')).toBeVisible();
+    await expect(page.locator('button:has-text("Cerrar")')).toHaveAttribute('aria-label', /Cerrar/i);
+    await page.keyboard.press('Escape');
+  });
+
+  test('should maintain focus inside modal when tabbing', async ({ page }) => {
+    // Open add account modal
+    await page.click('button:has-text("Agregar")');
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible();
+    
+    // Focus should be on first input (email/username)
+    const firstInput = modal.locator('input[placeholder="Email o nombre de usuario"]');
+    await expect(firstInput).toBeFocused();
+    
+    // Tab to next element (password)
+    await page.keyboard.press('Tab');
+    const passwordInput = modal.locator('input[placeholder="Contraseña"]');
+    await expect(passwordInput).toBeFocused();
+    
+    // Tab to next element (submit button)
+    await page.keyboard.press('Tab');
+    const submitBtn = modal.locator('button:has-text("Iniciar sesión")');
+    await expect(submitBtn).toBeFocused();
+    
+    // Tab should wrap back to first input
+    await page.keyboard.press('Tab');
+    await expect(firstInput).toBeFocused();
   });
 });

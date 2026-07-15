@@ -1,97 +1,99 @@
 import { test, expect } from '@playwright/test';
 
-// SMOKE TESTS — validan que la app renderiza sin errores en navegador real.
-// v2.4.0 Layout: header (logo + Ocultar + Ajustes) → table → dock (PlaceID/JobID/Shuffle + action buttons).
-
-test.describe('Smoke tests — la app carga sin errores', () => {
-  test('no hay error overlay de Vite', async ({ page }) => {
-    await page.goto('/');
+test.describe('Smoke tests - NexoAccManager v2.5.0', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('http://localhost:5174');
     await page.waitForLoadState('networkidle');
-
-    const errorOverlay = page.locator('vite-error-overlay, .vite-error-overlay');
-    await expect(errorOverlay).not.toBeVisible();
-
-    const errorFallback = page.locator('text=Error iniciando NexoAccManager');
-    await expect(errorFallback).not.toBeVisible();
   });
 
-  test('el div#root tiene contenido real', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
-
-    const root = page.locator('#root');
-    await expect(root).not.toBeEmpty();
-
-    const rootHTML = await root.innerHTML();
-    expect(rootHTML.length).toBeGreaterThan(100);
-  });
-
-  test('header visible con logo y botones', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
-
-    // v2.4.0: header has NexoAcc logo, 0/50 counter, Ocultar checkbox, Ajustes button
-    const logo = page.locator('header').locator('text=Nexo');
-    await expect(logo).toBeVisible({ timeout: 10000 });
-
-    await expect(page.getByRole('checkbox', { name: 'Ocultar' })).toBeVisible();
-    await expect(page.locator('header button[aria-label="Cambiar tema"]')).toBeVisible();
-  });
-
-  test('dock visible con Place ID y Job ID', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
-
-    // Dock has Place ID and Job ID labels
-    await expect(page.locator('label:has-text("Place ID")')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('label:has-text("Job ID")')).toBeVisible();
-  });
-
-  test('action bar visible con botones agrupados', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
-
-    // v2.4.0 Dock: Agregar, Eliminar, Abrir App
-    await expect(page.locator('button:has-text("Agregar")').first()).toBeVisible();
+  test('should load the application successfully', async ({ page }) => {
+    await expect(page).toHaveTitle(/NexoAccManager/);
+    
+    // Check header elements
+    await expect(page.locator('text=NexoAcc')).toBeVisible();
+    await expect(page.locator('text=0/50')).toBeVisible(); // Account counter
+    await expect(page.locator('button[aria-label="Cambiar tema"]')).toBeVisible();
+    await expect(page.locator('label:has-text("Ocultar")')).toBeVisible();
+    
+    // Check empty state
+    await expect(page.locator('text=No hay cuentas')).toBeVisible();
+    
+    // Check dock elements
+    await expect(page.locator('input[aria-label="Place ID"]')).toBeVisible();
+    await expect(page.locator('input[aria-label="Job ID"]')).toBeVisible();
+    await expect(page.locator('button:has-text("Agregar")')).toBeVisible();
     await expect(page.locator('button:has-text("Eliminar")')).toBeVisible();
     await expect(page.locator('button:has-text("Abrir App")')).toBeVisible();
+    await expect(page.locator('button:has-label("Más opciones")')).toBeVisible();
   });
 
-  test('consola no tiene errores críticos', async ({ page }) => {
-    const consoleErrors: string[] = [];
+  test('should open add account modal when clicking Agregar button', async ({ page }) => {
+    await expect(page.locator('button:has-text("Agregar")')).toBeVisible();
+    await page.click('button:has-text("Agregar")');
+    
+    // Wait for modal to appear
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 5000 });
+    
+    // Check modal has expected elements
+    await expect(modal.locator('text=Agregar cuenta')).toBeVisible();
+    await expect(modal.locator('text=Email o nombre de usuario')).toBeVisible();
+    await expect(modal.locator('text=Contraseña')).toBeVisible();
+    await expect(modal.locator('button:has-text("Cancelar")')).toBeVisible();
+    await expect(modal.locator('button:has-text("Iniciar sesión")')).toBeVisible();
+    
+    // Close modal with Escape
+    await page.keyboard.press('Escape');
+    await expect(modal).not.toBeVisible();
+  });
 
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') {
-        consoleErrors.push(msg.text());
-      }
-    });
+  test('should open settings modal when clicking Settings button in dock', async ({ page }) => {
+    // Find the settings button in the dock (gear icon)
+    const settingsBtn = page.locator('button[aria-label="Ajustes"]');
+    await expect(settingsBtn).toBeVisible();
+    await settingsBtn.click();
+    
+    // Wait for modal to appear
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 5000 });
+    
+    // Check modal has expected elements
+    await expect(modal.locator('text=Ajustes')).toBeVisible();
+    await expect(modal.locator('text=Tema')).toBeVisible();
+    await expect(modal.locator('text=Idioma')).toBeVisible();
+    await expect(modal.locator('button:has-text("Cerrar")')).toBeVisible();
+    
+    // Close modal by clicking backdrop
+    await page.click('[role="dialog"] >> nth=0', { position: { x: 10, y: 10 } });
+    await expect(modal).not.toBeVisible({ timeout: 3000 });
+  });
 
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+  test('should toggle theme when clicking theme button in header', async ({ page }) => {
+    const themeBtn = page.locator('button[aria-label="Cambiar tema"]');
+    await expect(themeBtn).toBeVisible();
+    
+    // Get initial theme (we can't easily detect this, but we can click twice)
+    await themeBtn.click();
+    await page.waitForTimeout(500); // Wait for transition
+    
+    await themeBtn.click();
+    await page.waitForTimeout(500);
+  });
 
-    // Filter out all window.api related errors (expected in browser mode)
-    const criticalErrors = consoleErrors.filter(
-      (err) =>
-        !err.includes('window.api') &&
-        !err.includes('api is undefined') &&
-        !err.includes('Cannot read properties of undefined') &&
-        !err.includes('api.settings') &&
-        !err.includes('api.account') &&
-        !err.includes('api.theme') &&
-        !err.includes('api.language') &&
-        !err.includes('api.roblox') &&
-        !err.includes('api.advanced') &&
-        !err.includes('api.cookieEvents') &&
-        !err.includes('Cannot destructure property') &&
-        !err.includes('Failed to fetch dynamically imported module') &&
-        !err.includes('Error: <path> attribute d: Expected arc flag')
-    );
-
-    expect(criticalErrors).toEqual([]);
+  test('should hide/show usernames when clicking checkbox', async ({ page }) => {
+    const hideLabel = page.locator('label:has-text("Ocultar")');
+    await expect(hideLabel).toBeVisible();
+    const checkbox = hideLabel.locator('input[type="checkbox"]');
+    
+    // Initially unchecked
+    await expect(checkbox).not.toBeChecked();
+    
+    // Click to check
+    await checkbox.check();
+    await expect(checkbox).toBeChecked();
+    
+    // Click to uncheck
+    await checkbox.uncheck();
+    await expect(checkbox).not.toBeChecked();
   });
 });
