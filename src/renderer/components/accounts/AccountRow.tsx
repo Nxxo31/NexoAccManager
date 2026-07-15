@@ -6,6 +6,7 @@ import {
   Trash2, 
   UserPlus,
   MoreHorizontal,
+  Settings2,
 } from 'lucide-react';
 import { Account } from '@/types/Account';
 import { buttonTap } from '@renderer/animations/variants';
@@ -18,6 +19,7 @@ interface AccountRowProps {
   onDeleteAccount: (id: string) => void;
   onPlayAccount: (account: Account) => void;
   onFollowAccount: (userId: number) => void;
+  onShowAccountControl?: (account: Account) => void;
   hideUsernames: boolean;
 }
 
@@ -29,6 +31,7 @@ const AccountRow: React.FC<AccountRowProps> = ({
   onDeleteAccount,
   onPlayAccount,
   onFollowAccount,
+  onShowAccountControl,
   hideUsernames,
 }) => {
   const isSelected = selectedAccountId === account.id;
@@ -144,6 +147,18 @@ const AccountRow: React.FC<AccountRowProps> = ({
               >
                 <UserPlus className="h-4 w-4" />
               </motion.button>
+              {onShowAccountControl && (
+                <motion.button
+                  whileHover={buttonTap.whileHover}
+                  whileTap={buttonTap.whileTap}
+                  onClick={(e: React.MouseEvent) => { e.stopPropagation(); onShowAccountControl(account); }}
+                  className="p-1 rounded hover:bg-bg-surface/50 text-muted-foreground hover:text-primary"
+                  title="Control de cuenta"
+                  aria-label={`Control de cuenta ${account.username}`}
+                >
+                  <Settings2 className="h-4 w-4" />
+                </motion.button>
+              )}
             </div>
           ) : null}
         </div>

@@ -10,6 +10,7 @@ interface AccountTableProps {
   onDeleteAccount: (id: string) => void;
   onPlayAccount: (account: Account) => void;
   onFollowAccount: (userId: number) => void;
+  onShowAccountControl?: (account: Account) => void;
   hideUsernames: boolean;
 }
 
@@ -20,6 +21,7 @@ const AccountTable: React.FC<AccountTableProps> = ({
   onDeleteAccount,
   onPlayAccount,
   onFollowAccount,
+  onShowAccountControl,
   hideUsernames,
 }) => {
   if (accounts.length === 0) {
@@ -62,6 +64,7 @@ const AccountTable: React.FC<AccountTableProps> = ({
                 onDeleteAccount={onDeleteAccount}
                 onPlayAccount={onPlayAccount}
                 onFollowAccount={onFollowAccount}
+                onShowAccountControl={onShowAccountControl}
                 hideUsernames={hideUsernames}
               />
             );

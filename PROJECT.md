@@ -7,12 +7,12 @@
 | Métrica | Valor |
 |---------|-------|
 | Versión | 2.5.0 |
-| Último commit | d7aa918 — docs(PROJECT.md): actualizado post-auditoria |
+| Último commit | pendiente — fixes de auditoria |
 | tsc | 0 errores |
-| vitest | 95/95 pasando |
-| lint | 0 errores, 177 warnings |
-| build | Pendiente — no ejecutado en v2.5.0 |
-| NSIS | Desactualizado — último: v2.4.1 |
+| vitest | 91/91 pasando |
+| lint | 0 errores, 155 warnings (src/) |
+| build | ✅ exitoso — AppImage + snap (linux) |
+| NSIS | Pendiente — requiere push tag para GitHub Actions |
 | Playwright | Pendiente — selectores actualizados, por verificar |
 
 ## Bloqueos resueltos en esta sesión
@@ -100,9 +100,13 @@
 - ServerBrowser (server-browser/ServerBrowser.tsx) — búsqueda de servidores (accesible via Dock → Servidores)
 - AccountControlPanel (AccountControlPanel/) — profile, security, privacy, friends, notifications (importado, pendiente verificar si accesible desde UI)
 
-### Componentes no importados (dead code candidates)
-- PresenceDashboard (presence/PresenceDashboard.tsx) — no se importa en App.tsx
-- ui/badge (ui/badge.tsx) — importado por ServerBrowser/card, no directamente por App.tsx
+### Componentes no importados (eliminados)
+- ~~PresenceDashboard~~ — eliminado (dead code, no se importaba en App.tsx)
+
+### AccountControlPanel accesible (FIX esta sesión)
+- AccountRow ahora tiene botón "Control de cuenta" (icono Settings2) cuando se selecciona
+- Prop `onShowAccountControl` pasada via AccountTable → App.tsx → `setShowAccountControl(true)`
+- AccountControlPanel abre como modal con profile, security, privacy, friends, notifications
 
 ### Stores Zustand
 - useAccountStore (renderer/store/useAccountStore.ts) — estado de cuentas
@@ -139,17 +143,24 @@
 6. **AES-256-GCM** — cifrado hardware-derived, cookies nunca salen del PC.
 7. **Browser-mode tests** — Playwright ejecuta contra `BROWSER_ONLY=1 vite --port 5174`, no contra Electron.
 
-## Plan de desarrollo v2.5.0
+## Auditoría backend (16 Jul 2026 — subagente experto)
+
+### Hallazgos
+- **ipcRenderer.on en preload.ts (L226, 233)**: Event-listener push pattern dentro de contextBridge wrapper. NO es violación — está expuesto via contextBridge, no directo. ✅
+- **throw new Error en main.ts (L391, 399)**: Dentro de try/catch local que convierte a resultado `success: false`. NO es violación del pattern IPC. ✅
+- **`row: any` en AccountManager.hydrateAccount**: Type safety minor — debería tipar el row del DB. Low priority.
+- **`value: any` en preload settings.set**: Type safety minor — debería tipar el valor. Low priority.
+
+### Conclusión backend
+El backend está sólido. IPC pattern correcto, contextBridge implementado, security rules respetadas. Solo hay 2 issues de type safety minors (no críticos).
 
 Plan completo en: `docs/plans/2026-07-16-v2.5.0-cleanup-restructure.md`
 
 ### Pendiente
 1. ⏳ Reescribir tests E2E/a11y/visual con selectores del DOM real v2.5.0
-2. ⏳ Regenerar baselines de visual regression (settings-modal, server-browser-modal)
-3. ⏳ Decidir destino de PresenceDashboard (integrar como modal o eliminar)
-4. ⏳ Verificar AccountControlPanel accesible desde UI
-5. ⏳ Build completo + tag v2.5.0 + NSIS actualizado
-6. ⏳ Validación visual con computer-use
+2. ⏳ Regenerar baselines de visual regression
+3. ⏳ Build NSIS via GitHub Actions (push tag v2.5.0)
+4. ⏳ Validación visual con computer-use
 
 ### RAM original (ic3w0lf22) — comparación de features
 | Feature | RAM original | NexoAccManager v2.5.0 |

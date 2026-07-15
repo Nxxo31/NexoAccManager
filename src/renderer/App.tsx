@@ -324,6 +324,7 @@ export default function App() {
                     onDeleteAccount={handleDeleteAccount}
                     onPlayAccount={(acc) => setSelectedAccount(acc)}
                     onFollowAccount={handleFollowUser}
+                    onShowAccountControl={(acc) => { setSelectedAccount(acc); setShowAccountControl(true); }}
                     hideUsernames={hideUsernames}
                   />
                 )}
