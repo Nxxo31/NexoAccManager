@@ -85,8 +85,6 @@ Result pattern in IPC: `{ success, data }` | `{ success: false, error }` — nev
 ## Key file structure — ACTUAL v2.5.0
 ```
 src/
-  lib/
-    utils.ts                  → DUPLICATE: not imported anywhere, delete candidate
   main/
     main.ts                   → Electron main process
     core/
@@ -118,11 +116,11 @@ src/
         AddAccountModal.tsx   → login/cookie/bulk import tabs
       layout/
         Header.tsx            → logo + counter + checkbox + theme toggle
-        Dock.tsx              → Place ID + Job ID + action buttons
+        Dock.tsx              → Place ID + Job ID + action buttons + Servidores + Ajustes
       modal/
         ModalShell.tsx        → overlay modal with focus-trap + ARIA
       presence/
-        PresenceDashboard.tsx → real-time status grid
+        PresenceDashboard.tsx → real-time status grid (NOT imported in App.tsx — dead code)
       server-browser/
         ServerBrowser.tsx     → server search and list
       settings/
@@ -140,8 +138,6 @@ src/
     main.tsx
   preload/
     preload.ts                → contextBridge — channel whitelist
-  store/
-    useUIStore.ts             → DUPLICATE: not imported, delete candidate
   types/
     Account.ts
 

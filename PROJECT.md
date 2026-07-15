@@ -7,7 +7,7 @@
 | Métrica | Valor |
 |---------|-------|
 | Versión | 2.5.0 |
-| Último commit | 7fe2da4 — refactor(v2.5.0): auditoria estructural |
+| Último commit | d7aa918 — docs(PROJECT.md): actualizado post-auditoria |
 | tsc | 0 errores |
 | vitest | 95/95 pasando |
 | lint | 0 errores, 177 warnings |
@@ -94,15 +94,15 @@
 - AccountTable (accounts/AccountTable.tsx) — tabla 3 columnas con drag-drop
 - AccountRow (accounts/AccountRow.tsx) — fila con framer-motion Reorder
 - AddAccountModal (accounts/AddAccountModal.tsx) — tabs: login/cookie/bulk import
-- Dock (layout/Dock.tsx) — Place ID, Job ID, Shuffle, botones de acción
+- Dock (layout/Dock.tsx) — Place ID, Job ID, Shuffle, botones Agregar/Eliminar/Abrir App/Servidores/Ajustes/Más opciones
 - ModalShell (modal/ModalShell.tsx) — overlay modal con focus-trap + ARIA
-- SettingsPanel (settings/SettingsPanel.tsx) — tema + idioma (INACCESIBLE desde UI)
-- ServerBrowser (server-browser/ServerBrowser.tsx) — búsqueda de servidores (INACCESIBLE desde UI)
-- AccountControlPanel (AccountControlPanel/) — profile, security, privacy, friends, notifications (INACCESIBLE desde UI)
+- SettingsPanel (settings/SettingsPanel.tsx) — tema + idioma + gestión de datos (accesible via Dock → Ajustes)
+- ServerBrowser (server-browser/ServerBrowser.tsx) — búsqueda de servidores (accesible via Dock → Servidores)
+- AccountControlPanel (AccountControlPanel/) — profile, security, privacy, friends, notifications (importado, pendiente verificar si accesible desde UI)
 
-### Componentes no importados
-- PresenceDashboard (presence/PresenceDashboard.tsx) — feature muerta, no se usa
-- ui/badge (ui/badge.tsx) — no importado directamente por App.tsx (importado por card/ServerBrowser)
+### Componentes no importados (dead code candidates)
+- PresenceDashboard (presence/PresenceDashboard.tsx) — no se importa en App.tsx
+- ui/badge (ui/badge.tsx) — importado por ServerBrowser/card, no directamente por App.tsx
 
 ### Stores Zustand
 - useAccountStore (renderer/store/useAccountStore.ts) — estado de cuentas
@@ -144,15 +144,31 @@
 Plan completo en: `docs/plans/2026-07-16-v2.5.0-cleanup-restructure.md`
 
 ### Pendiente
-1. ⏳ Fix BLOCK-1: Agregar botones de Settings y Servers al Dock
-2. ⏳ Fix BLOCK-2: Integrar o eliminar PresenceDashboard
-3. ⏳ Fix BLOCK-3: Reescribir tests E2E con selectores del DOM real
-4. ⏳ Fix BLOCK-4: Eliminar focus-trap duplicado de AddAccountModal
-5. ⏳ Fix BLOCK-5: Eliminar archivos duplicados (src/store/useUIStore.ts, src/lib/utils.ts)
-6. ⏳ Eliminar ui/badge si no se usa en ningún componente activo
-7. ⏳ Regenerar baselines de visual regression
-8. ⏳ Build completo + tag v2.5.0 + NSIS actualizado
-9. ⏳ Validación visual con computer-use
+1. ⏳ Reescribir tests E2E/a11y/visual con selectores del DOM real v2.5.0
+2. ⏳ Regenerar baselines de visual regression (settings-modal, server-browser-modal)
+3. ⏳ Decidir destino de PresenceDashboard (integrar como modal o eliminar)
+4. ⏳ Verificar AccountControlPanel accesible desde UI
+5. ⏳ Build completo + tag v2.5.0 + NSIS actualizado
+6. ⏳ Validación visual con computer-use
+
+### RAM original (ic3w0lf22) — comparación de features
+| Feature | RAM original | NexoAccManager v2.5.0 |
+|---------|-------------|----------------------|
+| Multi-instance Roblox | ✅ (built-in, disabled by default) | ✅ MultiRobloxService |
+| Add accounts | ✅ usuario:contraseña | ✅ BrowserWindow login + cookie + bulk import |
+| Cookie storage | ✅ plaintext | ✅ AES-256-GCM encrypted |
+| Save/Copy Password | ✅ | ❌ pendiente |
+| Account Control (Nexus) | ✅ in-game control via Lua | ❌ pendiente |
+| Local Web API | ✅ http API | ❌ pendiente |
+| DevMode (rbx-player link) | ✅ | ✅ en Dock dropdown |
+| PlaceId/JobId join | ✅ | ✅ en Dock |
+| Server browser | ✅ | ✅ ServerBrowser modal |
+| Presence/online status | ✅ | ✅ PresenceService (UI pendiente) |
+| Custom themes | ✅ WinForms limited | ✅ CSS variables + 4 presets |
+| i18n | ❌ English only | ✅ ES/EN/PT |
+| Cross-platform | ❌ Windows only | ✅ Electron (Win/Linux/Mac) |
+| Open source | ✅ GPL-3.0 | ✅ MIT |
+| Modern UI | ❌ WinForms | ✅ React + framer-motion + Tailwind |
 
 ## Historial de versiones
 - v2.0.1 (2026-07-13): OpenSource migration, NSIS publicado
