@@ -98,7 +98,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
       {isOpen && (
         <div
           onClick={handleBackdropClick}
-          className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm ${className}`}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
         >
           <AnimatePresence>
             <motion.div
@@ -111,7 +111,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
               aria-modal="true"
               aria-label="Modal"
               tabIndex={-1}
-              className="relative z-50 w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-bg-card rounded-lg border border-border shadow-2xl outline-none"
+              className={`relative z-50 w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-bg-card rounded-lg border border-border shadow-2xl outline-none ${className}`}
             >
               <div className="p-4 space-y-4">
                 {/* Close button in top-right */}

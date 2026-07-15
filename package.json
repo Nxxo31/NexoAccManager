@@ -1,6 +1,6 @@
 {
   "name": "nexoaccmanager",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Open-source multi-account manager for gaming platforms — 100% local, no servers, no cloud",
   "main": "dist/main/main.js",
   "type": "module",
@@ -19,10 +19,8 @@
     "test": "vitest",
     "test:unit": "vitest run",
     "lint": "eslint . --ext .ts,.tsx --ignore-pattern '*.config.*' --ignore-pattern 'playwright-*.js' --ignore-pattern 'public/**' --ignore-pattern 'dist/**'",
-    "test:e2e": "playwright test tests/e2e",
     "test:e2e:browser": "BROWSER_ONLY=1 playwright test tests/e2e-browser --config playwright.browser.config.ts",
     "test:visual": "BROWSER_ONLY=1 playwright test tests/visual --config playwright.browser.config.ts",
-    "test:a11y": "playwright test tests/a11y",
     "test:a11y:browser": "BROWSER_ONLY=1 playwright test tests/a11y-browser --config playwright.browser.config.ts",
     "test:coverage": "vitest run --coverage"
   },
@@ -33,7 +31,6 @@
     "i18next": "^26.3.1",
     "node-forge": "^1.3.1",
     "react-i18next": "^17.0.8",
-    "react-router-dom": "^6.30.4",
     "uuid": "^14.0.0"
   },
   "devDependencies": {
@@ -42,7 +39,6 @@
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.61.1",
     "@radix-ui/react-dialog": "^1.1.19",
-    "@radix-ui/react-toast": "^1.2.19",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -51,7 +47,6 @@
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "@types/react-router-dom": "^5.3.3",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^4.2.0",
     "@vitest/coverage-v8": "^4.1.10",

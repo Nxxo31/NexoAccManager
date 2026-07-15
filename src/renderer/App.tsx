@@ -14,7 +14,6 @@ import {
   Settings as SettingsIcon, Gamepad2, X, Copy, Check, Loader2,
   Save, UserPlus, Play
 } from 'lucide-react';
-import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { Dock } from './components/layout/Dock';
 import { ModalShell } from './components/modal/ModalShell';
@@ -295,13 +294,7 @@ export default function App() {
       <ThemeProvider>
         <>
           <div className="flex h-screen bg-background">
-            {/* Sidebar */}
-            <Sidebar 
-              isCollapsed={false} 
-              onToggleCollapse={() => {}} // We'll implement sidebar collapse later if needed
-            />
-            
-            {/* Main content */}
+            {/* Main content — no sidebar in v2.4.0+ */}
             <div className="flex-1 flex-col overflow-hidden">
               {/* Header */}
               <Header 
