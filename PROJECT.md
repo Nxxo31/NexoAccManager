@@ -66,7 +66,7 @@
 - PresenceView: lista de cuentas con status dots en tiempo real
 - Validación: tsc 0 errores, vitest 82/82, build exitoso (AppImage + snap)
 - Archivos nuevos: JoinBar.tsx, AccountDetailPanel.tsx, PresenceView.tsx
-- Commit: [pendiente]
+- Commit: d3bdc4c
 
 ### Fase 3 — Paridad funcional con RAM (PRIORIDAD MEDIA)
 - 3.1 Save/Copy Password — toggle global en Settings, cifrar con CryptoService, botón copiar en DetailPanel
