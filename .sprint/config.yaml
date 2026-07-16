@@ -1,0 +1,29 @@
+# Sprint Agent configuration
+# Docs: https://github.com/miloudbelarebia/sprint-agent
+
+project:
+  name: "NexoAccManager"
+
+sprint:
+  duration: 7
+  days_per_sprint: 5
+  daily_duration: 30
+  retro_day: friday
+  start_day: monday
+
+agent:
+  type: auto
+
+priorities:
+  P0: "Critical — blockers, security, data loss"
+  P1: "High — must ship this sprint"
+  P2: "Medium — next sprint"
+  P3: "Low — this quarter"
+  P4: "Nice-to-have — someday/maybe"
+
+effort:
+  XS: "< 30 min"
+  S: "~1 hour"
+  M: "2-4 hours (1 daily)"
+  L: "4-8 hours (2-3 dailies)"
+  XL: "> 1 day (break it down)"
