@@ -220,100 +220,180 @@ Plan completo en: `docs/plans/2026-07-16-v2.5.0-cleanup-restructure.md`
 3. ⏳ Build NSIS via GitHub Actions (push tag v2.5.0)
 4. ⏳ Validación visual con computer-use
 
-## Análisis UI — Investigación de apps similares (2026-07-16)
+## Análisis UI — Investigación del ecosistema Roblox (2026-07-16)
 
 ### Metodología
-Análisis visual de screenshots reales + documentación de design decisions de 5 apps
-relevantes para NAM. Fuentes citadas por cada hallazgo.
+Análisis de productos reales del ecosistema Roblox: competidores directos (RAM v4, MultiRoblox, MultiBlox), herramientas oficiales (Roblox Studio UI, Presence API), extensiones (RoPro), y bootstrappers (Bloxstrap). Screenshots analizados con vision_analyze + documentación de repos.
 
-### 1. Playnite (open-source game library manager)
-**Fuente:** github.com/JG00SE/GridViewCards, github.com/sakasakaking/FusionX — screenshots analizados con vision_analyze
+### 1. RAM v4 Beta (niccsprojects — fork moderno de ic3w0lf22)
+**Fuente:** github.com/niccsprojects/Roblox-Account-Manager — screenshot v4.2 analizado con vision_analyze
+**Stack:** Rust + TypeScript + Tauri (migrado de WinForms/C#)
 
-**Layout:** Sidebar vertical izquierdo (icon toolbar con view modes: list/grid/cover-flow) + grid responsive central + detail panel derecho (~30% width)
-**Cards:** Cover art rellena el card, overlay translúcido oscuro (~70% opacity), título superpuesto, icono de plataforma bottom-left, tiempo jugado bottom-right, star icon para favoritos top-right
-**Detail panel:** Banner image + título + botones Install/Play + metadata tabular (time played, last played, platform, publisher, developer, release date) + achievements con progress bar + news feed scrolleable
-**Grouping:** Filter-driven, no tree hierarchy. Collections/tags como iconos en cards. Filter bar con "Filter Active" toggle
-**Dark theme:** Near-black #121212 background, text white #EEEEEE, accent colors brillantes para logros/estados. Detail panel ligeramente #1E1E1E para elevarlo del grid
-**Lección para NAM:** Detail panel derecho con scroll, cards con overlay translúcido sobre avatar, filter-driven grouping (no tree), view modes intercambiables
+**Layout:** Lista vertical de cuentas izquierda + panel detalle derecho + topbar con search y acciones
+**Cuentas:** Lista (no grid) con avatar, username (parcialmente oculto con asteriscos por seguridad), timestamp de último uso, dot de presencia (azul=online, verde=in-game)
+**Detail panel:** Status (Offline/Online), Account ID, R$ Valid (verde), Alias + Set button, Description + Set Description, Launch dropdown (None/Place/Job), Place ID, Job ID, Data field (joinCode), Join Server button
+**Features clave que NAM no tiene:**
+- Botting Mode: mantener cuentas rejoining con timers y controles per-cuenta + player-account exemptions
+- Nexus Account Control: WebSocket-based control panel con command routing y Nexus.lua export
+- Script Manager: scripts JS con Rust command invoke, HTTP/WebSocket, modales, custom UI, live logs
+- Launch Diagnostics: identificar qué tiene el mutex de Roblox y cerrar conflictivos
+- Ctrl/Shift/range selection + Windows-style drag marquee
+- dnd-kit sortable reorder con multi-drag y undo/redo
+- Account Organization: grouping, drag-drop reorder, alphabetical sort, numeric prefix ordering
+- Crowdin localization pipeline
+- Local Web API con endpoint permissions, password, port controls
+- DevMode: auth tickets, app links, raw field editing
 
-### 2. Discord (multi-server, presence, navigation)
-**Fuente:** discord.com/blog/you-bar, designbyroka.com/work/discord-mobile-redesign
+**Lección para NAM:** RAM v4 evolucionó a lista+derecha (no grid). Pero NAM puede mejorar con grid+detail panel combinado. Features críticas a implementar: Botting Mode, Nexus Account Control, Script Manager, multi-selección Ctrl/Shift, Launch Diagnostics.
 
-**Layout:** Triple sidebar: server list (ultra-narrow icon rail) → channel list (medium sidebar) → main content → optional member list (right panel)
-**Presence:** Status dot en avatar (online/idle/dnd/offline), activity display ("Playing X"), color-coded roles
-**Navigation:** Server icons como pill-shaped buttons con tooltip, hover = highlight blanco, selected = badge izquierda. Canales agrupados por categorías colapsables
-**Settings:** User settings vía gear icon bottom-left, organization settings separadas del server settings
-**Dark theme:** #36393f background (menos extremo que #0D0D0D), text blanco, hover states sutiles
-**Lección para NAM:** Presence dots standardizados (online/offline/in-game), sidebar con iconos + labels colapsable, settings globales vs per-entity claramente separadas, hover states sutiles no saturados
+### 2. MultiRoblox (PookiePepelsss — Electron + Rust + C#)
+**Fuente:** github.com/PookiePepelsss/MultiRoblox-RAM
 
-### 3. Steam Library (game grid, friends, social)
-**Fuente:** anthonyjasper.co.uk/steam.html, blog.parrot9.com/steam-case-study
+**Layout:** Sidebar con secciones: Accounts, Packages, Mixer, Charts, Generator, Settings, Anti-AFK, Logs
+**Features únicas:**
+- **Packages**: agrupar cuentas (farm squad, trading alts) → lanzar grupo entero con game target compartido o per-cuenta
+- **Mixer**: controlar render quality, FPS target, volume de todas las instancias desde un panel → escribe a Roblox fast flags en disco → volume control a nivel OS
+- **Charts**: browser de top playing now, top rated, top earning games → search y launch desde charts
+- **Generator**: generar cuentas Roblox vía API de bloxgen.net
+- **Anti-AFK**: toggle desde sidebar → taps tecla benigna en cada ventana de Roblox en intervalo configurable para evitar idle kick
+- **Logs**: visor en tiempo real con search in-page (Ctrl+F)
+- **Kill All**: matar todas las instancias con un botón
 
-**Layout:** Sidebar izquierdo (library navigation + collections + friends) + grid central de game cards + detail view inline (no panel separado, expande el content area)
-**Cards:** Cover art grande, título superpuesto bottom, tiempo jugado, "last played" timestamp. Hover revela actions (Play/Install) sin necesidad de click
-**Detail view:** Full-page takeover con hero banner, news section, friends who play, achievements, screenshots. Información densa pero modular
-**Friends/Presence:** Sidebar derecho con friends list, status dots, "in-game" indicators con icon del juego. Click en friend → perfil expandible
-**Empty states:** "Your Steam Library is empty. Add games from the store." con CTA claro
-**Lección para NAM:** Hover-to-reveal actions en cards (no llenar el card de botones), friends list con presencia en sidebar, empty states con CTA específico, news/info modular en detail view
+**Lección para NAM:** Packages = nuestro "Groups" pero con launch de grupo entero. Mixer = control centralizado de quality/FPS/volume — muy útil para multi-boxing. Charts = browser de juegos integrado. Anti-AFK = feature刚需 para farming.
 
-### 4. Bitwarden (account/credential manager)
-**Fuente:** bitwarden.com/blog/bitwarden-design-updating-the-web-vault-experience, github.com/bitwarden/clients/pull/6957
+### 3. MultiBlox (unknownperson-vos — Python)
+**Fuente:** github.com/unknownperson-vos/MultiBlox
 
-**Layout:** Vertical vault navigation (sidebar) + item list + detail panel. PR #6957 migró a vertical nav unificado
-**Cards/Items:** Lista densa con icono + nombre + username + folder badge. NO grid — usa lista compacta para maximizar items visibles
-**Grouping:** Vault filter (All / My Vault / Organization) + folder tags + type filters (logins/cards/notes)
-**Search:** Top bar search con filtros combinables. Filter bar siempre visible
-**Settings:** Clear separation: Account Settings (security, subscription) vs Organization (admin tools). Solo admin ve org tools
-**Lección para NAM:** Lista compacta para muchas cuentas (50 max — considerar toggle grid/list), grouping con filter chips (All / Group1 / Group2), settings globales vs per-account en paneles claramente separados, search bar always-visible con debounce
+**Enfoque:** No gestiona cuentas — gestiona procesos. Detecta instancias de Roblox automáticamente.
+**Features únicas:**
+- Real-time process detection (PID de cada instancia)
+- Roblox account identification: extrae UserID de logs, fetch username + avatar vía API
+- Per-instance process analytics (thread stability, handle state)
+- Dedicated per-instance information window
+- Installer quarantine: mueve installers de Roblox a TEMP para prevenir updates forzados
+- Custom script execution on launch/close (.py, .ps1, .bat, .js, .go)
+- Color-coded logs con timestamps
+- Compatible con bootstrappers: Bloxstrap, Fishstrap, Voidstrap
 
-### 5. Linear (dev tool, sidebar + grid + detail)
-**Fuente:** linear.app/now/behind-the-latest-design-refresh, linear.app/blog/how-we-redesigned-the-linear-ui, designsystems.one/design-systems/linear
+**Lección para NAM:** Process detection en tiempo real es valioso — saber qué cuentas están corriendo sin tener que lanzarlas desde NAM. Installer quarantine es nicho pero útil. Custom script execution on launch/close = automation hooks.
 
-**Layout:** Sidebar izquierda (navigation) + tabs top (views) + content (list/board/timeline) + detail panel derecha (properties)
-**Design tokens:** color-background #08090A, color-text-primary #F7F8F8, color-text-tertiary #8A8F98, color-accent #5E6AD2, color-border #23252A, font Inter, motion 180ms
-**Sidebar:** Dimmer que content area — navigation recedes, content takes precedence. Iconos reducidos, no fondos coloreados
-**Command palette:** ⌘K abre navigation + action + search unificado. Pattern copiado por toda la industria de dev tools
-**Motion:** 120-180ms eased transitions para state changes. List reorders, modal entrances, view transitions
-**Empty states:** Una frase, ilustración hairline, zero marketing copy
-**Density:** 32px o 40px row rhythm consistente. Menos densidades que competidores, usadas deliberadamente
-**Lección para NAM:** Sidebar dimmer que content (recedes), comando palette ⌘K, motion 180ms, empty states minimalistas (frase + ilustración simple), row rhythm consistente 32/40px, single accent color como puntuación (no saturar)
+### 4. Roblox Studio UI (oficial — Next Gen)
+**Fuente:** create.roblox.com/docs/studio/ui-overview, devforum.roblox.com
 
-### Patrones transversales aplicables a NAM
+**Account Switching:** Hasta 10 cuentas en Studio, click en username top-right → nueva instancia de Studio abre
+**Layout customization:** Drag-and-drop window docking, pin windows to edges, tab groups, collapse toolbars
+**Density modes:** Compact y regular, toggable via right-click menu
+**Design system:** Color-coded icons,ropa de menús consistente, Script/UI tabs always present
+**Lección para NAM:** Density modes (compact/regular) ya existen en nuestro ThemeSettings.uiDensity. Tab groups y docking es muy complejo para NAM pero la idea de "tabs always present" aplica.
 
-1. **Sidebar dimmer que content** (Linear, Discord) — navigation recede, accounts gridbright. NAM sidebar actual too bright
-2. **Hover-to-reveal actions** (Steam, Playnite) — no llenar AccountCard de botones. Mostrar actions on hover o en detail panel
-3. **Detail panel derecho** (Playnite, Linear, Bitwarden) — slide-in, no modal. Scrollable. NAM ya tiene esto en mockup ✓
-4. **Filter-driven grouping** (Playnite, Bitwarden) — chips/filters, no tree hierarchy. Group dropdown + filter by group
-5. **Presence dots standardizados** (Discord) — verde=online, gris=offline, azul=in-game. Ya en NAM mockup ✓
-6. **Command palette ⌘K** (Linear, VS Code) — search + action + navigation unificado. Fase 4 feature
-7. **Empty states con CTA** (Steam, Linear) — "No hay cuentas. Agregar cuenta" con botón, no solo texto
-8. **Settings globales vs per-account separadas** (Bitwarden, Discord) — SettingsView global, AccountDetailPanel per-account
-9. **Motion 120-180ms** (Linear) — view transitions, panel slide-in, card hover. NAM ya usa framer-motion 200ms
-10. **Single accent como puntuación** (Linear) — no saturar con color. Roblox red solo para CTAs primarios
+### 5. Roblox Presence API (oficial)
+**Fuente:** create.roblox.com/docs/cloud/reference/domains/presence, devforum.roblox.com
 
-### Anti-patrones de RAM a evitar
+**Endpoint:** POST https://presence.roblox.com/v1/presence/users
+**Request:** `{ "userIds": [123456789] }`
+**Response:** userPresenceType: 0=Offline, 1=Online, 2=InGame, 3=InStudio, 4=Invisible
+**Campos:** lastLocation (string), placeId, rootPlaceId, gameId (=JobId), universeId, userId, lastOnline (ISO date)
 
-1. **Ventanas flotantes superpuestas** — RAM usa WinForms floating windows que se tapan entre sí. NAM usa views unificadas + modales
-2. **Tabla sin jerarquía visual** — RAM muestra cuentas en表格 plana sin grouping visual. NAM usa cards con group separators
-3. **Settings mezclados** — RAM mezcla global settings con per-account en misma vista. NAM separa: SettingsView global, DetailPanel per-account
-4. **Sin search** — RAM no tiene search bar. NAM tiene TopBar search con debounce
-5. **WinForms look** — RAM parece aplicación de Windows 7. NAM usa dark theme moderno, Inter, framer-motion, Lucide icons
-6. **Sin empty states** — RAM muestra ventana vacía sin guía. NAM tiene empty state con CTA
+**Lección para NAM:** Nuestro PresenceService ya usa esta API. Pero hay 5 estados (no 3): Offline, Online, InGame, InStudio, Invisible. NAM debería mostrar InStudio como estado separado (útil para devs). Invisible es un estado de privacidad — mostrarlo como "Oculto".
 
-### Recomendaciones concretas para NAM v3.0 UI
+### 6. RoPro (extensión de navegador Roblox)
+**Fuente:** ropro.io
 
-| # | Recomendación | Origen | Fase |
-|---|---------------|--------|------|
-| R1 | Dim sidebar background a #0F0F0F (un notch arriba de #0D0D0D content) | Linear | 2.1 |
-| R2 | Hover-to-reveal actions en AccountCard (hide default, show on hover) | Steam, Playnite | 2.4 |
-| R3 | Filter chips para groups en TopBar (All / Principal / Altas / ... editable) | Playnite, Bitwarden | 2.3 |
-| R4 | Empty state en AccountGrid: "No hay cuentas. [Agregar cuenta]" con ilustración simple | Steam, Linear | 2.1 |
-| R5 | Row rhythm 40px en AccountCard (consistente con grid) | Linear | 2.2 |
-| R6 | Command palette ⌘K (search + nav + actions) | Linear, VS Code | 4.x |
-| R7 | Friends list en AccountDetailPanel con presence dots (no en sidebar) | Discord, Steam | 3.6 |
-| R8 | Toggle grid/list view en Accounts (icon toggle en TopBar como Playnite) | Playnite | 3.x |
-| R9 | Motion 180ms todos los transitions (reducir de 200ms actuales) | Linear | 2.x |
-| R10 | Single accent: Roblox red solo para CTAs primarios, no para todo | Linear | 2.x |
+**Features relevantes:**
+- Server ping details en server list
+- Filter servers by player count (low/pop medium/full)
+- Quick hop to random servers (server shuffle)
+- Access recent servers you've left
+- Create invite link to any server
+- Track playtime by game
+- View mutual friends on profiles
+- View last online on profiles
+- Quick search & quick play games
+
+**Lección para NAM:** Server ping, filter by player count, recent servers left, invite link, playtime tracking per game, last online — features concretas que mejoran la UX de server browsing.
+
+### 7. Bloxstrap (bootstrapper alternativo)
+**Fuente:** github.com/bloxstraplabs/bloxstrap, bloxstrap.com
+
+**Features relevantes:**
+- Discord Rich Presence (mostrar juego actual en Discord)
+- Server geolocation (ipinfo.io)
+- FastFlag editor: framerate limit, graphics fidelity, lighting tech, rendering mode
+- Content modding: sonidos, cursores, fonts, emoji sets
+- Bootstrapper style customization (splash screen)
+- JSON config que sobrevive updates
+
+**Lección para NAM:** FastFlag management = control de quality/FPS como MultiRoblox Mixer. Discord Rich Presence = integración social. Server geolocation = info útil en ServerBrowser.
+
+### Competidores directos — comparativa actualizada
+
+| Feature | RAM v4 | MultiRoblox | MultiBlox | NAM v3.0 |
+|---------|--------|-------------|-----------|----------|
+| Stack | Rust+Tauri | Electron+Rust+C# | Python | Electron+React+TS |
+| Multi-instance | ✅ mutex helper | ✅ mutex helper | ✅ handle64.exe | ✅ MultiRobloxService |
+| Cookie encryption | ✅ AES-256-GCM | ✅ AES-256-GCM o DPAPI | ❌ | ✅ AES-256-GCM |
+| Cross-platform | ❌ Windows | ❌ Windows | ❌ Windows | ✅ Win/Linux/Mac |
+| i18n | ✅ Crowdin (EN/DE) | ❌ EN only | ❌ EN only | ✅ ES/EN/PT |
+| Account list | ✅ lista vertical | ✅ lista | ✅ process list | ✅ grid con cards |
+| Detail panel | ✅ derecho | ❌ | ✅ per-instance window | ✅ slide-in derecho |
+| Grouping | ✅ drag-drop + sort | ✅ packages | ❌ | ✅ group separators |
+| Botting mode | ✅ timers + exemptions | ❌ | ❌ | ❌ pendiente |
+| Nexus/Account Control | ✅ WebSocket + Lua | ❌ | ❌ | ❌ pendiente |
+| Script Manager | ✅ JS + Rust invoke | ❌ | ✅ .py/.ps1/.bat | ❌ pendiente |
+| Multi-select | ✅ Ctrl/Shift/marquee | ❌ | ❌ | ❌ pendiente |
+| Packages/Group launch | ❌ | ✅ group launch | ❌ | ❌ pendiente |
+| Mixer (FPS/quality/volume) | ❌ | ✅ centralizado | ❌ | ❌ pendiente |
+| Charts/Game browser | ❌ | ✅ top playing/rated/earning | ❌ | ❌ pendiente |
+| Anti-AFK | ❌ | ✅ configurable interval | ❌ | ❌ pendiente |
+| Process detection | ❌ | ❌ | ✅ real-time PID | ❌ pendiente |
+| Kill All instances | ❌ | ✅ one button | ✅ | ❌ pendiente |
+| Launch Diagnostics | ✅ mutex conflict | ❌ | ✅ handle state | ❌ pendiente |
+| Server browser | ❌ | ❌ | ❌ | ✅ ServerBrowser |
+| Presence UI | ❌ | ❌ | ✅ avatar + username | ✅ PresenceService (UI pendiente) |
+| Save/Copy Password | ❌ | ❌ | ❌ | ❌ pendiente |
+| Local Web API | ✅ con permissions | ❌ | ❌ | ❌ pendiente |
+| Custom themes | ✅ editor | ✅ light/dark | ❌ | ✅ CSS variables + 4 presets |
+| Account generator | ❌ | ✅ bloxgen.net API | ❌ | ❌ (no planeado) |
+| Anti-afk | ❌ | ✅ | ❌ | ❌ (no planeado) |
+| Installer quarantine | ❌ | ❌ | ✅ | ❌ (no planeado) |
+| Bloxstrap compatibility | ❌ | ❌ | ✅ | ✅ MultiRobloxService |
+| License | GPL-3.0 | MIT | MIT | MIT |
+
+### Features del ecosistema Roblox a implementar en NAM (priorizadas)
+
+| # | Feature | Origen | Fase | Prioridad |
+|---|---------|--------|------|-----------|
+| F1 | Botting Mode (timers, rejoins, exemptions) | RAM v4 | 4.x | ALTA — casos de uso farming |
+| F2 | Multi-select Ctrl/Shift + drag marquee | RAM v4 | 2.x | ALTA —管理 eficiente |
+| F3 | Packages/Group Launch (lanzar grupo entero) | MultiRoblox | 3.x | ALTA — farming/trading |
+| F4 | Mixer: FPS/quality/volume centralizado | MultiRoblox | 4.x | MEDIA — multi-boxing |
+| F5 | Charts: top playing/rated/earning games | MultiRoblox | 3.x | MEDIA — game discovery |
+| F6 | Anti-AFK (intervalo configurable) | MultiRoblox | 4.x | MEDIA — farming |
+| F7 | Kill All instances (botón) | MultiRoblox | 2.x | ALTA — control rápido |
+| F8 | Process detection real-time (PID, status) | MultiBlox | 4.x | MEDIA — monitoring |
+| F9 | Nexus Account Control (WebSocket + Lua) | RAM v4 | 4.x | BAJA — complejo |
+| F10 | Script Manager (JS con IPC) | RAM v4 | 4.x | BAJA — complejo |
+| F11 | Launch Diagnostics (mutex conflict) | RAM v4 | 4.x | BAJA — debugging |
+| F12 | Local Web API con permissions | RAM v4 | 4.x | BAJA — power users |
+| F13 | Presence: 5 estados (Offline/Online/InGame/InStudio/Invisible) | Roblox API | 3.6 | ALTA — precisión |
+| F14 | Server browser: ping, filter by player count | RoPro | 3.x | MEDIA — UX servers |
+| F15 | Recent servers left (historial) | RoPro | 3.x | MEDIA — conveniencia |
+| F16 | Playtime tracking per game | RoPro | 3.x | MEDIA — stats |
+| F17 | FastFlag management (FPS, graphics) | Bloxstrap | 4.x | BAJA — complejo |
+| F18 | Discord Rich Presence | Bloxstrap | 4.x | BAJA — integración social |
+
+### Diferenciación de NAM vs competidores
+
+**NAM es el ÚNICO que:** cross-platform (Win/Linux/Mac) + i18n ES/EN/PT + grid cards + detail panel slide-in + AES-256-GCM + MIT + sidebar con 5 views + server browser + presence UI + Bloxstrap compatible
+
+**Ventajas competitivas a mantener:**
+1. Cross-platform (todos los competidores son Windows-only)
+2. i18n (solo RAM v4 tiene Crowdin, solo EN/DE)
+3. Grid cards con avatars (otros usan listas planas)
+4. Detail panel slide-in (RAM v4 tiene panel derecho pero no slide-in animado)
+5. Server browser integrado (ningún competidor lo tiene)
+6. AES-256-GCM (solo RAM v4 y MultiRoblox lo tienen)
+7. MIT license (MultiBlox y MultiRoblox también, RAM v4 es GPL-3.0)
 
 ## Modelo de datos — Entidades y relaciones
 
