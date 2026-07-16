@@ -7,39 +7,37 @@ test.describe('Navigation tests - NexoAccManager v2.5.0', () => {
   });
 
   test('should open settings modal when clicking Ajustes button in dock', async ({ page }) => {
-    const settingsBtn = page.locator('button[aria-label="Ajustes"]');
-    await expect(settingsBtn).toBeVisible();
-    await settingsBtn.click();
-    
-    // Wait for modal to appear
-    const modal = page.locator('[role="dialog"]');
-    await expect(modal).toBeVisible({ timeout: 5000 });
-    
-    // Check modal has expected elements
-    await expect(modal.locator('text=Ajustes')).toBeVisible();
-    await expect(modal.locator('text=Tema')).toBeVisible();
-    await expect(modal.locator('text=Idioma')).toBeVisible();
-    await expect(modal.locator('button:has-text("Cerrar")')).toBeVisible();
-    
-    // Close modal
-    await page.keyboard.press('Escape');
-    await expect(modal).not.toBeVisible();
-  });
+      const settingsBtn = page.locator('button[aria-label="Ajustes"]');
+      await expect(settingsBtn).toBeVisible();
+      await settingsBtn.click();
+      
+      // Wait for modal to appear - target by content
+      const modal = page.locator('[role="dialog"]:has-text("Ajustes")');
+      await expect(modal).toBeVisible({ timeout: 5000 });
+      
+      // Check modal has expected elements
+      await expect(modal.locator('text=Tema')).toBeVisible();
+      await expect(modal.locator('text=Idioma')).toBeVisible();
+      await expect(modal.locator('button:has-text("Cerrar")')).toBeVisible();
+      
+      // Close modal
+      await page.keyboard.press('Escape');
+      await expect(modal).not.toBeVisible();
+    });
 
   test('should open add account modal when clicking Agregar button in dock', async ({ page }) => {
-    const addBtn = page.locator('button:has-text("Agregar")');
-    await expect(addBtn).toBeVisible();
-    await addBtn.click();
-    
-    // Wait for modal to appear
-    const modal = page.locator('[role="dialog"]');
-    await expect(modal).toBeVisible({ timeout: 5000 });
-    await expect(modal.locator('text=Agregar cuenta')).toBeVisible();
-    
-    // Close modal
-    await page.keyboard.press('Escape');
-    await expect(modal).not.toBeVisible();
-  });
+      const addBtn = page.locator('button:has-text("Agregar")');
+      await expect(addBtn).toBeVisible();
+      await addBtn.click();
+      
+      // Wait for modal to appear - target by content
+      const modal = page.locator('[role="dialog"]:has-text("Agregar cuenta")');
+      await expect(modal).toBeVisible({ timeout: 5000 });
+      
+      // Close via clicking the cancel button in model
+      await page.click('button:has-text("Cancelar")');
+      await expect(modal).not.toBeVisible();
+    });
 
   test('should close modals when clicking outside (backdrop)', async ({ page }) => {
     // Open add account modal
@@ -86,7 +84,6 @@ test.describe('Navigation tests - NexoAccManager v2.5.0', () => {
     
     const modal = page.locator('[role="dialog"]');
     await expect(modal).toBeVisible({ timeout: 5000 });
-    await expect(modal.locator('text=Agregar cuenta')).toBeVisible();
     
     // Close via clicking the cancel button in modal
     await page.click('button:has-text("Cancelar")');

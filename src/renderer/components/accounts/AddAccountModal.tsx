@@ -9,7 +9,7 @@ interface AddAccountModalProps {
   onClose: () => void;
   onLoginBrowser: (group?: string) => Promise<void>;
   onAddCookie?: (cookie: string, group?: string) => Promise<void>;
-  onBulkImport?: (input: string, format: 'user:pass' | 'cookies') => Promise<Array<{ success: boolean; message: string; accountId?: string }>>;
+  onBulkImport?: (input: string, format: 'user:pass' | 'cookies') => Promise<void>;
 }
 
 type TabId = 'login' | 'cookie' | 'bulk';
@@ -32,7 +32,6 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onLo
   const [bulkResults, setBulkResults] = React.useState<BulkResult[]>([]);
 
   // Focus-trap handled by ModalShell
-
   const handleBrowserLogin = async () => {
     setLoading(true);
     setError(null);
@@ -70,8 +69,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onLo
     setError(null);
     setBulkResults([]);
     try {
-      const results = await onBulkImport?.(bulkInput, bulkFormat);
-      if (results) setBulkResults(results.map((r, i) => ({ line: i + 1, ...r })));
+      await onBulkImport?.(bulkInput, bulkFormat);
     } catch (e) {
       setError((e as Error).message || 'Error al procesar la importación');
     } finally { setLoading(false); }
@@ -93,7 +91,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ isOpen, onClose, onLo
   const tabClass = (tab: TabId) => `flex-1 px-4 py-2 text-sm font-medium ${activeTab === tab ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'}`;
 
   return (
-    <ModalShell isOpen={isOpen} onClose={handleClose} className="w-full max-w-lg">
+      <ModalShell isOpen={isOpen} onClose={handleClose} title="Agregar cuenta" className="w-full max-w-lg">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           <Globe className="h-5 w-5 text-primary" />

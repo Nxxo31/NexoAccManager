@@ -7,36 +7,35 @@ test.describe('Smoke tests - NexoAccManager v2.5.0', () => {
   });
 
   test('should load the application successfully', async ({ page }) => {
-    await expect(page).toHaveTitle(/NexoAccManager/);
+      await expect(page).toHaveTitle(/NexoAccManager/);
     
-    // Check header elements
-    await expect(page.locator('text=NexoAcc')).toBeVisible();
-    await expect(page.locator('text=0/50')).toBeVisible(); // Account counter
-    await expect(page.locator('button[aria-label="Cambiar tema"]')).toBeVisible();
-    await expect(page.locator('label:has-text("Ocultar")')).toBeVisible();
+      // Check header elements
+      await expect(page.locator('text=NexoAcc')).toBeVisible();
+      await expect(page.locator('text=0/50')).toBeVisible(); // Account counter
+      await expect(page.locator('button[aria-label="Cambiar tema"]')).toBeVisible();
+      await expect(page.locator('label:has-text("Ocultar")')).toBeVisible();
     
-    // Check empty state
-    await expect(page.locator('text=No hay cuentas')).toBeVisible();
+      // Check empty state
+      await expect(page.locator('text=No hay cuentas')).toBeVisible();
     
-    // Check dock elements
-    await expect(page.locator('input[aria-label="Place ID"]')).toBeVisible();
-    await expect(page.locator('input[aria-label="Job ID"]')).toBeVisible();
-    await expect(page.locator('button:has-text("Agregar")')).toBeVisible();
-    await expect(page.locator('button:has-text("Eliminar")')).toBeVisible();
-    await expect(page.locator('button:has-text("Abrir App")')).toBeVisible();
-    await expect(page.locator('button:has-label("Más opciones")')).toBeVisible();
-  });
+      // Check dock elements
+      await expect(page.locator('input[aria-label="Place ID"]')).toBeVisible();
+      await expect(page.locator('input[aria-label="Job ID"]')).toBeVisible();
+      await expect(page.locator('button:has-text("Agregar")')).toBeVisible();
+      await expect(page.locator('button:has-text("Eliminar")')).toBeVisible();
+      await expect(page.locator('button:has-text("Abrir App")')).toBeVisible();
+      await expect(page.locator('button[aria-label="Más opciones"]')).toBeVisible();
+    });
 
   test('should open add account modal when clicking Agregar button', async ({ page }) => {
     await expect(page.locator('button:has-text("Agregar")')).toBeVisible();
     await page.click('button:has-text("Agregar")');
     
-    // Wait for modal to appear
-    const modal = page.locator('[role="dialog"]');
+    // Wait for modal to appear - target by content
+    const modal = page.locator('[role="dialog"]:has-text("Agregar cuenta")');
     await expect(modal).toBeVisible({ timeout: 5000 });
     
     // Check modal has expected elements
-    await expect(modal.locator('text=Agregar cuenta')).toBeVisible();
     await expect(modal.locator('text=Email o nombre de usuario')).toBeVisible();
     await expect(modal.locator('text=Contraseña')).toBeVisible();
     await expect(modal.locator('button:has-text("Cancelar")')).toBeVisible();
@@ -53,15 +52,14 @@ test.describe('Smoke tests - NexoAccManager v2.5.0', () => {
     await expect(settingsBtn).toBeVisible();
     await settingsBtn.click();
     
-    // Wait for modal to appear
-    const modal = page.locator('[role="dialog"]');
+    // Wait for modal to appear - target by content
+    const modal = page.locator('[role="dialog"]:has-text("Ajustes")');
     await expect(modal).toBeVisible({ timeout: 5000 });
     
     // Check modal has expected elements
-    await expect(modal.locator('text=Ajustes')).toBeVisible();
     await expect(modal.locator('text=Tema')).toBeVisible();
     await expect(modal.locator('text=Idioma')).toBeVisible();
-    await expect(modal.locator('button:has-text("Cerrar")')).toBeVisible();
+    await expect(modal.locator('button:has-text("Cerrar modal")')).toBeVisible();
     
     // Close modal by clicking backdrop
     await page.click('[role="dialog"] >> nth=0', { position: { x: 10, y: 10 } });

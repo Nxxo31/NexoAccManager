@@ -1,0 +1,50 @@
+# NexoAccManager Code Review Configuration
+# Used by mcp-code-review MCP server for structured PR analysis
+
+focus:
+  - quality
+  - security
+  - performance
+
+locale: es
+
+output_dir: .hermes/code-review-reports
+
+ignore_patterns:
+  - "node_modules/**"
+  - "dist/**"
+  - "release/**"
+  - ".git/**"
+  - "**/*.lock"
+  - "**/*.map"
+  - "coverage/**"
+  - "out/**"
+
+# Risk threshold: low | medium | high
+risk_threshold: medium
+
+# Custom review guidelines specific to NexoAccManager
+guidelines:
+  security:
+    - "Never expose Roblox cookies in logs, error messages, or UI text"
+    - "contextIsolation must remain true in all BrowserWindow configurations"
+    - "All IPC handlers must validate input types before processing"
+    - "No remote module usage in renderer process"
+    - "Cookies must be stored encrypted, never in plaintext"
+  quality:
+    - "Components must use React.memo for expensive renders"
+    - "All handlers extracted from monolithic components into custom hooks"
+    - "Framer-motion transitions: 200ms default, no longer without justification"
+    - "Spanish UI text only — no hardcoded English strings"
+    - "Use ModalShell for all modals — no inline modal markup"
+    - "shadcn-ui primitives preferred over custom components"
+  performance:
+    - "AccountGrid must use virtualization for >100 accounts"
+    - "Avatar loading must be lazy with IntersectionObserver"
+    - "IPC calls must be debounced for search/filter operations"
+    - "No synchronous IPC calls in render path"
+  architecture:
+    - "Single source of truth: PROJECT.md must reflect current state"
+    - "Store mutations only through defined actions, never direct"
+    - "Preload API surface must match exact IPC handler registration"
+    - "ErrorBoundary required at view-level granularity"

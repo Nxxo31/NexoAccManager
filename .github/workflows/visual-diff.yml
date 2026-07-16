@@ -1,0 +1,79 @@
+name: Visual Diff
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, labeled]
+
+jobs:
+  visual-diff:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.pull_request.labels.*.name, 'visual diff')
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Build renderer for preview
+        run: npx vite build --mode development
+        env:
+          NODE_ENV: development
+
+      - name: Start preview server
+        run: |
+          npx vite preview --port 4173 &
+          sleep 3
+          echo "Preview server started"
+
+      - name: Capture screenshots
+        run: |
+          mkdir -p /tmp/screenshots
+          npx playwright screenshot --viewport-size="1280,800" \
+            http://localhost:4173 /tmp/screenshots/pr-${{ github.event.pull_request.number }}.png
+        env:
+          DISPLAY: ':99'
+
+      - name: Upload screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diff-pr-${{ github.event.pull_request.number }}
+          path: /tmp/screenshots/
+          retention-days: 30
+
+      - name: Post PR comment with screenshot
+        if: github.event_name == 'pull_request'
+        run: |
+          ARTIFACT_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          BODY=$(cat <<EOF
+          ## 📸 Visual Diff — PR #${{ github.event.pull_request.number }}
+
+          Screenshot capturado del renderer process (Vite preview).
+
+          **Ver screenshot descargando el artifact:** [visual-diff-pr-${{ github.event.pull_request.number }}](${ARTIFACT_URL})
+
+          > Generado automáticamente por el workflow \`Visual Diff\`.
+          > Para activar en cualquier PR: agrega el label \`visual diff\`.
+          EOF
+          )
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --body "$BODY"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

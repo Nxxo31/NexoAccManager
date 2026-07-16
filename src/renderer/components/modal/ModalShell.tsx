@@ -7,6 +7,7 @@ interface ModalShellProps {
   onClose: () => void;
   children: React.ReactNode;
   className?: string;
+  title?: string;
 }
 
 /**
@@ -18,6 +19,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
   isOpen,
   onClose,
   children,
+  title = 'Modal',
   className = '',
 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -109,7 +111,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
               transition={modalContent.transition}
               role="dialog"
               aria-modal="true"
-              aria-label="Modal"
+              aria-label={title}
               tabIndex={-1}
               className={`relative z-50 w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-bg-card rounded-lg border border-border shadow-2xl outline-none ${className}`}
             >

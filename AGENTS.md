@@ -49,6 +49,9 @@ Result pattern in IPC: `{ success, data }` | `{ success: false, error }` — nev
 - **No sidebar, no router** — react-router-dom removed
 - **Layout**: Header (h-12) → main content → Dock (bottom bar)
 - **Modals**: SettingsPanel, ServerBrowser open via `activeModal` state in App.tsx
+  - SettingsPanel → Dock → Ajustes → `setActiveModal('settings')`
+  - ServerBrowser → Dock → Servidores → `setActiveModal('servers')`
+  - AccountControlPanel → AccountRow → botón "Control de cuenta" → `setShowAccountControl(true)` (modal independiente)
 - **Animations**: framer-motion (Reorder drag-drop, modal transitions, dock micro-interactions)
 - **Styling**: Tailwind CSS + custom CSS variables, no external UI library except shadcn-ui primitives
 
@@ -119,13 +122,14 @@ src/
         Dock.tsx              → Place ID + Job ID + action buttons + Servidores + Ajustes
       modal/
         ModalShell.tsx        → overlay modal with focus-trap + ARIA
-      presence/
-        PresenceDashboard.tsx → real-time status grid (NOT imported in App.tsx — dead code)
       server-browser/
-        ServerBrowser.tsx     → server search and list
+        ServerBrowser.tsx     → server search and list (accessible via Dock → Servidores)
       settings/
-        SettingsPanel.tsx     → theme + language settings
+        SettingsPanel.tsx     → theme + language settings (accessible via Dock → Ajustes)
       AccountControlPanel/    → profile, security, privacy, friends, notifications
+                              → accessible via AccountRow botón "Control de cuenta" (Settings2 icon)
+                              → abre como modal con setShowAccountControl(true) en App.tsx
+      ErrorBoundary.tsx       → React error boundary wrapper
       ui/                     → shadcn-ui primitives (button, input, card, badge)
     store/
       useAccountStore.ts      → Zustand account state
@@ -149,6 +153,10 @@ tests/
     accessibility.spec.ts     → WCAG compliance on page + modals
   visual/                     → Visual regression
     screenshots.spec.ts       → screenshot comparison
+
+Inline tests (junto al componente):
+  accounts/AccountTable.test.tsx   → 9 tests del componente AccountTable
+  server-browser/ServerBrowser.test.tsx → 6 tests del componente ServerBrowser
 ```
 
 ## Design system — do not improvise

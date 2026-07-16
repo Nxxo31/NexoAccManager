@@ -1,6 +1,6 @@
 # NexoAccManager — PROJECT.md
 # Última actualización: 2026-07-16
-# Versión actual: 2.5.0 (en desarrollo)
+# Versión actual: 3.0.0 (refactor UI en progreso)
 
 ## Estado actual
 
@@ -35,7 +35,38 @@
 - AGENTS.md reescrito con estructura real v2.5.0, reglas claras de PROJECT.md como prioridad.
 - PROJECT.md reescrito con datos concretos de auditoría, bloqueos documentados.
 
-## Resumen de cambios v2.5.0 (16 Julio 2026)
+## Resumen de cambios v3.0.0 (16 Julio 2026 — REFACTOR EN PROCESO)
+
+### Objetivo: Mismo sistema que RAM, UI diferente bien estructurada
+
+### Fase 1 — Nueva arquitectura UI (EN PROGRESO, subagente dev)
+- Sidebar vertical de navegación (Cuentas, Servidores, Juegos, Ajustes)
+- TopBar con buscador rápido de cuentas
+- AppLayout reemplaza el single-view monolítico
+- AccountGrid + AccountCard reemplazan AccountTable (cards responsive vs tabla)
+- useAccountActions hook extrae handlers del monolito App.tsx
+- EditAliasModal + EditDescriptionModal extraídos de App.tsx
+- App.tsx < 100 líneas (de 497 actuales)
+- useUIStore ya tiene activeView + sidebarCollapsed — no crear store nuevo
+
+### Fase 2 — Features nuevas de RAM (PENDIENTE)
+- Save/Copy Password: almacenar contraseña al hacer login, copiar al clipboard
+- Account Groups: agrupar cuentas (group field ya existe en Account type)
+- Recent Games: historial de juegos jugados (savedPlaceId ya existe)
+- Presence UI: dashboard de estado online con polling real
+- Auto Relaunch UI: toggle por cuenta para relanzar automáticamente
+- Connection Watcher UI: monitoreo de connexion activa
+
+### Fase 3 — Limpieza y tests (PENDIENTE)
+- Eliminar componentes viejos (Header.tsx, AccountTable.tsx, Dock.tsx) después de migrar
+- Actualizar tests para AccountGrid
+- Reescribir tests E2E/a11y con nueva estructura
+- tsc + vitest + lint + build
+
+### Fase 4 — Release (PENDIENTE)
+- Push a GitHub
+- Tag v3.0.0
+- NSIS build via GitHub Actions
 
 ### Limpieza legacy (COMPLETADO)
 - ✅ 26 archivos legacy eliminados: .bak (6), componentes v2.2/v2.3 (Sidebar, AppShell, AccountDetailsPanel, ActionBar, AccountCard, AccountGrid, AccountList, AddAccountForm, Header viejo, SettingsPanel viejo, PresenceDashboard viejo, ServerBrowser viejo, ui/toast)
