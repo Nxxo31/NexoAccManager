@@ -51,6 +51,15 @@ const Sidebar: React.FC = () => {
         </button>
       </div>
 
+      {/* Brand */}
+      {!sidebarCollapsed && (
+        <div className="px-4 pb-2 pt-1">
+          <h1 className="text-sm font-bold text-foreground tracking-tight">
+            NexoAccManager <span className="text-primary">v3.0</span>
+          </h1>
+        </div>
+      )}
+
       {/* Nav */}
       <nav className="flex-1 flex flex-col gap-1 px-2 pt-4 overflow-y-auto">
         {navItems.map(({ key, icon: Icon, labelKey }) => {
