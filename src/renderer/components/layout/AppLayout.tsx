@@ -9,6 +9,7 @@ interface AppLayoutProps {
   theme: any;
   setTheme: (t: any) => void;
   onOpenSettings: () => void;
+  onAddAccount: () => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
 }
@@ -20,6 +21,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   theme,
   setTheme,
   onOpenSettings,
+  onAddAccount,
   searchQuery,
   setSearchQuery,
 }) => {
@@ -33,6 +35,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           theme={theme}
           setTheme={setTheme}
           onOpenSettings={onOpenSettings}
+          onAddAccount={onAddAccount}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
         />

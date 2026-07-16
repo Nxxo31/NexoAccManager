@@ -2,6 +2,10 @@ import { useCallback } from 'react';
 import { useAccountStore } from '@renderer/store/useAccountStore';
 import { useUIStore } from '@renderer/store/useUIStore';
 
+/**
+ * useAccountActions — all account-related handlers connected to real IPC.
+ * Extracted from the monolithic App.tsx as part of the v3.0.0 refactor.
+ */
 export const useAccountActions = () => {
   const {
     accounts,
@@ -10,6 +14,8 @@ export const useAccountActions = () => {
     setSelectedAccount,
     setError,
     setLoading,
+    updateAccount,
+    removeAccount,
   } = useAccountStore();
 
   const {
@@ -19,245 +25,295 @@ export const useAccountActions = () => {
     toggleJobIdShuffle,
   } = useUIStore();
 
+  const api = typeof window !== 'undefined' ? (window as any).api : null;
+
+  // ─── Account CRUD ───────────────────────────────────────────
+
   const fetchAccounts = useCallback(async () => {
-    // This would call window.api.account.list() - placeholder for now
+    if (!api) return;
     try {
-      // In real implementation, this would fetch from IPC
       setLoading(true);
-      // Simulate empty for now
-      setAccounts([]);
+      const result = await api.account.list();
+      if (result?.success && Array.isArray(result.data)) {
+        setAccounts(result.data);
+      } else if (Array.isArray(result)) {
+        setAccounts(result);
+      }
     } catch (err) {
       setError('Failed to load accounts');
+      console.error('fetchAccounts error:', err);
     } finally {
       setLoading(false);
     }
-  }, [setAccounts, setError, setLoading]);
+  }, [api, setAccounts, setError, setLoading]);
 
   const handleLoginBrowser = useCallback(
     async (group?: string) => {
+      if (!api) return;
       try {
-        // const result = await window.api.account.loginBrowser(group);
-        // if (!result?.success) throw new Error(result.error || 'Login failed');
-        // await fetchAccounts();
-        // const addModalStore = useAddModalStore.getState();
-        // addModalStore.setShowAddModal(false);
+        const result = await api.account.loginBrowser(group);
+        if (result?.success === false) throw new Error(result.error || 'Login failed');
+        await fetchAccounts();
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Login error');
       }
     },
-    [setError, fetchAccounts]
+    [api, setError, fetchAccounts]
+  );
+
+  const handleLogin = useCallback(
+    async (username: string, password: string, group?: string) => {
+      if (!api) return;
+      try {
+        const result = await api.account.login(username, password, group);
+        if (result?.success === false) throw new Error(result.error || 'Login failed');
+        await fetchAccounts();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Login error');
+      }
+    },
+    [api, setError, fetchAccounts]
   );
 
   const handleAddCookie = useCallback(
     async (cookie: string, group?: string) => {
+      if (!api) return;
       try {
-        // const result = await window.api.account.add(cookie, group);
-        // if (!result?.success) throw new Error(result.error || 'Add failed');
-        // await fetchAccounts();
+        const result = await api.account.add(cookie, group);
+        if (result?.success === false) throw new Error(result.error || 'Add failed');
+        await fetchAccounts();
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Add cookie error');
       }
     },
-    [setError, fetchAccounts]
+    [api, setError, fetchAccounts]
   );
 
   const handleBulkImport = useCallback(
     async (input: string, format: 'user:pass' | 'cookies') => {
+      if (!api) return;
       try {
-        // const result = await window.api.account.bulkImport(input, format);
-        // if (!result?.success) throw new Error(result.error || 'Bulk import failed');
-        // await fetchAccounts();
-        // return result.data;
+        const result = await api.account.bulkImport(input, format);
+        if (result?.success === false) throw new Error(result.error || 'Bulk import failed');
+        await fetchAccounts();
+        return result?.data;
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Bulk import error');
       }
     },
-    [setError, fetchAccounts]
+    [api, setError, fetchAccounts]
   );
 
   const handleDeleteAccount = useCallback(
     async (id: string) => {
+      if (!api) return;
       try {
-        // const result = await window.api.account.remove(id);
-        // if (!result?.success) throw new Error(result.error || 'Delete failed');
-        // await fetchAccounts();
+        const result = await api.account.remove(id);
+        if (result?.success === false) throw new Error(result.error || 'Delete failed');
+        removeAccount(id);
+        if (selectedAccount?.id === id) setSelectedAccount(null);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Delete error');
       }
     },
-    [setError, fetchAccounts]
+    [api, setError, removeAccount, selectedAccount, setSelectedAccount]
   );
 
   const handleSaveAlias = useCallback(
     async (accountId: string, alias: string) => {
+      if (!api) return;
       try {
-        // const result = await window.api.account.updateProfile(accountId, { displayName: alias });
-        // if (!result?.success) throw new Error(result.error || 'Save alias failed');
-        // await fetchAccounts();
+        const result = await api.account.updateProfile(accountId, { displayName: alias });
+        if (result?.success === false) throw new Error(result.error || 'Save alias failed');
+        updateAccount(accountId, { displayName: alias });
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Save alias error');
       }
     },
-    [setError, fetchAccounts]
+    [api, setError, updateAccount]
   );
 
   const handleSaveDescription = useCallback(
     async (accountId: string, description: string) => {
+      if (!api) return;
       try {
-        // const result = await window.api.account.setField(accountId, 'description', description);
-        // if (!result?.success) throw new Error(result.error || 'Save description failed');
-        // await fetchAccounts();
+        const result = await api.account.updateProfile(accountId, { description });
+        if (result?.success === false) throw new Error(result.error || 'Save description failed');
+        updateAccount(accountId, { description });
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Save description error');
       }
     },
-    [setError, fetchAccounts]
+    [api, setError, updateAccount]
   );
+
+  // ─── Social/actions ─────────────────────────────────────────
 
   const handleFollowUser = useCallback(
     async (userId: number) => {
-      if (selectedAccount) {
-        // await window.api.account.followUser(selectedAccount.id, userId);
+      if (!api || !selectedAccount) return;
+      try {
+        await api.account.followUser(selectedAccount.id, userId);
+      } catch (e) {
+        console.error('follow error:', e);
       }
     },
-    [selectedAccount]
+    [api, selectedAccount]
   );
 
   const handleLaunchGame = useCallback(
-    async (accountId: string, pId: string, jId: string) => {
-      // await window.api.roblox.launch(accountId, pId, jId || undefined);
+    async (accountId: string, placeId: string, jobId?: string) => {
+      if (!api) return;
+      await api.roblox.launch(accountId, placeId, jobId);
     },
-    []
+    [api]
   );
 
-  const handleJoinServer = useCallback(async () => {
-    if (!selectedAccount) return;
-    // setLaunching(true);
-    try {
-      // let finalJobId = jobId;
-      // if (jobIdShuffle && !jobId) {
-      //   const result = await window.api.roblox.getServers(placeId, selectedAccount.id);
-      //   const servers = Array.isArray(result) ? result : (result?.data || []);
-      //   if (servers.length > 0) {
-      //     finalJobId = servers[Math.floor(Math.random() * servers.length)].jobId;
-      //   }
-      // }
-      // await handleLaunchGame(selectedAccount.id, placeId, finalJobId);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Join server error');
-    } finally {
-      // setLaunching(false);
+  const handleJoinServer = useCallback(
+    async (placeId: string, jobId: string) => {
+      if (!api || !selectedAccount) return;
+      try {
+        let finalJobId = jobId;
+        if (!finalJobId && jobIdShuffle) {
+          const result = await api.roblox.getServers(placeId, selectedAccount.id);
+          const servers = Array.isArray(result) ? result : (result?.data || []);
+          if (servers.length > 0) {
+            finalJobId = servers[Math.floor(Math.random() * servers.length)].jobId;
+          }
+        }
+        if (placeId) {
+          await handleLaunchGame(selectedAccount.id, placeId, finalJobId || undefined);
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Join server error');
+      }
+    },
+    [api, selectedAccount, jobIdShuffle, handleLaunchGame, setError]
+  );
+
+  const handleLaunchApp = useCallback(
+    async (accountId?: string) => {
+      if (!api) return;
+      const id = accountId ?? selectedAccount?.id;
+      if (!id) return;
+      try {
+        const result = await api.roblox.launch(id);
+        if (result?.success === false) setError(result.error || 'Launch error');
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Launch error');
+      }
+    },
+    [api, selectedAccount, setError]
+  );
+
+  const handleCopyPlaceId = useCallback((placeId: string) => {
+    if (placeId) {
+      navigator.clipboard.writeText(placeId);
     }
-  }, [
-    selectedAccount,
-    // placeId,
-    // jobId,
-    // jobIdShuffle,
-    // setLaunching,
-    // setError,
-  ]);
+  }, []);
 
-  const handleLaunchApp = useCallback(() => {
-    if (!selectedAccount) return;
-    // window.api.roblox.launch(selectedAccount.id).then((result: any) => {
-    //   if (result?.success === false) setError(result.error || 'Launch error');
-    // });
-  }, [selectedAccount, setError]);
+  // ─── Inline edit (aliases) ──────────────────────────────────
 
-  const handleCopyPlaceId = useCallback(() => {
-    // if (placeId) {
-    //   navigator.clipboard.writeText(placeId);
-    //   // setCopiedPlaceId(true); // Would need state
-    //   // setTimeout(() => setCopiedPlaceId(false), 2000);
-    // }
-  }, [
-    // placeId,
-    // setCopiedPlaceId
-  ]);
+  const handleSaveAliasInline = useCallback(
+    async (aliasDraft: string) => {
+      if (!selectedAccount) return;
+      await handleSaveAlias(selectedAccount.id, aliasDraft);
+    },
+    [selectedAccount, handleSaveAlias]
+  );
 
-  const handleSaveAliasInline = useCallback(async () => {
-    if (!selectedAccount) return;
-    // setAliasSaving(true);
-    try {
-      // await handleSaveAlias(selectedAccount.id, aliasDraft);
-      // setEditingAlias(false);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      // setAliasSaving(false);
-    }
-  }, [selectedAccount, handleSaveAlias]);
+  const handleSaveDescInline = useCallback(
+    async (descDraft: string) => {
+      if (!selectedAccount) return;
+      await handleSaveDescription(selectedAccount.id, descDraft);
+    },
+    [selectedAccount, handleSaveDescription]
+  );
 
-  const handleSaveDescInline = useCallback(async () => {
-    if (!selectedAccount) return;
-    // setDescSaving(true);
-    try {
-      // await handleSaveDescription(selectedAccount.id, descDraft);
-      // setEditingDesc(false);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      // setDescSaving(false);
-    }
-  }, [selectedAccount, handleSaveDescription]);
+  // ─── Theme / Language ───────────────────────────────────────
 
   const handleThemeChange = useCallback(
     async (partial: any) => {
-      // const result = await window.api.theme.set(partial);
-      // if (result?.success && result.data) setTheme(result.data.settings);
-      // else if (result?.settings) setTheme(result.settings);
+      if (!api) return;
+      try {
+        const result = await api.theme.set(partial);
+        if (result?.success && result.data) return result.data.settings;
+        if (result?.settings) return result.settings;
+      } catch (e) {
+        console.error('theme change error:', e);
+      }
     },
-    [/* setTheme */]
+    [api]
   );
 
   const handleLanguageChange = useCallback(
     async (lang: string) => {
-      // const result = await window.api.language.set(lang);
-      // if (result?.success) setLanguage(lang);
+      if (!api) return;
+      try {
+        await api.language.set(lang);
+        return lang;
+      } catch (e) {
+        console.error('language change error:', e);
+      }
     },
-    [/* setLanguage */]
+    [api]
   );
 
+  // ─── Advanced ───────────────────────────────────────────────
+
   const handleExportData = useCallback(async () => {
-    // const result = await window.api.advanced.exportData();
-    // if (result?.success && result.data) {
-    //   const blob = new Blob([JSON.stringify(result.data, null, 2)], {
-    //     type: 'application/json',
-    //   });
-    //   const url = URL.createObjectURL(blob);
-    //   const a = document.createElement('a');
-    //   a.href = url;
-    //   a.download = 'nexoacc-export.json';
-    //   a.click();
-    //   URL.revokeObjectURL(url);
-    // }
-  }, []);
+    if (!api) return;
+    try {
+      const result = await api.advanced.exportData();
+      if (result?.success && result.data) {
+        const blob = new Blob([JSON.stringify(result.data, null, 2)], {
+          type: 'application/json',
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'nexoacc-export.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (e) {
+      console.error('export error:', e);
+    }
+  }, [api]);
 
   const handleDeleteAll = useCallback(async () => {
-    // const result = await window.api.advanced.deleteAllAccounts();
-    // if (result?.success) await fetchAccounts();
-  }, [fetchAccounts]);
+    if (!api) return;
+    try {
+      const result = await api.advanced.deleteAllAccounts();
+      if (result?.success !== false) await fetchAccounts();
+    } catch (e) {
+      console.error('delete all error:', e);
+    }
+  }, [api, fetchAccounts]);
 
   const handleClearCache = useCallback(async () => {
-    // await window.api.advanced.clearCache();
-  }, []);
+    if (!api) return;
+    try {
+      await api.advanced.clearCache();
+    } catch (e) {
+      console.error('clear cache error:', e);
+    }
+  }, [api]);
 
   return {
-    // State getters
+    // State
     accounts,
     selectedAccount,
     setSelectedAccount,
     hideUsernames,
+    setHideUsernames,
     jobIdShuffle,
     toggleJobIdShuffle,
-
-    // State setters
     setAccounts,
-    setHideUsernames,
-
     // Actions
     fetchAccounts,
     handleLoginBrowser,
+    handleLogin,
     handleAddCookie,
     handleBulkImport,
     handleDeleteAccount,

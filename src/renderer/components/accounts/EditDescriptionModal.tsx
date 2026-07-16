@@ -11,7 +11,7 @@ interface EditDescriptionModalProps {
   descDraft: string;
   setDescDraft: (v: string) => void;
   descSaving: boolean;
-  handleSaveDesc: () => void;
+  handleSaveDesc: (descDraft: string) => void;
 }
 
 export const EditDescriptionModal: React.FC<EditDescriptionModalProps> = ({
@@ -63,7 +63,7 @@ export const EditDescriptionModal: React.FC<EditDescriptionModalProps> = ({
           </div>
 
           <button
-            onClick={handleSaveDesc}
+            onClick={() => handleSaveDesc(descDraft)}
             disabled={descSaving}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded bg-primary text-white hover:bg-primary-dark disabled:opacity-50"
           >

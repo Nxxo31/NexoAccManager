@@ -20,12 +20,7 @@ export interface ThemeContextType {
   setTheme: (partial: Partial<ThemeSettings>) => Promise<void>;
 }
 
-export const ThemeContext = createContext<ThemeContextType>({
-  settings: null,
-  css: null,
-  loading: true,
-  setTheme: async () => {},
-});
+export const ThemeContext = createContext<ThemeContextType | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<ThemeSettings | null>(null);
@@ -58,9 +53,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         } else {
           // Fallback: aplicar tema dark por defecto si el handler falla
           console.warn('Theme handler returned null, using default dark theme');
+          setSettings({ theme: 'dark', fontSize: 'medium', uiDensity: 'normal', animationsEnabled: true });
         }
       } catch (e) {
         console.error('Failed to fetch theme:', e);
+        setSettings({ theme: 'dark', fontSize: 'medium', uiDensity: 'normal', animationsEnabled: true });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -87,5 +84,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 }
 
 export function useTheme() {
-  return useContext(ThemeContext);
+  const context = useContext(ThemeContext);
+  if (context === null) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
 }

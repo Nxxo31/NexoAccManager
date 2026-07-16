@@ -11,7 +11,7 @@ interface EditAliasModalProps {
   aliasDraft: string;
   setAliasDraft: (v: string) => void;
   aliasSaving: boolean;
-  handleSaveAlias: () => void;
+  handleSaveAlias: (aliasDraft: string) => void;
 }
 
 export const EditAliasModal: React.FC<EditAliasModalProps> = ({
@@ -62,7 +62,7 @@ export const EditAliasModal: React.FC<EditAliasModalProps> = ({
           </div>
 
           <button
-            onClick={handleSaveAlias}
+            onClick={() => handleSaveAlias(aliasDraft)}
             disabled={aliasSaving}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded bg-primary text-white hover:bg-primary-dark disabled:opacity-50"
           >

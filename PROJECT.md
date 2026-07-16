@@ -1,19 +1,25 @@
 # NexoAccManager — PROJECT.md
 # Última actualización: 2026-07-16
-# Versión actual: 3.0.0 (refactor UI en progreso)
+# Versión actual: 3.0.0 (refactor UI — Fase 1 completada)
 
 ## Estado actual
 
 | Métrica | Valor |
 |---------|-------|
-| Versión | 2.5.0 |
-| Último commit | 2bec9de — fix(v2.5.0): AccountControlPanel + dead code eliminado |
+| Versión | 3.0.0 (refactor UI en progreso) |
+| Último commit | pendiente — feat(v3.0.0): nueva arquitectura UI |
 | tsc | 0 errores |
-| vitest | 91/91 pasando |
-| lint | 0 errores, 155 warnings (src/) |
+| vitest | 82/82 pasando |
+| lint | pendiente |
 | build | ✅ exitoso — AppImage + snap (linux) |
-| NSIS | Pendiente — requiere push tag para GitHub Actions |
-| Playwright | Pendiente — selectores actualizados, por verificar |
+| NSIS | v2.5.1 publicado (fix type:module), v3.0.0 pendiente |
+| Playwright | pendiente — selectores actualizados, por verificar |
+
+## Hotfix v2.5.1 (2026-07-16)
+- **ROOT CAUSE**: `package.json` tenía `"type": "module"` — Vite compila main process a CommonJS (`require()`), pero Node trataba `.js` como ESM
+- **FIX**: Removido `"type": "module"`. Vite maneja ESM internamente.
+- **Commit**: `045085f` → tag `v2.5.1` → GitHub Action NSIS generado
+- **Build verificado**: tsc 0 errores, vitest 82/82, electron-builder exitoso
 
 ## Bloqueos resueltos en esta sesión
 

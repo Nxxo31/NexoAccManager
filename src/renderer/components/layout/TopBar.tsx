@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Search, Settings as SettingsIcon, Moon, Sun, EyeOff } from 'lucide-react';
+import { Search, Settings as SettingsIcon, Moon, Sun, EyeOff, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface TopBarProps {
@@ -8,6 +8,7 @@ interface TopBarProps {
   theme: any;
   setTheme: (t: any) => void;
   onOpenSettings: () => void;
+  onAddAccount: () => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
 }
@@ -18,6 +19,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   theme,
   setTheme,
   onOpenSettings,
+  onAddAccount,
   searchQuery,
   setSearchQuery,
 }) => {
@@ -64,6 +66,15 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       {/* Controls */}
       <div className="flex items-center gap-2 flex-shrink-0">
+        <button
+          onClick={onAddAccount}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-white hover:bg-primary-dark transition-colors"
+          aria-label={t('topbar.addAccount', 'Agregar cuenta')}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">{t('topbar.addAccount', 'Agregar')}</span>
+        </button>
+
         <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
           <input
             type="checkbox"
