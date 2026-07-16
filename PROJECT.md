@@ -219,3 +219,36 @@ Plan completo en: `docs/plans/2026-07-16-v2.5.0-cleanup-restructure.md`
 - v2.4.0: Rediseño single-view, eliminada Sidebar, eliminado routing
 - v2.4.1: tsc limpio, coverage, a11y (focus-trap, ARIA), NSIS publicado
 - v2.5.0 (en desarrollo): Limpieza legacy completa, eliminación de 26 archivos, estructura coherente
+
+## Code Review + Visual Diff Workflow (v3.0.0)
+
+### Herramientas configuradas
+- **mcp-code-review** (MCP): análisis de PRs con guidelines específicas en `.codereview.yml`
+  - Focus: security, quality, performance, architecture
+  - Locale: español
+  - Reportes en `.hermes/code-review-reports/`
+- **GitHub Action visual-diff.yml**: captura screenshots del renderer en cada PR
+  - Trigger: label `visual diff` en el PR
+  - Screenshot se sube como artifact del workflow run
+  - Comentario automático en el PR con link al artifact
+- **Playwright MCP**: verificación visual on-demand desde Hermes
+- **MyPreview (VS Code)**: preview en tiempo real del renderer dentro del editor
+
+### Flujo de desarrollo iterativo
+```
+LOCAL (real-time):
+  Hermes edita código → Vite HMR recarga renderer (<1s) → MyPreview muestra cambio en VS Code
+
+SPRINT:
+  spec → implement → test (tsc + vitest) → commit → push → PR
+
+GITHUB (trazabilidad):
+  PR + label "visual diff" → GitHub Action screenshots → mcp-code-review analiza diff → comentario en PR → merge
+```
+
+### PR #1 — Testing del workflow (2026-07-16)
+- Branch: feature/test-code-review-workflow
+- Cambio: Brand "NexoAccManager v3.0" en Sidebar
+- Code review: ✅ APROBADO (security, quality, performance, architecture)
+- Visual Diff: ✅ Screenshot capturado como artifact
+- Ver: https://github.com/Nxxo31/NexoAccManager/pull/1
