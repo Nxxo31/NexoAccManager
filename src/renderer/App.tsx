@@ -3,16 +3,23 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider } from './context/ThemeContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { AccountGrid } from './components/accounts/AccountGrid';
+import { JoinBar } from './components/accounts/JoinBar';
+import { AccountDetailPanel } from './components/accounts/AccountDetailPanel';
 import AddAccountModal from './components/accounts/AddAccountModal';
 import ServerBrowser from './components/server-browser/ServerBrowser';
 import SettingsPanel from './components/settings/SettingsPanel';
 import AccountControlPanel from './components/AccountControlPanel/AccountControlPanel';
 import { EditAliasModal } from './components/accounts/EditAliasModal';
 import { EditDescriptionModal } from './components/accounts/EditDescriptionModal';
+import { ServerView } from './components/views/ServerView';
+import { GamesView } from './components/views/GamesView';
+import { SettingsView } from './components/views/SettingsView';
+import { PresenceView } from './components/views/PresenceView';
 import { useAccountStore } from './store/useAccountStore';
 import { useUIStore } from './store/useUIStore';
 import { useAccountActions } from './hooks/useAccountActions';
 import { ModalShell } from './components/modal/ModalShell';
+import type { Account } from '@/types/Account';
 
 type ModalView = 'servers' | 'settings' | null;
 
@@ -22,20 +29,22 @@ export default function App() {
   const [showAccountControl, setShowAccountControl] = React.useState(false);
   const [editingAlias, setEditingAlias] = React.useState(false);
   const [editingDesc, setEditingDesc] = React.useState(false);
+  const [detailPanelOpen, setDetailPanelOpen] = React.useState(false);
+  const [joinPlaceId, setJoinPlaceId] = React.useState('');
+  const [joinJobId, setJoinJobId] = React.useState('');
 
   const accounts = useAccountStore((state) => state.accounts);
   const selectedAccount = useAccountStore((state) => state.selectedAccount);
   const setSelectedAccount = useAccountStore((state) => state.setSelectedAccount);
-  const { 
-    activeView, 
-    hideUsernames, 
-    setHideUsernames, 
-    searchQuery, 
+  const {
+    activeView,
+    hideUsernames,
+    setHideUsernames,
+    searchQuery,
     setSearchQuery,
     themeSettings,
-    language
+    language,
   } = useUIStore();
-  const jobIdShuffle = useUIStore((state) => state.jobIdShuffle);
 
   const {
     fetchAccounts,
@@ -59,7 +68,7 @@ export default function App() {
 
   React.useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
 
-  // Sync theme and language to store
+  // Sync theme and language
   React.useEffect(() => {
     if (!api) return;
     (async () => {
@@ -98,6 +107,81 @@ export default function App() {
     return () => { cleanupExpiring?.(); cleanupExpired?.(); };
   }, [api, fetchAccounts]);
 
+  // Filter accounts by search query
+  const filteredAccounts = React.useMemo(() => {
+    if (!searchQuery.trim()) return accounts;
+    const q = searchQuery.toLowerCase();
+    return accounts.filter((acc: Account) =>
+      acc.username?.toLowerCase().includes(q) ||
+      acc.displayName?.toLowerCase().includes(q) ||
+      acc.description?.toLowerCase().includes(q) ||
+      acc.group?.toLowerCase().includes(q)
+    );
+  }, [accounts, searchQuery]);
+
+  // Handlers for JoinBar
+  const handleJoin = React.useCallback(async () => {
+    if (!api || !joinPlaceId.trim()) return;
+    try {
+      // Launch all accounts to the specified server
+      for (const acc of accounts) {
+        if (api.roblox?.joinServer) {
+          await api.roblox.joinServer(acc.id, joinPlaceId.trim(), joinJobId.trim() || undefined);
+        } else {
+          await handleLaunchApp(acc.id);
+        }
+      }
+    } catch (e) {
+      console.error('Join error:', e);
+    }
+  }, [api, accounts, joinPlaceId, joinJobId, handleLaunchApp]);
+
+  const handleKillAll = React.useCallback(async () => {
+    if (!api) return;
+    try {
+      if (api.roblox?.killAll) {
+        await api.roblox.killAll();
+      } else if (api.advanced?.killAllRoblox) {
+        await api.advanced.killAllRoblox();
+      }
+    } catch (e) {
+      console.error('Kill all error:', e);
+    }
+  }, [api]);
+
+  // Handlers for AccountDetailPanel
+  const handlePanelLaunch = React.useCallback((acc: Account) => {
+    handleLaunchApp(acc.id);
+  }, [handleLaunchApp]);
+
+  const handlePanelBrowser = React.useCallback((acc: Account) => {
+    if (api?.roblox?.openProfile) {
+      api.roblox.openProfile(acc.robloxUserId);
+    }
+  }, [api]);
+
+  const handlePanelCopyPassword = React.useCallback((_acc: Account) => {
+    // TODO: implement when savePasswords feature is ready (Fase 3.1)
+    console.log('Copy password not yet implemented');
+  }, []);
+
+  const handlePanelCopyRbxPlayer = React.useCallback((acc: Account) => {
+    if (api?.roblox?.copyRbxPlayerLink) {
+      api.roblox.copyRbxPlayerLink(acc.id, joinPlaceId, joinJobId);
+    }
+  }, [api, joinPlaceId, joinJobId]);
+
+  const handlePanelQuickLogin = React.useCallback((acc: Account) => {
+    if (api?.roblox?.quickLogin) {
+      api.roblox.quickLogin(acc.id);
+    }
+  }, [api]);
+
+  const handleSelectAccount = React.useCallback((acc: Account) => {
+    setSelectedAccount(acc);
+    setDetailPanelOpen(true);
+  }, [setSelectedAccount]);
+
   return (
     <ErrorBoundary>
       <ThemeProvider>
@@ -111,55 +195,75 @@ export default function App() {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
         >
-          {/* Main content area */}
+          {/* Accounts view with JoinBar */}
           {activeView === 'accounts' && (
-            <AccountGrid
-              accounts={accounts}
-              selectedAccount={selectedAccount}
-              onSelectAccount={setSelectedAccount}
-              onDeleteAccount={(acc) => handleDeleteAccount(acc.id)}
-              onPlayAccount={(acc) => handleLaunchApp(acc.id)}
-              onFollowAccount={(acc) => handleFollowUser(acc.robloxUserId)}
-              onShowAccountControl={(acc) => { setSelectedAccount(acc); setShowAccountControl(true); }}
-              onEditAlias={(acc) => { setSelectedAccount(acc); setEditingAlias(true); }}
-              onEditDescription={(acc) => { setSelectedAccount(acc); setEditingDesc(true); }}
-              onCopyPlaceId={(acc) => handleCopyPlaceId(acc.savedPlaceId || '')}
-              hideUsernames={hideUsernames}
-              jobIdShuffle={jobIdShuffle}
-            />
-          )}
-
-          {activeView === 'servers' && (
-            <div className="p-4">
-              <h2 className="text-xl font-bold mb-4">Servers Browser</h2>
-              <p className="text-muted-foreground">Servers view coming soon...</p>
+            <div className="flex flex-col h-full">
+              <JoinBar
+                placeId={joinPlaceId}
+                jobId={joinJobId}
+                onPlaceIdChange={setJoinPlaceId}
+                onJobIdChange={setJoinJobId}
+                onJoin={handleJoin}
+                onKillAll={handleKillAll}
+              />
+              <div className="flex-1 overflow-y-auto">
+                <AccountGrid
+                  accounts={filteredAccounts}
+                  selectedAccount={selectedAccount}
+                  onSelectAccount={handleSelectAccount}
+                  onDeleteAccount={(acc) => handleDeleteAccount(acc.id)}
+                  onPlayAccount={(acc) => handleLaunchApp(acc.id)}
+                  onFollowAccount={(acc) => handleFollowUser(acc.robloxUserId)}
+                  onShowAccountControl={(acc) => { setSelectedAccount(acc); setShowAccountControl(true); }}
+                  onEditAlias={(acc) => { setSelectedAccount(acc); setEditingAlias(true); }}
+                  onEditDescription={(acc) => { setSelectedAccount(acc); setEditingDesc(true); }}
+                  onCopyPlaceId={(acc) => handleCopyPlaceId(acc.savedPlaceId || '')}
+                  hideUsernames={hideUsernames}
+                  jobIdShuffle={useUIStore.getState().jobIdShuffle}
+                />
+              </div>
             </div>
           )}
 
-          {activeView === 'games' && (
-            <div className="p-4">
-              <h2 className="text-xl font-bold mb-4">Games Browser</h2>
-              <p className="text-muted-foreground">Games view coming soon...</p>
-            </div>
-          )}
+          {/* Servers view */}
+          {activeView === 'servers' && <ServerView />}
 
+          {/* Games view */}
+          {activeView === 'games' && <GamesView />}
+
+          {/* Presence view */}
+          {activeView === 'presence' && <PresenceView />}
+
+          {/* Settings view */}
           {activeView === 'settings' && (
-            <div className="p-4">
-              <h2 className="text-xl font-bold mb-4">Settings</h2>
-              <p className="text-muted-foreground">Settings panel via modal...</p>
-            </div>
+            <SettingsView onOpenModal={() => setActiveModal('settings')} />
           )}
         </AppLayout>
+
+        {/* AccountDetailPanel slide-in */}
+        <AccountDetailPanel
+          account={selectedAccount}
+          isOpen={detailPanelOpen}
+          onClose={() => setDetailPanelOpen(false)}
+          onLaunch={handlePanelLaunch}
+          onOpenBrowser={handlePanelBrowser}
+          onCopyPassword={handlePanelCopyPassword}
+          onCopyRbxPlayer={handlePanelCopyRbxPlayer}
+          onQuickLogin={handlePanelQuickLogin}
+          onEditAlias={(acc) => { setDetailPanelOpen(false); setSelectedAccount(acc); setEditingAlias(true); }}
+          onEditDescription={(acc) => { setDetailPanelOpen(false); setSelectedAccount(acc); setEditingDesc(true); }}
+          onCopyPlaceId={handleCopyPlaceId}
+        />
 
         {/* Modals */}
         {showAddModal && (
           <ModalShell isOpen={showAddModal} onClose={() => setShowAddModal(false)} className="w-full max-w-md">
-            <AddAccountModal 
-              isOpen={showAddModal} 
-              onClose={() => setShowAddModal(false)} 
-              onLoginBrowser={handleLoginBrowser} 
-              onAddCookie={handleAddCookie} 
-              onBulkImport={handleBulkImport} 
+            <AddAccountModal
+              isOpen={showAddModal}
+              onClose={() => setShowAddModal(false)}
+              onLoginBrowser={handleLoginBrowser}
+              onAddCookie={handleAddCookie}
+              onBulkImport={handleBulkImport}
             />
           </ModalShell>
         )}
@@ -172,7 +276,7 @@ export default function App() {
 
         {activeModal === 'settings' && (
           <ModalShell isOpen={activeModal === 'settings'} onClose={() => setActiveModal(null)} className="w-full max-w-lg">
-            <SettingsPanel 
+            <SettingsPanel
               theme={themeSettings?.theme ?? 'dark'}
               primaryColor={themeSettings?.primaryColor ?? '#DE350D'}
               accentColor={themeSettings?.accentColor ?? '#6347FF'}
@@ -191,18 +295,18 @@ export default function App() {
 
         {showAccountControl && selectedAccount && (
           <ModalShell isOpen={showAccountControl} onClose={() => setShowAccountControl(false)} className="w-full max-w-md">
-            <AccountControlPanel 
-              account={selectedAccount} 
-              onClose={() => setShowAccountControl(false)} 
+            <AccountControlPanel
+              account={selectedAccount}
+              onClose={() => setShowAccountControl(false)}
             />
           </ModalShell>
         )}
 
         {editingAlias && selectedAccount && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditingAlias(false)}>
-            <EditAliasModal 
-              isOpen={editingAlias} 
-              onClose={() => setEditingAlias(false)} 
+            <EditAliasModal
+              isOpen={editingAlias}
+              onClose={() => setEditingAlias(false)}
               account={selectedAccount}
               aliasDraft={selectedAccount.displayName || selectedAccount.username || ''}
               setAliasDraft={() => {}}
@@ -214,9 +318,9 @@ export default function App() {
 
         {editingDesc && selectedAccount && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditingDesc(false)}>
-            <EditDescriptionModal 
-              isOpen={editingDesc} 
-              onClose={() => setEditingDesc(false)} 
+            <EditDescriptionModal
+              isOpen={editingDesc}
+              onClose={() => setEditingDesc(false)}
               account={selectedAccount}
               descDraft={selectedAccount.description || ''}
               setDescDraft={(v) => {}}

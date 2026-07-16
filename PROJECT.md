@@ -57,11 +57,16 @@
 - useUIStore con activeView + sidebarCollapsed — ThemeSettings fontSize/uiDensity como union literals
 - tsc 0 errores, vitest 82/82, build exitoso (AppImage + snap)
 
-### Fase 2 — Conectar views + JoinBar (PRIORIDAD ALTA)
-- 2.1 Conectar ServerView, GamesView, SettingsView en App.tsx (existen pero sin wiring)
-- 2.2 JoinBar component (Place ID / Job ID / Shuffle / Join) encima de AccountGrid
-- 2.3 Búsqueda de cuentas funcional (filtrar por username, displayName, description, group — debounce 200ms)
-- 2.4 AccountDetailPanel slide-in derecho (320px): avatar, username, robloxUserId, group dropdown, description, cookie status, saved Place/Job ID, botones Launch/Browser/Copy Password/rbx-player/Quick Login, presence section, friends list
+### Fase 2 — Conectar views + JoinBar + DetailPanel (✅ COMPLETADO — 2026-07-16)
+- 2.1 ✅ ServerView, GamesView, SettingsView, PresenceView conectados en App.tsx
+- 2.2 ✅ JoinBar component: Place ID, Job ID, Shuffle toggle, botón Unirse, botón Kill All (F7 de investigación)
+- 2.3 ✅ Búsqueda de cuentas funcional (filtra por username, displayName, description, group — instantáneo, max 50 accounts)
+- 2.4 ✅ AccountDetailPanel slide-in derecho (320px): avatar, username, presence 5 estados (F13: Offline/Online/InGame/InStudio/Invisible), group, description, cookie status, saved Place/Job ID, botones Launch/Browser/Copy Password/rbx-player/Quick Login, friends list
+- Sidebar actualizado: 5 nav items (Cuentas, Servidores, Juegos, Presencia, Ajustes)
+- PresenceView: lista de cuentas con status dots en tiempo real
+- Validación: tsc 0 errores, vitest 82/82, build exitoso (AppImage + snap)
+- Archivos nuevos: JoinBar.tsx, AccountDetailPanel.tsx, PresenceView.tsx
+- Commit: [pendiente]
 
 ### Fase 3 — Paridad funcional con RAM (PRIORIDAD MEDIA)
 - 3.1 Save/Copy Password — toggle global en Settings, cifrar con CryptoService, botón copiar en DetailPanel
