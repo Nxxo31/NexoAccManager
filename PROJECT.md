@@ -220,10 +220,100 @@ Plan completo en: `docs/plans/2026-07-16-v2.5.0-cleanup-restructure.md`
 3. ⏳ Build NSIS via GitHub Actions (push tag v2.5.0)
 4. ⏳ Validación visual con computer-use
 
-## Mockup UI v3.0 — Target visual
-- Archivo: `docs/mockups/nam-v3-ui-mockup.html`
-- HTML interactivo autocontenido (Tailwind CDN + JS inline)
-- Define la estructura visual target para desarrollo de Fases 2-4
+## Análisis UI — Investigación de apps similares (2026-07-16)
+
+### Metodología
+Análisis visual de screenshots reales + documentación de design decisions de 5 apps
+relevantes para NAM. Fuentes citadas por cada hallazgo.
+
+### 1. Playnite (open-source game library manager)
+**Fuente:** github.com/JG00SE/GridViewCards, github.com/sakasakaking/FusionX — screenshots analizados con vision_analyze
+
+**Layout:** Sidebar vertical izquierdo (icon toolbar con view modes: list/grid/cover-flow) + grid responsive central + detail panel derecho (~30% width)
+**Cards:** Cover art rellena el card, overlay translúcido oscuro (~70% opacity), título superpuesto, icono de plataforma bottom-left, tiempo jugado bottom-right, star icon para favoritos top-right
+**Detail panel:** Banner image + título + botones Install/Play + metadata tabular (time played, last played, platform, publisher, developer, release date) + achievements con progress bar + news feed scrolleable
+**Grouping:** Filter-driven, no tree hierarchy. Collections/tags como iconos en cards. Filter bar con "Filter Active" toggle
+**Dark theme:** Near-black #121212 background, text white #EEEEEE, accent colors brillantes para logros/estados. Detail panel ligeramente #1E1E1E para elevarlo del grid
+**Lección para NAM:** Detail panel derecho con scroll, cards con overlay translúcido sobre avatar, filter-driven grouping (no tree), view modes intercambiables
+
+### 2. Discord (multi-server, presence, navigation)
+**Fuente:** discord.com/blog/you-bar, designbyroka.com/work/discord-mobile-redesign
+
+**Layout:** Triple sidebar: server list (ultra-narrow icon rail) → channel list (medium sidebar) → main content → optional member list (right panel)
+**Presence:** Status dot en avatar (online/idle/dnd/offline), activity display ("Playing X"), color-coded roles
+**Navigation:** Server icons como pill-shaped buttons con tooltip, hover = highlight blanco, selected = badge izquierda. Canales agrupados por categorías colapsables
+**Settings:** User settings vía gear icon bottom-left, organization settings separadas del server settings
+**Dark theme:** #36393f background (menos extremo que #0D0D0D), text blanco, hover states sutiles
+**Lección para NAM:** Presence dots standardizados (online/offline/in-game), sidebar con iconos + labels colapsable, settings globales vs per-entity claramente separadas, hover states sutiles no saturados
+
+### 3. Steam Library (game grid, friends, social)
+**Fuente:** anthonyjasper.co.uk/steam.html, blog.parrot9.com/steam-case-study
+
+**Layout:** Sidebar izquierdo (library navigation + collections + friends) + grid central de game cards + detail view inline (no panel separado, expande el content area)
+**Cards:** Cover art grande, título superpuesto bottom, tiempo jugado, "last played" timestamp. Hover revela actions (Play/Install) sin necesidad de click
+**Detail view:** Full-page takeover con hero banner, news section, friends who play, achievements, screenshots. Información densa pero modular
+**Friends/Presence:** Sidebar derecho con friends list, status dots, "in-game" indicators con icon del juego. Click en friend → perfil expandible
+**Empty states:** "Your Steam Library is empty. Add games from the store." con CTA claro
+**Lección para NAM:** Hover-to-reveal actions en cards (no llenar el card de botones), friends list con presencia en sidebar, empty states con CTA específico, news/info modular en detail view
+
+### 4. Bitwarden (account/credential manager)
+**Fuente:** bitwarden.com/blog/bitwarden-design-updating-the-web-vault-experience, github.com/bitwarden/clients/pull/6957
+
+**Layout:** Vertical vault navigation (sidebar) + item list + detail panel. PR #6957 migró a vertical nav unificado
+**Cards/Items:** Lista densa con icono + nombre + username + folder badge. NO grid — usa lista compacta para maximizar items visibles
+**Grouping:** Vault filter (All / My Vault / Organization) + folder tags + type filters (logins/cards/notes)
+**Search:** Top bar search con filtros combinables. Filter bar siempre visible
+**Settings:** Clear separation: Account Settings (security, subscription) vs Organization (admin tools). Solo admin ve org tools
+**Lección para NAM:** Lista compacta para muchas cuentas (50 max — considerar toggle grid/list), grouping con filter chips (All / Group1 / Group2), settings globales vs per-account en paneles claramente separados, search bar always-visible con debounce
+
+### 5. Linear (dev tool, sidebar + grid + detail)
+**Fuente:** linear.app/now/behind-the-latest-design-refresh, linear.app/blog/how-we-redesigned-the-linear-ui, designsystems.one/design-systems/linear
+
+**Layout:** Sidebar izquierda (navigation) + tabs top (views) + content (list/board/timeline) + detail panel derecha (properties)
+**Design tokens:** color-background #08090A, color-text-primary #F7F8F8, color-text-tertiary #8A8F98, color-accent #5E6AD2, color-border #23252A, font Inter, motion 180ms
+**Sidebar:** Dimmer que content area — navigation recedes, content takes precedence. Iconos reducidos, no fondos coloreados
+**Command palette:** ⌘K abre navigation + action + search unificado. Pattern copiado por toda la industria de dev tools
+**Motion:** 120-180ms eased transitions para state changes. List reorders, modal entrances, view transitions
+**Empty states:** Una frase, ilustración hairline, zero marketing copy
+**Density:** 32px o 40px row rhythm consistente. Menos densidades que competidores, usadas deliberadamente
+**Lección para NAM:** Sidebar dimmer que content (recedes), comando palette ⌘K, motion 180ms, empty states minimalistas (frase + ilustración simple), row rhythm consistente 32/40px, single accent color como puntuación (no saturar)
+
+### Patrones transversales aplicables a NAM
+
+1. **Sidebar dimmer que content** (Linear, Discord) — navigation recede, accounts gridbright. NAM sidebar actual too bright
+2. **Hover-to-reveal actions** (Steam, Playnite) — no llenar AccountCard de botones. Mostrar actions on hover o en detail panel
+3. **Detail panel derecho** (Playnite, Linear, Bitwarden) — slide-in, no modal. Scrollable. NAM ya tiene esto en mockup ✓
+4. **Filter-driven grouping** (Playnite, Bitwarden) — chips/filters, no tree hierarchy. Group dropdown + filter by group
+5. **Presence dots standardizados** (Discord) — verde=online, gris=offline, azul=in-game. Ya en NAM mockup ✓
+6. **Command palette ⌘K** (Linear, VS Code) — search + action + navigation unificado. Fase 4 feature
+7. **Empty states con CTA** (Steam, Linear) — "No hay cuentas. Agregar cuenta" con botón, no solo texto
+8. **Settings globales vs per-account separadas** (Bitwarden, Discord) — SettingsView global, AccountDetailPanel per-account
+9. **Motion 120-180ms** (Linear) — view transitions, panel slide-in, card hover. NAM ya usa framer-motion 200ms
+10. **Single accent como puntuación** (Linear) — no saturar con color. Roblox red solo para CTAs primarios
+
+### Anti-patrones de RAM a evitar
+
+1. **Ventanas flotantes superpuestas** — RAM usa WinForms floating windows que se tapan entre sí. NAM usa views unificadas + modales
+2. **Tabla sin jerarquía visual** — RAM muestra cuentas en表格 plana sin grouping visual. NAM usa cards con group separators
+3. **Settings mezclados** — RAM mezcla global settings con per-account en misma vista. NAM separa: SettingsView global, DetailPanel per-account
+4. **Sin search** — RAM no tiene search bar. NAM tiene TopBar search con debounce
+5. **WinForms look** — RAM parece aplicación de Windows 7. NAM usa dark theme moderno, Inter, framer-motion, Lucide icons
+6. **Sin empty states** — RAM muestra ventana vacía sin guía. NAM tiene empty state con CTA
+
+### Recomendaciones concretas para NAM v3.0 UI
+
+| # | Recomendación | Origen | Fase |
+|---|---------------|--------|------|
+| R1 | Dim sidebar background a #0F0F0F (un notch arriba de #0D0D0D content) | Linear | 2.1 |
+| R2 | Hover-to-reveal actions en AccountCard (hide default, show on hover) | Steam, Playnite | 2.4 |
+| R3 | Filter chips para groups en TopBar (All / Principal / Altas / ... editable) | Playnite, Bitwarden | 2.3 |
+| R4 | Empty state en AccountGrid: "No hay cuentas. [Agregar cuenta]" con ilustración simple | Steam, Linear | 2.1 |
+| R5 | Row rhythm 40px en AccountCard (consistente con grid) | Linear | 2.2 |
+| R6 | Command palette ⌘K (search + nav + actions) | Linear, VS Code | 4.x |
+| R7 | Friends list en AccountDetailPanel con presence dots (no en sidebar) | Discord, Steam | 3.6 |
+| R8 | Toggle grid/list view en Accounts (icon toggle en TopBar como Playnite) | Playnite | 3.x |
+| R9 | Motion 180ms todos los transitions (reducir de 200ms actuales) | Linear | 2.x |
+| R10 | Single accent: Roblox red solo para CTAs primarios, no para todo | Linear | 2.x |
 
 ## Modelo de datos — Entidades y relaciones
 
