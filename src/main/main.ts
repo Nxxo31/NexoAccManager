@@ -1,7 +1,8 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, session, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, session, shell } from 'electron';
 import axios from 'axios';
 import path from 'path';
-import fs from 'fs';
+import { exec as execCb } from 'child_process';
+import { promisify } from 'util';
 import { AccountManager } from './core/AccountManager';
 import { CryptoService } from './core/CryptoService';
 import { DatabaseManager } from './storage/DatabaseManager';
@@ -55,59 +56,8 @@ function err(message: string): IpcResult {
 }
 
 // =============================================================================
-// CONSTANTES — Whitelist de canales conocidos
+// CONSTANTES
 // =============================================================================
-const ALLOWED_CHANNELS = new Set([
-  'account:add',
-  'account:login',
-  'account:login-browser',
-  'account:remove',
-  'account:list',
-  'account:move',
-  'account:field:set',
-  'account:check',
-  'account:profile',
-  'account:update-displayname',
-  'account:update-description',
-  'account:avatar-thumbnail',
-  'account:profile:get',
-  'account:profile:update',
-  'roblox:launch',
-  'roblox:games:search',
-  'roblox:servers:list',
-  'roblox:servers:join',
-  'roblox:servers:distribute',
-  'settings:security:2fa:get',
-  'settings:security:2fa:set',
-  'settings:privacy:get',
-  'settings:privacy:update',
-  'settings:notifications:get',
-  'settings:notifications:update',
-  'account:friends:list',
-  'account:friends:requests',
-  'account:friends:respond',
-  'account:blocked:list',
-  'account:block:user',
-  'account:unblock:user',
-  'account:follow:user',
-  'account:unfollow:user',
-  'presence:get',
-  'presence:start-polling',
-  'presence:stop-polling',
-  'presence:recent-games',
-  'presence:robux-balance',
-  'settings:autoRelaunch:get',
-  'settings:autoRelaunch:set',
-  'settings:connectionWatcher:get',
-  'settings:connectionWatcher:set',
-  'settings:preventDuplicateInstances:get',
-  'settings:preventDuplicateInstances:set',
-  'roblox:search-user',
-  'roblox:join-group',
-  'roblox:quick-login',
-  'settings:webapi:get',
-  'settings:webapi:set',
-]);
 
 // Solución para __dirname en ESM
 import { fileURLToPath } from 'url';
@@ -1434,6 +1384,46 @@ class NexoApp {
         return ok(true);
       } catch (e) {
         return err(`Error configurando Web API: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // KILL ALL — cerrar todas las instancias de Roblox
+    // =================================================================
+    const exec = promisify(execCb);
+    ipcMain.handle('roblox:kill-all', async () => {
+      try {
+        const platform = process.platform;
+        let killed = 0;
+        const TIMEOUT_MS = 5000;
+
+        let command: string;
+        if (platform === 'win32') {
+          command = 'taskkill /IM "RobloxPlayerBeta.exe" /F';
+        } else if (platform === 'linux' || platform === 'darwin') {
+          command = 'pkill -f "RobloxPlayer" || pkill -f "roblox" || true';
+        } else {
+          return err(`Plataforma no soportada: ${platform}`);
+        }
+
+        try {
+          const { stdout, stderr } = await exec(command, { timeout: TIMEOUT_MS });
+          // stdout contiene el conteo de procesos terminados en Windows
+          const match = stdout.match(/TERMINATED\s+(\d+)/i);
+          killed = match ? parseInt(match[1], 10) : 1;
+          if (stderr && stderr.trim()) {
+            console.warn('[kill-all] stderr:', stderr.trim());
+          }
+        } catch (e: any) {
+          // pkill retorna código 1 cuando no hay procesos que matar — no es error real
+          if (e.code !== 1) {
+            console.warn('[kill-all] Error:', e.message);
+          }
+        }
+
+        return ok({ killed });
+      } catch (e) {
+        return err(`Error cerrando instancias: ${(e as Error).message}`);
       }
     });
 

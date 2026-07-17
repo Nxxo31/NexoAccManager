@@ -135,8 +135,6 @@ export default function App() {
     try {
       if (api.roblox?.killAll) {
         await api.roblox.killAll();
-      } else if (api.advanced?.killAllRoblox) {
-        await api.advanced.killAllRoblox();
       }
     } catch (e) {
       console.error('Kill all error:', e);

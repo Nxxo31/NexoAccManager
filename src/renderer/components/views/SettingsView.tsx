@@ -1,5 +1,13 @@
 import * as React from 'react';
-import { Settings as SettingsIcon, KeyRound, Zap, Wifi, CopyCheck, AlertTriangle } from 'lucide-react';
+import {
+  Settings as SettingsIcon,
+  KeyRound,
+  Zap,
+  Wifi,
+  CopyCheck,
+  AlertTriangle,
+  Clock,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useUIStore } from '@renderer/store/useUIStore';
 
@@ -16,6 +24,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenModal, onKillA
     autoRelaunch, setAutoRelaunch,
     connectionWatcher, setConnectionWatcher,
     preventDuplicateInstances, setPreventDuplicateInstances,
+    bottingMode, setBottingMode,
+    bottingInterval, setBottingInterval,
   } = useUIStore();
 
   const api = React.useMemo(() => (typeof window !== 'undefined' ? (window as any).api : null), []);
@@ -54,6 +64,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenModal, onKillA
       if (api?.settings?.set) await api.settings.set('preventDuplicateInstances', value);
     } catch (e) { console.error('Error persisting preventDuplicateInstances:', e); }
   }, [setPreventDuplicateInstances, api]);
+
+  const handleToggleBottingMode = React.useCallback(async (value: boolean) => {
+    setBottingMode(value);
+    try {
+      if (api?.settings?.set) await api.settings.set('bottingMode', value);
+    } catch (e) { console.error('Error persisting bottingMode:', e); }
+  }, [setBottingMode, api]);
+
+  const handleToggleBottingInterval = React.useCallback(async (value: number) => {
+    setBottingInterval(value);
+    try {
+      if (api?.settings?.set) await api.settings.set('bottingInterval', value);
+    } catch (e) { console.error('Error persisting bottingInterval:', e); }
+  }, [setBottingInterval, api]);
 
   const Toggle: React.FC<{
     icon: React.ReactNode;
@@ -153,6 +177,33 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenModal, onKillA
           onToggle={handleTogglePreventDuplicate}
           ariaKey="toggle-prevent-duplicate"
         />
+        <Toggle
+          icon={<AlertTriangle className="h-5 w-5 text-error" />}
+          label={t('views.settings.bottingMode', 'Modo de botting')}
+          desc={t('views.settings.bottingModeDesc', 'Rejoins automaticos con timers - USAR BAJO PROPIO RIESGO (puede resultar en bans)')}
+          value={bottingMode}
+          onToggle={handleToggleBottingMode}
+          ariaKey="toggle-botting-mode"
+        />
+        {/* Botting interval — numeric input, not a toggle */}
+        <div className="flex items-center justify-between p-3 rounded-lg bg-bg-card border border-border">
+          <div className="flex items-center gap-3">
+            <Clock className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">{t('views.settings.bottingInterval', 'Intervalo de botting')}</p>
+              <p className="text-xs text-muted-foreground">{t('views.settings.bottingIntervalDesc', 'Minutos entre rejoins automaticos')}</p>
+            </div>
+          </div>
+          <input
+            type="number"
+            min={1}
+            max={120}
+            value={bottingInterval}
+            onChange={(e) => handleToggleBottingInterval(Math.max(1, parseInt(e.target.value, 10) || 5))}
+            className="w-16 px-2 py-1 text-sm rounded bg-bg-surface border border-border text-center focus:outline-none focus:border-primary"
+            aria-label={t('views.settings.bottingInterval', 'Intervalo de botting')}
+          />
+        </div>
       </div>
 
       {/* Kill All Instances — moved from JoinBar */}

@@ -76,11 +76,12 @@ type IpcChannel =
   | "settings:connectionWatcher:set"
   | "settings:preventDuplicateInstances:get"
   | "settings:preventDuplicateInstances:set"
-  | "roblox:search-user"
-  | "roblox:join-group"
-  | "roblox:quick-login"
-  | "settings:webapi:get"
-  | "settings:webapi:set"
+  | 'roblox:search-user'
+  | 'roblox:join-group'
+  | 'roblox:quick-login'
+  | 'roblox:kill-all'
+  | 'settings:webapi:get'
+  | 'settings:webapi:set'
 ;
 const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'account:add',
@@ -142,6 +143,20 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'settings:connectionWatcher:set',
   'settings:preventDuplicateInstances:get',
   'settings:preventDuplicateInstances:set',
+  'account:bulk-import',
+  'account:savePassword',
+  'account:getPassword',
+  'presence:recordGamePlay',
+  'presence:getRecentGames',
+  'games:addFavorite',
+  'games:removeFavorite',
+  'games:getFavorites',
+  'roblox:search-user',
+  'roblox:join-group',
+  'roblox:quick-login',
+  'roblox:kill-all',
+  'settings:webapi:get',
+  'settings:webapi:set',
   ]);
 
 // =============================================================================
@@ -181,14 +196,9 @@ contextBridge.exposeInMainWorld('api', {
     unblockUser: (accountId: string, userId: number) => invoke('account:unblock:user', accountId, userId),
     followUser: (accountId: string, userId: number) => invoke('account:follow:user', accountId, userId),
     unfollowUser: (accountId: string, userId: number) => invoke('account:unfollow:user', accountId, userId),
-    bulkImport: (input: string, format: 'user:pass' | 'cookies') => invoke('account:bulk-import',
-  'account:savePassword',
-  'account:getPassword',
-  'presence:recordGamePlay',
-  'presence:getRecentGames',
-  'games:addFavorite',
-  'games:removeFavorite',
-  'games:getFavorites', input, format),
+    bulkImport: (input: string, format: 'user:pass' | 'cookies') => invoke('account:bulk-import', input, format),
+    savePassword: (accountId: string, password: string) => invoke('account:savePassword', accountId, password),
+    getPassword: (accountId: string) => invoke('account:getPassword', accountId),
   },
   roblox: {
     launch: (accountId: string, placeId?: string, jobId?: string) =>
@@ -202,6 +212,7 @@ contextBridge.exposeInMainWorld('api', {
     searchUser: (username: string) => invoke('roblox:search-user', username),
     joinGroup: (accountId: string, groupId: number) => invoke('roblox:join-group', accountId, groupId),
     quickLogin: (accountId: string) => invoke('roblox:quick-login', accountId),
+    killAll: () => invoke('roblox:kill-all'),
     distributeAccounts: (placeId: string, accountIds: string[]) =>
       invoke('roblox:servers:distribute', placeId, accountIds),
   },
@@ -312,6 +323,10 @@ export interface Api {
     searchGame: (placeId: string, accountId: string) => Promise<any>;
     getServers: (placeId: string, accountId: string) => Promise<any[]>;
     joinServer: (placeId: string, jobId: string, accountId: string) => Promise<boolean>;
+    searchUser: (username: string) => Promise<any>;
+    joinGroup: (accountId: string, groupId: number) => Promise<boolean>;
+    quickLogin: (accountId: string) => Promise<boolean>;
+    killAll: () => Promise<any>;
     distributeAccounts: (placeId: string, accountIds: string[]) => Promise<Record<string, boolean>>;
   };
   settings: {

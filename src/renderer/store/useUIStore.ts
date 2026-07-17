@@ -25,6 +25,8 @@ interface UIState {
   autoRelaunch: boolean;
   connectionWatcher: boolean;
   preventDuplicateInstances: boolean;
+  bottingMode: boolean;
+  bottingInterval: number; // minutos entre rejoins
 
   // Actions
   setActiveView: (view: ViewKey) => void;
@@ -40,6 +42,8 @@ interface UIState {
   setAutoRelaunch: (value: boolean) => void;
   setConnectionWatcher: (value: boolean) => void;
   setPreventDuplicateInstances: (value: boolean) => void;
+  setBottingMode: (value: boolean) => void;
+  setBottingInterval: (value: number) => void;
 }
 
 const defaultThemeSettings: ThemeSettings = {
@@ -65,6 +69,8 @@ export const useUIStore = create<UIState>()(
     autoRelaunch: false,
     connectionWatcher: false,
     preventDuplicateInstances: false,
+    bottingMode: false,
+    bottingInterval: 5,
 
     setActiveView: (view) => set({ activeView: view }),
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -79,5 +85,7 @@ export const useUIStore = create<UIState>()(
     setAutoRelaunch: (value) => set({ autoRelaunch: value }),
     setConnectionWatcher: (value) => set({ connectionWatcher: value }),
     setPreventDuplicateInstances: (value) => set({ preventDuplicateInstances: value }),
+    setBottingMode: (value) => set({ bottingMode: value }),
+    setBottingInterval: (value) => set({ bottingInterval: value }),
   }))
 );
