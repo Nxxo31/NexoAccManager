@@ -350,6 +350,134 @@ class NexoApp {
       }
     });
 
+    // Record game play — Phase 3.4
+    ipcMain.handle('presence:recordGamePlay', async (_, payload: unknown) => {
+      if (!payload || typeof payload !== 'object') {
+        return err('Payload inválido: se esperaba un objeto');
+      }
+      const { accountId, placeId, universeId, gameName, icon } = payload as {
+        accountId: string;
+        placeId: string;
+        universeId: number;
+        gameName: string;
+        icon?: string;
+      };
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (!isNonEmptyString(placeId)) {
+        return err('Payload inválido: placeId debe ser un string no vacío');
+      }
+      if (typeof universeId !== 'number' || isNaN(universeId)) {
+        return err('Payload inválido: universeId debe ser un número válido');
+      }
+      if (!isNonEmptyString(gameName)) {
+        return err('Payload inválido: gameName debe ser un string no vacío');
+      }
+      try {
+        const { v4: uuidv4 } = await import('uuid');
+        const recentGame = {
+          id: uuidv4(),
+          gameId: universeId,
+          name: gameName,
+          icon: icon || undefined,
+          lastPlayed: new Date(),
+          placeId: placeId,
+          placeName: gameName, // Assume place name same as game name for now
+          universeId: universeId
+        };
+        this.accountManager.addRecentGame(accountId.trim(), recentGame);
+        return ok(true);
+      } catch (e) {
+        return err(`Error registrando juego jugado: ${(e as Error).message}`);
+      }
+    });
+
+    // Get recent games — Phase 3.4
+    ipcMain.handle('presence:getRecentGames', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const recentGames = this.accountManager.getRecentGames(accountId.trim());
+        return ok({ recentGames });
+      } catch (e) {
+        return err(`Error obteniendo juegos recientes: ${(e as Error).message}`);
+      }
+    });
+
+    // Add favorite game — Phase 3.5
+    ipcMain.handle('games:addFavorite', async (_, payload: unknown) => {
+      if (!payload || typeof payload !== 'object') {
+        return err('Payload inválido: se esperaba un objeto');
+      }
+      const { accountId, gameId, name, icon } = payload as {
+        accountId: string;
+        gameId: number;
+        name: string;
+        icon?: string;
+      };
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (typeof gameId !== 'number' || isNaN(gameId)) {
+        return err('Payload inválido: gameId debe ser un número válido');
+      }
+      if (!isNonEmptyString(name)) {
+        return err('Payload inválido: name debe ser un string no vacío');
+      }
+      try {
+        const { v4: uuidv4 } = await import('uuid');
+        const favoriteGame = {
+          id: uuidv4(),
+          gameId: gameId,
+          name: name,
+          icon: icon || undefined,
+          addedAt: new Date()
+        };
+        this.accountManager.addFavoriteGame(accountId.trim(), favoriteGame);
+        return ok(true);
+      } catch (e) {
+        return err(`Error agregando juego a favoritos: ${(e as Error).message}`);
+      }
+    });
+
+    // Remove favorite game — Phase 3.5
+    ipcMain.handle('games:removeFavorite', async (_, payload: unknown) => {
+      if (!payload || typeof payload !== 'object') {
+        return err('Payload inválido: se esperaba un objeto');
+      }
+      const { accountId, gameId } = payload as {
+        accountId: string;
+        gameId: number;
+      };
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (typeof gameId !== 'number' || isNaN(gameId)) {
+        return err('Payload inválido: gameId debe ser un número válido');
+      }
+      try {
+        this.accountManager.removeFavoriteGame(accountId.trim(), gameId);
+        return ok(true);
+      } catch (e) {
+        return err(`Error eliminando juego de favoritos: ${(e as Error).message}`);
+      }
+    });
+
+    // Get favorite games — Phase 3.5
+    ipcMain.handle('games:getFavorites', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const favoriteGames = this.accountManager.getFavoriteGames(accountId.trim());
+        return ok({ favoriteGames });
+      } catch (e) {
+        return err(`Error obteniendo juegos favoritos: ${(e as Error).message}`);
+      }
+    });
+
     ipcMain.handle('account:move', async (_, accountId: unknown, groupName: unknown) => {
       if (!isNonEmptyString(accountId)) {
         return err('Payload inválido: accountId debe ser un string no vacío');

@@ -20,6 +20,11 @@ type IpcChannel =
   | 'account:bulk-import'
   | 'account:savePassword'
   | 'account:getPassword'
+  | 'presence:recordGamePlay'
+  | 'presence:getRecentGames'
+  | 'games:addFavorite'
+  | 'games:removeFavorite'
+  | 'games:getFavorites'
   | 'account:friends:list'
   | 'account:friends:requests'
   | 'account:friends:respond'
@@ -159,7 +164,12 @@ contextBridge.exposeInMainWorld('api', {
     unfollowUser: (accountId: string, userId: number) => invoke('account:unfollow:user', accountId, userId),
     bulkImport: (input: string, format: 'user:pass' | 'cookies') => invoke('account:bulk-import',
   'account:savePassword',
-  'account:getPassword', input, format),
+  'account:getPassword',
+  'presence:recordGamePlay',
+  'presence:getRecentGames',
+  'games:addFavorite',
+  'games:removeFavorite',
+  'games:getFavorites', input, format),
   },
   roblox: {
     launch: (accountId: string, placeId?: string, jobId?: string) =>
@@ -301,6 +311,11 @@ export interface Api {
     clearCache: () => Promise<void>;
     exportData: () => Promise<void>;
     deleteAllAccounts: () => Promise<void>;
+  };
+  games: {
+    addFavorite: (payload: any) => Promise<void>;
+    removeFavorite: (payload: any) => Promise<void>;
+    getFavorites: (accountId: string) => Promise<any>;
   };
   shell: {
     openExternal: (url: string) => Promise<any>;

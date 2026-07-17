@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Shuffle, LogIn, XCircle } from 'lucide-react';
+import { Shuffle, LogIn, XCircle, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useUIStore } from '@renderer/store/useUIStore';
 

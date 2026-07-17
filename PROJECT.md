@@ -76,9 +76,7 @@
 - preload.ts: canales `account:savePassword` + `account:getPassword` añadidos al whitelist
 - main.ts: handlers IPC con CryptoService encrypt/decrypt
 - Validación: tsc 0 errores, vitest 82/82, build exitoso (AppImage + snap)
-- Commit: [pendiente]
-
-### Fase 3.4-3.8 — Resto de paridad RAM (PENDIENTE)
+- Commit: 6e45057 — Resto de paridad RAM (PENDIENTE)
 - 3.4 Recent Games — historial global al hacer Join Server; tab "Recientes" en GamesView; hover en JoinBar → dropdown
 - 3.5 Favorite Games — FavoriteGame type; IPC games:addFavorite/removeFavorite/listFavorites; tab "Favoritos" en GamesView; star icon en GameCard
 - 3.6 Presence UI — PresenceView dedicada; polling cada 30s; cuentas online → juego actual + Place/Job ID; botón "Unirse"; friends list expandable; search para añadir amigo

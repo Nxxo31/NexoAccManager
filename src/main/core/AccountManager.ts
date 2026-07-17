@@ -475,6 +475,92 @@ export class AccountManager {
   }
 
   /**
+   * Añade un juego reciente a la cuenta
+   * @param accountId ID de la cuenta
+   * @param recentGame Juego reciente a agregar
+   */
+  addRecentGame(accountId: string, recentGame: any): void {
+    const account = this.cachedAccounts.find((a) => a.id === accountId);
+    if (!account) return;
+    if (!account.recentGames) {
+      account.recentGames = [];
+    }
+    // Insert at beginning (most recent first)
+    account.recentGames.unshift(recentGame);
+    // Keep only max 10
+    if (account.recentGames.length > 10) {
+      account.recentGames = account.recentGames.slice(0, 10);
+    }
+    // Serialize and store via fields
+    const json = JSON.stringify(account.recentGames);
+    this.db.updateAccountField(accountId, 'fields', json);
+    this.updateCachedAccounts();
+  }
+
+  /**
+   * Obtiene los juegos recientes de una cuenta
+   * @param accountId ID de la cuenta
+   * @returns Array de juegos recientes (máximo 10, ordenados por fecha descendente)
+   */
+  getRecentGames(accountId: string): any[] {
+    const account = this.cachedAccounts.find((a) => a.id === accountId);
+    if (!account || !account.recentGames) return [];
+    return [...account.recentGames]; // Return copy
+  }
+
+  /**
+   * Añade un juego a favoritos de la cuenta
+   * @param accountId ID de la cuenta
+   * @param favoriteGame Juego favorito a agregar
+   */
+  addFavoriteGame(accountId: string, favoriteGame: any): void {
+    const account = this.cachedAccounts.find((a) => a.id === accountId);
+    if (!account) return;
+    if (!account.favoriteGames) {
+      account.favoriteGames = [];
+    }
+    // Check if already exists (by gameId)
+    const exists = account.favoriteGames.some((fg: any) => fg.gameId === favoriteGame.gameId);
+    if (!exists) {
+      account.favoriteGames.push(favoriteGame);
+      // Keep only max 20 (remove oldest if exceeded)
+      if (account.favoriteGames.length > 20) {
+        account.favoriteGames = account.favoriteGames.slice(0, 20);
+      }
+      // Serialize and store via fields
+      const json = JSON.stringify(account.favoriteGames);
+      this.db.updateAccountField(accountId, 'fields', json);
+      this.updateCachedAccounts();
+    }
+  }
+
+  /**
+   * Elimina un juego de favoritos de la cuenta
+   * @param accountId ID de la cuenta
+   * @param gameId ID del juego a eliminar
+   */
+  removeFavoriteGame(accountId: string, gameId: number): void {
+    const account = this.cachedAccounts.find((a) => a.id === accountId);
+    if (!account || !account.favoriteGames) return;
+    account.favoriteGames = account.favoriteGames.filter((fg: any) => fg.gameId !== gameId);
+    // Serialize and store via fields
+    const json = JSON.stringify(account.favoriteGames);
+    this.db.updateAccountField(accountId, 'fields', json);
+    this.updateCachedAccounts();
+  }
+
+  /**
+   * Obtiene los juegos favoritos de una cuenta
+   * @param accountId ID de la cuenta
+   * @returns Array de juegos favoritos (máximo 20)
+   */
+  getFavoriteGames(accountId: string): any[] {
+    const account = this.cachedAccounts.find((a) => a.id === accountId);
+    if (!account || !account.favoriteGames) return [];
+    return [...account.favoriteGames]; // Return copy
+  }
+
+  /**
    * Actualiza un campo de una cuenta
    * @param accountId ID de la cuenta
    * @param field Nombre del campo (group, description)
@@ -490,7 +576,7 @@ export class AccountManager {
   }
 
   /**
-   * Verifica si Multi-Roblox estÃ¡ habilitado
+   * Verifica si Multi-Roblox está habilitado
    */
   isMultiRobloxEnabled(): boolean {
     return this.multiRobloxEnabled;
