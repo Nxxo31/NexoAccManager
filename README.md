@@ -14,40 +14,73 @@ Inspired by [Roblox Account Manager (RAM)](https://github.com/ic3w0lf22/Roblox-A
 ### Account Management
 - **Multi-account support** — Add, organize, and switch between up to 50 accounts
 - **AES-256-GCM encryption** — All credentials stored locally with hardware-derived encryption
-- **Account groups** — Organize accounts into custom groups for easy management
+- **Account groups** — Organize accounts into custom groups with drag-and-drop sorting
+- **Save/Copy passwords** — Encrypt and store passwords locally for quick copy
 - **Import/Export** — Backup and restore accounts via JSON
 - **Auto cookie refresh** — Automatically renews cookies 24h before expiry with retry and notifications
+- **Aging alerts** — Visual color-coded dots (green/yellow/red) based on cookie expiry
+- **Account aliases** — Set custom aliases and descriptions per account
+
+### Advanced Instance Management (v3.0)
+- **Auto Relaunch** — Automatically relaunch accounts that disconnect
+- **Connection Watcher** — Monitor active Roblox connections in real-time
+- **Prevent Duplicate Instances** — Block launching the same account twice
+- **Quick Log In** — Instant login without browser navigation
+- **Join Group** — Join Roblox groups with any of your accounts
+- **VIP Server Links** — Paste VIP server links to auto-extract Place ID and access code
 
 ### Account Control Panel
 - **Profile** — View and edit display name, description, and avatar
-- **Security** — Manage sessions, change password, enable 2FA
+- **Outfit Viewer** — View account outfit and profile on Roblox
+- **Security** — Manage sessions, change password, enable 2FA, logout other sessions
 - **Privacy** — Control who can message, invite, and find you
 - **Friends** — Manage friends list, send/accept/decline requests
 - **Notifications** — Toggle notification types (friend requests, messages, etc.)
+- **Utilities** — Quick access to password change, email change, display name change
 
 ### Server Browser
 - **Server search** — Find servers by PlaceId with real-time data
+- **Player Finder** — Search for players by username
 - **Filters** — Filter by region, ping, and player count
 - **Sort by occupancy** — Find least populated servers instantly
 - **Auto-join** — Automatically join the least populated server
 - **Multi-distribute** — Split your accounts across multiple servers automatically
 
+### Games Browser
+- **Game search** — Search Roblox games by name
+- **Recent games** — Track recently played games per account
+- **Favorite games** — Bookmark games for quick access
+- **3-tab interface** — Search, Recent, and Favorites tabs
+
 ### Presence Dashboard
-- **Real-time status** — Monitor online status of all your accounts
-- **Robux balance** — View Robux balance for each account
-- **Auto-refresh** — Status updates every 30 seconds
+- **Real-time status** — Monitor 5-state presence of all accounts (Offline/Online/In-Game/In-Studio/Invisible)
+- **Auto-polling** — Status updates every 30 seconds automatically
+- **Animated indicators** — Pulse animation for active states
 - **Visual grid** — Clean card-based layout with avatars
 
 ### Multi-Instance
 - **Multiple game instances** — Run several game instances simultaneously
 - **One-click launch** — Launch any account with a single click
+- **Kill All** — Close all Roblox instances at once (F7)
 - **Roblox protocol** — Uses `roblox-player://` protocol directly
+
+### JoinBar
+- **Place ID + Job ID** — Quick join to specific servers
+- **Shuffle** — Randomize Job ID for server selection
+- **VIP Server link detection** — Paste VIP links to auto-parse access codes
+- **Recent games dropdown** — Quick access to recently played games
 
 ### Customization
 - **4 themes** — Dark (default), Light, Roblox Classic, Custom (all free, no restrictions)
 - **Full i18n** — Español, English, Português
 - **Dense mode** — Compact layout for power users
 - **Custom fonts** — Choose between Inter, JetBrains Mono, and more
+- **Hide usernames** — Privacy mode to hide usernames in the grid
+
+### Local Web API (Advanced)
+- **REST endpoints** — Optional local API for external control
+- **Configurable port** — Custom port assignment
+- **Auth tokens** — Secure API access
 
 ---
 
@@ -128,21 +161,29 @@ Opens Electron with Vite hot-reload for the renderer.
 5. Use **Auto-join** to automatically join the least populated server
 6. Use **Multi-distribute** to split accounts across different servers
 
+### Using the JoinBar
+
+1. Enter a **Place ID** in the JoinBar at the top
+2. Optionally enter a **Job ID** for a specific server
+3. Toggle **Shuffle** to randomize server selection
+4. Click the **VIP** button to paste a VIP server link
+5. Click **Unirse** to launch all selected accounts
+
 ### Monitoring with Presence Dashboard
 
 1. Navigate to the **Presence** tab
-2. View real-time status of all accounts (online/offline/in-game)
-3. See Robux balance for each account
-4. Status auto-refreshes every 30 seconds
+2. View real-time 5-state status of all accounts (Offline/Online/In-Game/In-Studio/Invisible)
+3. Status auto-refreshes every 30 seconds
+4. Animated indicators show active states
 
 ### Managing Account Settings
 
-From the Account Control Panel you can:
+From the Account Detail Panel you can:
 - **Profile**: Update display name and description
-- **Security**: View active sessions, change password, manage 2FA
+- **Security**: View active sessions, change password, manage 2FA, logout other sessions
 - **Privacy**: Control who can message, invite, or find you
 - **Friends**: Send, accept, or decline friend requests
-- **Notifications**: Enable/disable specific notification types
+- **Utilities**: Quick access to browser profile, outfit viewer, join group, quick login
 
 ---
 
@@ -151,13 +192,14 @@ From the Account Control Panel you can:
 | Component       | Technology                     |
 |------------------|-------------------------------|
 | App              | Electron 30 + React 18 + TypeScript |
-| State            | Zustand                       |
+| State            | Zustand 5                     |
 | Database         | SQLite + better-sqlite3       |
 | Encryption       | AES-256-GCM (hardware-derived) |
 | IPC Security     | contextBridge + sandbox        |
 | i18n             | i18next + react-i18next       |
+| Animations       | framer-motion 12              |
 | Build            | Vite 5 + electron-builder 24  |
-| Testing          | Vitest                        |
+| Testing          | Vitest (122 tests)             |
 | Linting          | ESLint                        |
 
 ---
@@ -177,44 +219,52 @@ src/
     services/
       CookieExpiryService.ts   → Auto cookie refresh (24h before expiry)
       GamesService.ts          → Game search, server list, join
-      PresenceService.ts       → Real-time presence polling (30s)
+      PresenceService.ts       → Real-time presence polling (30s, 5 states)
+      RobloxAuthService.ts     → Cookie verification
+      LoginBrowserService.ts   → BrowserWindow login (captures .ROBLOSECURITY)
     storage/
       DatabaseManager.ts       → SQLite local storage
   renderer/                    → React UI
-    App.tsx                    → Root component with view routing
-    main.tsx                   → React + i18next initialization
-    context/
-      ThemeContext.tsx         → Theme provider with CSS variable injection
+    App.tsx                    → Root component with 5 views
     components/
-      AccountList.tsx          → Account list with groups
-      AddAccountForm.tsx       → Cookie input form with validation
-      Header.tsx               → Navigation + language selector
-      SettingsPanel.tsx        → Appearance, language, advanced settings
-      AccountControlPanel/     → Profile, Security, Privacy, Friends, Notifications
-      ServerBrowser/           → Server search, filter, auto-join, multi-distribute
-      PresenceDashboard/       → Real-time status grid with Robux balance
+      accounts/
+        AccountGrid.tsx        → Grid with groups, drag-drop, aging dots
+        AccountDetailPanel.tsx → Slide-in panel with utilities
+        JoinBar.tsx            → Place ID, Job ID, VIP, Shuffle
+      views/
+        ServerView.tsx         → Server browser + Player Finder
+        GamesView.tsx          → 3-tab games browser
+        PresenceView.tsx       → Auto-polling presence dashboard
+        SettingsView.tsx       → Security + Advanced + Instance Management
+      layout/
+        Sidebar.tsx            → Navigation
+        TopBar.tsx             → Search, counters, actions
+        AppLayout.tsx          → Layout shell
+      server-browser/
+        ServerBrowser.tsx      → Server search and list
+    store/
+      useAccountStore.ts       → Zustand account state
+      useUIStore.ts            → Zustand UI state (5 global toggles)
     locales/                   → es.json, en.json, pt.json
-    themeDefinitions.ts        → CSS variable definitions for 4 themes
   preload/
     preload.ts                 → contextBridge with IPC channel whitelist
   types/
-    Account.ts                 → Shared types
+    Account.ts                 → Shared types (22+ attributes)
 ```
 
 ### IPC Namespacing
 
 ```
 account:*         → Account management (CRUD + encryption)
-roblox:*          → Platform API calls
-settings:*        → Local preferences and config
+roblox:*          → Platform API calls (launch, search, join, quick-login)
+settings:*        → Local preferences, config, Web API
 theme:*           → Theme system
 advanced:*        → Cache, export, data management
-shell:*           → External URL handling
 security:*        → Sessions, password, 2FA
 privacy:*         → Privacy settings
 friends:*         → Friends, requests, blocks
 notifications:*   → Notification toggles
-presence:*        → Online status polling
+presence:*        → Online status polling (5 states)
 ```
 
 Pattern: `invoke/handle` (Promise-based) — never `send/on` for request-response.
@@ -235,6 +285,32 @@ Result pattern: `{ success, data }` or `{ success: false, error }` — never thr
 
 ---
 
+## NAM vs RAM — Feature Comparison
+
+| Feature | RAM | NAM |
+|---------|-----|-----|
+| Multi-account | ✅ | ✅ |
+| AES-256-GCM encryption | ❌ | ✅ |
+| Cross-platform | ❌ (Windows only) | ✅ (Electron) |
+| i18n (ES/EN/PT) | ❌ | ✅ |
+| Aging alerts | ❌ | ✅ (color-coded) |
+| 5-state presence | ✅ | ✅ |
+| Account groups | ✅ (tabs) | ✅ (grid separators) |
+| Drag-and-drop sorting | ❌ | ✅ (framer-motion) |
+| Recent/Favorite games | ✅ | ✅ |
+| VIP server links | ✅ | ✅ |
+| Player Finder | ✅ | ✅ |
+| Outfit Viewer | ❌ | ✅ |
+| Quick Login | ✅ | ✅ |
+| Join Group | ✅ | ✅ |
+| Local Web API | ✅ | ✅ (configurable) |
+| Auto Relaunch | ✅ | ✅ |
+| Connection Watcher | ✅ | ✅ |
+| Prevent Duplicate Instances | ✅ | ✅ |
+| Open source | ✅ | ✅ (MIT) |
+
+---
+
 ## Contributing
 
 Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
@@ -251,6 +327,7 @@ cd NexoAccManager
 npm install
 npm run dev          # Development with hot-reload
 npx tsc --noEmit     # Type check
+npx vitest run       # Run 122 tests
 npm run lint         # ESLint
 npm run build        # Production build
 ```
@@ -306,3 +383,5 @@ terms of service of any platform they interact with.
 - [Electron](https://www.electronjs.org/) — Cross-platform desktop framework
 - [React](https://react.dev/) — UI library
 - [i18next](https://www.i18next.com/) — Internationalization
+- [framer-motion](https://www.framer.com/motion/) — Animations
+- [Zustand](https://github.com/pmndrs/zustand) — State management

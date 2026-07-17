@@ -1,6 +1,6 @@
 # NexoAccManager — PROJECT.md
 # Última actualización: 2026-07-16 (consolidación docs)
-# Versión actual: 3.0.0 (refactor UI — Fase 1 completada)
+# Versión actual: 3.0.0 (release completo — Fases 1-6 completadas)
 
 ## Estado actual
 
@@ -101,10 +101,10 @@
 - 5.3 Visual regression: infrastructure maintained (screenshots spec existing)
 - 5.4 Lint + tsc + build final — tsc 0 errores, vitest 122/122, build exitoso
 
-### Fase 6 — Release v3.0.0 (PENDIENTE)
-- 6.1 Actualizar README.md con features completas + screenshots
-- 6.2 Tag v3.0.0 + NSIS build via GitHub Actions
-- 6.3 Release notes con comparativa RAM vs NAM
+### Fase 6 — Release v3.0.0 (COMPLETADO ✅)
+- 6.1 README.md actualizado con features completas v3.0.0 + comparativa NAM vs RAM
+- 6.2 Version bumped to 3.0.0 en package.json + tag v3.0.0
+- 6.3 Release notes con comparativa RAM vs NAM en README
 
 ### Limpieza legacy (COMPLETADO)
 - ✅ 26 archivos legacy eliminados: .bak (6), componentes v2.2/v2.3 (Sidebar, AppShell, AccountDetailsPanel, ActionBar, AccountCard, AccountGrid, AccountList, AddAccountForm, Header viejo, SettingsPanel viejo, PresenceDashboard viejo, ServerBrowser viejo, ui/toast)
