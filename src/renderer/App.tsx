@@ -207,6 +207,13 @@ export default function App() {
                   onEditAlias={(acc) => { setSelectedAccount(acc); setEditingAlias(true); }}
                   onEditDescription={(acc) => { setSelectedAccount(acc); setEditingDesc(true); }}
                   onCopyPlaceId={(acc) => handleCopyPlaceId(acc.savedPlaceId || '')}
+                  onToggleFavorite={(acc, isFav) => {
+                    useAccountStore.getState().setAccountField(acc.id, "isFavorite", isFav);
+                  }}
+                  onChangeGroup={(acc, newGroup) => {
+                    useAccountStore.getState().setAccountField(acc.id, "group", newGroup);
+                  }}
+
                   onReorder={(reordered: Account[]) => {
                     useAccountStore.getState().setAccounts(reordered);
                   }}

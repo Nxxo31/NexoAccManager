@@ -14,6 +14,7 @@ interface AccountState {
   updateAccount: (id: string, updates: Partial<Account>) => void;
   removeAccount: (id: string) => void;
   setSelectedAccount: (account: Account | null) => void;
+  setAccountField: (id: string, key: string, value: any) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearError: () => void;
@@ -44,6 +45,9 @@ export const useAccountStore = create<AccountState>()(
         setLoading: (loading: boolean) => set({ loading }),
         setError: (error: string | null) => set({ error }),
         clearError: () => set({ error: null }),
+        setAccountField: (id: string, key: string, value: any) => set((state) => ({
+          accounts: state.accounts.map((acc) => acc.id === id ? { ...acc, [key]: value } : acc),
+        })),
       }),
       {
         name: 'account-storage',

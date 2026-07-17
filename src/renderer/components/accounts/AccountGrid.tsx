@@ -4,6 +4,7 @@ import { Account } from '@/types/Account';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@renderer/store/useUIStore';
+import { ChevronDown } from 'lucide-react';
 
 interface AccountGridProps {
   accounts: Account[];
@@ -15,6 +16,8 @@ interface AccountGridProps {
   onShowAccountControl: (account: Account) => void;
   onEditAlias: (account: Account) => void;
   onEditDescription: (account: Account) => void;
+  onToggleFavorite: (account: Account, isFavorite: boolean) => void;
+  onChangeGroup: (account: Account, newGroup: string) => void;
   onCopyPlaceId: (account: Account) => void;
   onReorder?: (reorderedAccounts: Account[]) => void;
   hideUsernames: boolean;
@@ -64,6 +67,8 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
   onSelectAccount,
   onDeleteAccount,
   onPlayAccount,
+  onToggleFavorite,
+  onChangeGroup,
   onFollowAccount,
   onShowAccountControl,
   onEditAlias,
@@ -74,6 +79,7 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
 }) => {
   const { t } = useTranslation();
   const { disableAgingAlert } = useUIStore();
+  const [groupDropdownOpen, setGroupDropdownOpen] = React.useState(false);
 
   if (accounts.length === 0) {
     return (
@@ -145,7 +151,7 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
                           onClick={(e) => {
                             e.stopPropagation();
                             // TODO: Implement toggle favorite via IPC
-                            console.log('Toggle favorite for', account.id);
+                            onToggleFavorite(account, !isFavorite);
                           }}
                           className="p-1 rounded hover:bg-primary/20 transition-colors"
                           aria-label={isFavorite ? t('accounts.unfavorite', 'Quitar de favoritos') : t('accounts.favorite', 'Marcar como favorito')}
@@ -158,16 +164,48 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
                         </button>
                       </div>
 
-                      <div className="text-xs text-muted-foreground">
-                        {account.group ? (
-                          <span className="rounded bg-primary/20 px-2 py-0.5 text-xs font-medium">{account.group}</span>
-                        ) : (
-                          <span className="italic">{t('accounts.ungrouped', 'Sin grupo')}</span>
-                        )}
-                        {account.description && (
-                          <span className="ml-2 text-xs text-muted-foreground">{account.description}</span>
-                        )}
-                      </div>
+                        {/* Group selector */}
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setGroupDropdownOpen(!groupDropdownOpen);
+                            }}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-primary/20 hover:bg-primary/30 transition-colors"
+                          >
+                            {account.group || t("accounts.ungrouped", "Sin grupo")}
+                            <ChevronDown className="h-3 w-3" />
+                          </button>
+                          {groupDropdownOpen && (
+                            <div className="absolute left-0 mt-1 w-48 rounded-md bg-bg-card border border-border shadow-lg z-20">
+                              <div className="py-1">
+                                <div className="px-3 py-1.5 text-xs cursor-pointer hover:bg-primary/20 whitespace-nowrap" onClick={() => {
+                                  setGroupDropdownOpen(false);
+                                  onChangeGroup(account, "");
+                                }}>
+                                  {t("accounts.ungrouped", "Sin grupo")}
+                                </div>
+                                {Array.from(new Set(accounts.map((a) => a.group).filter(Boolean))).map((groupName) => (
+                                  <div key={groupName} className="px-3 py-1.5 text-xs cursor-pointer hover:bg-primary/20 whitespace-nowrap" onClick={() => {
+                                    setGroupDropdownOpen(false);
+                                    onChangeGroup(account, groupName);
+                                  }}>
+                                    {groupName}
+                                  </div>
+                                ))}
+                                <div className="px-3 py-1.5 text-xs cursor-pointer border-t border-border" onClick={() => {
+                                  setGroupDropdownOpen(false);
+                                  const newGroup = prompt("Nuevo nombre de grupo:", account.group || "");
+                                  if (newGroup !== null) {
+                                    onChangeGroup(account, newGroup.trim() || "");
+                                  }
+                                }}>
+                                  {t("accounts.newGroup", "Nuevo grupo...")}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
 
                       {/* Action buttons */}
                       <div className="mt-2 flex flex-wrap gap-2">
