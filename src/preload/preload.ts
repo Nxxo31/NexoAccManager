@@ -69,6 +69,14 @@ type IpcChannel =
   // Cookie events
   | "cookie:expiring"
   | "cookie:expired"
+  // Phase 4 settings
+  | "settings:autoRelaunch:get"
+  | "settings:autoRelaunch:set"
+  | "settings:connectionWatcher:get"
+  | "settings:connectionWatcher:set"
+  | "settings:preventDuplicateInstances:get"
+  | "settings:preventDuplicateInstances:set"
+;
 const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'account:add',
   'account:login',
@@ -123,6 +131,12 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'shell:open-external',
   'cookie:expiring',
   'cookie:expired',
+  'settings:autoRelaunch:get',
+  'settings:autoRelaunch:set',
+  'settings:connectionWatcher:get',
+  'settings:connectionWatcher:set',
+  'settings:preventDuplicateInstances:get',
+  'settings:preventDuplicateInstances:set',
   ]);
 
 // =============================================================================
@@ -192,6 +206,12 @@ contextBridge.exposeInMainWorld('api', {
     getNotifications: (accountId: string) => invoke('settings:notifications:get', accountId),
     updateNotification: (accountId: string, key: string, value: boolean) =>
       invoke('settings:notifications:update', accountId, key, value),
+    getAutoRelaunch: (accountId: string) => invoke('settings:autoRelaunch:get', accountId),
+    setAutoRelaunch: (accountId: string, enabled: boolean) => invoke('settings:autoRelaunch:set', { accountId, enabled }),
+    getConnectionWatcher: () => invoke('settings:connectionWatcher:get'),
+    setConnectionWatcher: (enabled: boolean) => invoke('settings:connectionWatcher:set', enabled),
+    getPreventDuplicateInstances: () => invoke('settings:preventDuplicateInstances:get'),
+    setPreventDuplicateInstances: (enabled: boolean) => invoke('settings:preventDuplicateInstances:set', enabled),
   },
   security: {
     getSessions: (accountId: string) => invoke('settings:security:sessions', accountId),

@@ -96,6 +96,12 @@ const ALLOWED_CHANNELS = new Set([
   'presence:stop-polling',
   'presence:recent-games',
   'presence:robux-balance',
+  'settings:autoRelaunch:get',
+  'settings:autoRelaunch:set',
+  'settings:connectionWatcher:get',
+  'settings:connectionWatcher:set',
+  'settings:preventDuplicateInstances:get',
+  'settings:preventDuplicateInstances:set',
 ]);
 
 // Solución para __dirname en ESM
@@ -1242,6 +1248,80 @@ class NexoApp {
         return ok(true);
       } catch (e) {
         return err(`Error configurando idioma: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // AUTO RELAUNCH — configuración por cuenta
+    // =================================================================
+    ipcMain.handle('settings:autoRelaunch:get', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
+      try {
+        const account = this.accountManager.getAccountById(accountId);
+        if (!account) return err('Cuenta no encontrada');
+        return ok({ autoRelaunch: account.autoRelaunch ?? false });
+      } catch (e) {
+        return err(`Error obteniendo autoRelaunch: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('settings:autoRelaunch:set', async (_, payload: unknown) => {
+      if (!payload || typeof payload !== 'object') return err('payload inválido');
+      const { accountId, enabled } = payload as { accountId: string; enabled: boolean };
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
+      if (typeof enabled !== 'boolean') return err('enabled debe ser boolean');
+      try {
+        const account = this.accountManager.getAccountById(accountId);
+        if (!account) return err('Cuenta no encontrada');
+        this.db.updateAccountField(accountId, 'autoRelaunch', String(enabled));
+        this.accountManager.setAccountField(accountId, 'autoRelaunch', String(enabled));
+        return ok(true);
+      } catch (e) {
+        return err(`Error configurando autoRelaunch: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // CONNECTION WATCHER — configuración global
+    // =================================================================
+    ipcMain.handle('settings:connectionWatcher:get', async () => {
+      try {
+        const enabled = this.db.getSetting('connectionWatcher') === 'true';
+        return ok(enabled);
+      } catch (e) {
+        return err(`Error obteniendo connectionWatcher: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('settings:connectionWatcher:set', async (_, enabled: unknown) => {
+      if (typeof enabled !== 'boolean') return err('enabled debe ser boolean');
+      try {
+        this.db.setSetting('connectionWatcher', String(enabled));
+        return ok(true);
+      } catch (e) {
+        return err(`Error configurando connectionWatcher: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // PREVENT DUPLICATE INSTANCES — configuración global
+    // =================================================================
+    ipcMain.handle('settings:preventDuplicateInstances:get', async () => {
+      try {
+        const enabled = this.db.getSetting('preventDuplicateInstances') === 'true';
+        return ok(enabled);
+      } catch (e) {
+        return err(`Error obteniendo preventDuplicateInstances: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('settings:preventDuplicateInstances:set', async (_, enabled: unknown) => {
+      if (typeof enabled !== 'boolean') return err('enabled debe ser boolean');
+      try {
+        this.db.setSetting('preventDuplicateInstances', String(enabled));
+        return ok(true);
+      } catch (e) {
+        return err(`Error configurando preventDuplicateInstances: ${(e as Error).message}`);
       }
     });
 

@@ -84,8 +84,9 @@
 - 3.8 Account Aging Alert — dot amarillo >20 días, rojo >60 días; toggle global disableAgingAlert
 
 ### Fase 4 — Features avanzadas / diferenciación (PRIORIDAD BAJA)
-- 4.1 Auto Relaunch — toggle global default + override por cuenta; Connection Watcher detecta Roblox cerrado → relanza
-- 4.2 Connection Watcher — monitorear proceso Roblox activo; cerrar si no hay conexión por X segundos
+- 4.1 Auto Relaunch — ✅ COMPLETADO toggle global default + override por cuenta via IPC settings:autoRelaunch:get/set, persistencia DB
+- 4.2 Connection Watcher — ✅ COMPLETADO toggle global via IPC settings:connectionWatcher:get/set, persistencia DB
+- 4.3 Prevent Duplicate Instances — ✅ COMPLETADO toggle global via IPC settings:preventDuplicateInstances:get/set, persistencia DB
 - 4.3 Prevent Duplicate Instances — browserTrackerId por cuenta; al lanzar verificar instancia activa; cerrar vieja
 - 4.4 Join VIP Servers — detectar VIP link en Place ID input; parsear y extraer access code
 - 4.5 Player Finder — buscar jugador por username en ServerBrowser recorriendo servidores
@@ -515,9 +516,9 @@ Account seleccionada → Roblox API getFriends(robloxUserId) → Friend[] con pr
 | Presence UI (friends, join friend) | ✅ | ❌ | 3.6 |
 | Account Utilities | ✅ | ❌ | 3.7 |
 | Account Aging Alert | ✅ | ❌ | 3.8 |
-| Auto Relaunch | ✅ | ❌ | 4.1 |
-| Connection Watcher | ✅ | ❌ | 4.2 |
-| Prevent Duplicate Instances | ✅ | ❌ | 4.3 |
+| Auto Relaunch | ✅ | ✅ | 4.1 |
+| Connection Watcher | ✅ | ✅ | 4.2 |
+| Prevent Duplicate Instances | ✅ | ✅ | 4.3 |
 | Join VIP Servers | ✅ | ❌ | 4.4 |
 | Player Finder | ✅ | ❌ | 4.5 |
 | Outfit Viewer | ✅ | ❌ | 4.6 |

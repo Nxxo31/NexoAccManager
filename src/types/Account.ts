@@ -17,6 +17,8 @@ export interface Account {
   savedPlaceId?: string;        // Place ID guardado para esta cuenta
   savedJobId?: string;          // Job ID guardado para esta cuenta
   password?: string;              // Contraseña (cifrada, si savePasswords=true)
+  /** Relanzar automáticamente si el proceso se cae */
+  autoRelaunch?: boolean;
   /** Juegos jugados recientemente (máximo 10 por cuenta) */
   recentGames?: RecentGame[];
   /** Juegos favoritos (máximo 20 por cuenta) */

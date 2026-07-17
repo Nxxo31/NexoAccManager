@@ -567,7 +567,7 @@ export class AccountManager {
    * @param value Nuevo valor
    */
   setAccountField(accountId: string, field: string, value: string): boolean {
-    if (!['group', 'description'].includes(field)) {
+    if (!['group', 'description', 'autoRelaunch'].includes(field)) {
       return false;
     }
     this.db.updateAccountField(accountId, field, value);

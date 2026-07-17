@@ -22,6 +22,9 @@ interface UIState {
   language: string;
   savePasswords: boolean;
   disableAgingAlert: boolean;
+  autoRelaunch: boolean;
+  connectionWatcher: boolean;
+  preventDuplicateInstances: boolean;
 
   // Actions
   setActiveView: (view: ViewKey) => void;
@@ -34,6 +37,9 @@ interface UIState {
   setLanguage: (lang: string) => void;
   setSavePasswords: (value: boolean) => void;
   setDisableAgingAlert: (value: boolean) => void;
+  setAutoRelaunch: (value: boolean) => void;
+  setConnectionWatcher: (value: boolean) => void;
+  setPreventDuplicateInstances: (value: boolean) => void;
 }
 
 const defaultThemeSettings: ThemeSettings = {
@@ -56,7 +62,10 @@ export const useUIStore = create<UIState>()(
     language: 'es',
     savePasswords: false,
     disableAgingAlert: false,
-    
+    autoRelaunch: false,
+    connectionWatcher: false,
+    preventDuplicateInstances: false,
+
     setActiveView: (view) => set({ activeView: view }),
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
     setSidebarCollapsed: (collapsed: boolean) => set({ sidebarCollapsed: collapsed }),
@@ -67,5 +76,8 @@ export const useUIStore = create<UIState>()(
     setLanguage: (lang: string) => set({ language: lang }),
     setSavePasswords: (value) => set({ savePasswords: value }),
     setDisableAgingAlert: (value) => set({ disableAgingAlert: value }),
+    setAutoRelaunch: (value) => set({ autoRelaunch: value }),
+    setConnectionWatcher: (value) => set({ connectionWatcher: value }),
+    setPreventDuplicateInstances: (value) => set({ preventDuplicateInstances: value }),
   }))
 );
