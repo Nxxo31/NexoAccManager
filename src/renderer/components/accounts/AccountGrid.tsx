@@ -4,6 +4,7 @@ import { Play, Settings as SettingsIcon, Copy, Trash2, UserPlus, Lock, GripVerti
 import { Account } from '@/types/Account';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { useUIStore } from '@renderer/store/useUIStore';
 
 interface AccountGridProps {
   accounts: Account[];
@@ -46,6 +47,18 @@ function groupAccounts(accounts: Account[]): { group: string; accounts: Account[
   return groups;
 }
 
+function calcAgingColor(expireDate: Date): string {
+  const daysLeft = (expireDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+  if (daysLeft < 0) return 'bg-error';
+  if (daysLeft < 7) return 'bg-error';
+  if (daysLeft <= 20) return 'bg-warning';
+  return 'bg-success';
+}
+
+function calcAgingDays(expireDate: Date): number {
+  return Math.max(0, Math.floor((expireDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+}
+
 export const AccountGrid: React.FC<AccountGridProps> = ({
   accounts,
   selectedAccount,
@@ -62,6 +75,7 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
   jobIdShuffle: _jobIdShuffle,
 }) => {
   const { t } = useTranslation();
+  const { disableAgingAlert } = useUIStore();
 
   if (accounts.length === 0) {
     return (
@@ -98,6 +112,9 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {groupAccounts.map((account) => {
               const isSelected = selectedAccount?.id === account.id;
+              const agingColor = account.cookieExpiresAt ? calcAgingColor(account.cookieExpiresAt) : null;
+              const agingDays = account.cookieExpiresAt ? calcAgingDays(account.cookieExpiresAt) : null;
+
               return (
                 <Reorder.Item
                   key={account.id}
@@ -137,79 +154,73 @@ export const AccountGrid: React.FC<AccountGridProps> = ({
                           <p className="text-xs text-muted-foreground truncate">{account.displayName}</p>
                         )}
                       </div>
-                      {/* Status dot */}
+                      {/* Status dot — aging alert */}
                       <div className="flex items-center gap-2 text-xs">
-                        <div className={cn(
-                          'h-2.5 w-2.5 rounded-full',
-                          account.cookieExpiresAt ? 'bg-success' : 'bg-gray-400'
-                        )} />
+                        {!disableAgingAlert && agingColor ? (
+                          <div className={cn('h-2.5 w-2.5 rounded-full', agingColor)} title={`${agingDays} días`} />
+                        ) : (
+                          <div className={cn('h-2.5 w-2.5 rounded-full', agingColor ?? (account.cookieExpiresAt ? 'bg-success' : 'bg-gray-400'))} />
+                        )}
                       </div>
                     </div>
 
                     {account.description && (
                       <p className="text-xs text-muted-foreground line-clamp-2">{account.description}</p>
                     )}
+                  </div>
 
-                    {/* Action buttons */}
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onPlayAccount(account); }}
-                        className="btn btn-sm btn-ghost hover:bg-primary/20"
-                        aria-label={t('accounts.play', 'Jugar')}
-                        title="Jugar"
-                      >
-                        <Play className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onShowAccountControl(account); }}
-                        className="btn btn-sm btn-ghost hover:bg-primary/20"
-                        aria-label={t('accounts.control', 'Control de cuenta')}
-                        title="Control de cuenta"
-                      >
-                        <SettingsIcon className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onCopyPlaceId(account); }}
-                        disabled={!account.savedPlaceId}
-                        className="btn btn-sm btn-ghost hover:bg-primary/20 disabled:opacity-30"
-                        aria-label={t('accounts.copyPlaceId', 'Copiar Place ID')}
-                        title="Copiar Place ID"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onEditAlias(account); }}
-                        className="btn btn-sm btn-ghost hover:bg-primary/20"
-                        aria-label={t('accounts.editAlias', 'Editar alias')}
-                        title="Editar alias"
-                      >
-                        <UserPlus className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onEditDescription(account); }}
-                        className="btn btn-sm btn-ghost hover:bg-primary/20"
-                        aria-label={t('accounts.editDescription', 'Editar descripción')}
-                        title="Editar descripción"
-                      >
-                        <Lock className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onFollowAccount(account); }}
-                        className="btn btn-sm btn-ghost hover:bg-primary/20"
-                        aria-label={t('accounts.follow', 'Seguir usuario')}
-                        title="Seguir usuario"
-                      >
-                        <UserPlus className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onDeleteAccount(account); }}
-                        className="btn btn-sm btn-ghost hover:bg-error/20 text-error"
-                        aria-label={t('accounts.delete', 'Eliminar')}
-                        title="Eliminar"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+                  {/* Action buttons */}
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onPlayAccount(account); }}
+                      className="btn btn-sm btn-ghost hover:bg-primary/20"
+                      aria-label={t('accounts.play', 'Jugar')}
+                    >
+                      <Play className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onShowAccountControl(account); }}
+                      className="btn btn-sm btn-ghost hover:bg-primary/20"
+                      aria-label={t('accounts.control', 'Control de cuenta')}
+                    >
+                      <SettingsIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onCopyPlaceId(account); }}
+                      disabled={!account.savedPlaceId}
+                      className="btn btn-sm btn-ghost hover:bg-primary/20 disabled:opacity-30"
+                      aria-label={t('accounts.copyPlaceId', 'Copiar Place ID')}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onEditAlias(account); }}
+                      className="btn btn-sm btn-ghost hover:bg-primary/20"
+                      aria-label={t('accounts.editAlias', 'Editar alias')}
+                    >
+                      <UserPlus className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onEditDescription(account); }}
+                      className="btn btn-sm btn-ghost hover:bg-primary/20"
+                      aria-label={t('accounts.editDescription', 'Editar descripción')}
+                    >
+                      <Lock className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onFollowAccount(account); }}
+                      className="btn btn-sm btn-ghost hover:bg-primary/20"
+                      aria-label={t('accounts.follow', 'Seguir usuario')}
+                    >
+                      <UserPlus className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDeleteAccount(account); }}
+                      className="btn btn-sm btn-ghost hover:bg-error/20 text-error"
+                      aria-label={t('accounts.delete', 'Eliminar')}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </Reorder.Item>
               );

@@ -2,10 +2,48 @@ import * as React from 'react';
 import { Wifi } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAccountStore } from '@renderer/store/useAccountStore';
+import { useUIStore } from '@renderer/store/useUIStore';
+import { useEffect, useCallback } from 'react';
 
 export const PresenceView: React.FC = () => {
   const { t } = useTranslation();
   const accounts = useAccountStore((s) => s.accounts);
+  const selectedAccountId = useAccountStore((s) => s.selectedAccount?.id || null);
+  const { disableAgingAlert } = useUIStore();
+  
+  const startPresencePolling = useCallback((accountIds: string[]) => {
+    try {
+      const api = (window as any).api;
+      if (api?.presence?.startPolling) {
+        api.presence.startPolling(accountIds, 30000); // 30 seconds
+      }
+    } catch (e) {
+      console.error('Failed to start presence polling:', e);
+    }
+  }, []);
+  
+  const stopPresencePolling = useCallback(() => {
+    try {
+      const api = (window as any).api;
+      if (api?.presence?.stopPolling) {
+        api.presence.stopPolling();
+      }
+    } catch (e) {
+      console.error('Failed to stop presence polling:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Start polling when accounts or selection changes
+    const accountIds = accounts.map(acc => acc.id).filter(id => id);
+    if (accountIds.length > 0) {
+      startPresencePolling(accountIds);
+    }
+    
+    return () => {
+      stopPresencePolling();
+    };
+  }, [accounts, startPresencePolling, stopPresencePolling]);
 
   const presenceLabel = (acc: any): string => {
     const p = acc?.presence;
@@ -23,11 +61,11 @@ export const PresenceView: React.FC = () => {
   const presenceColor = (acc: any): string => {
     const p = acc?.presence?.userPresenceType;
     switch (p) {
-      case 1: return '#2ED573';
-      case 2: return '#6347FF';
-      case 3: return '#FFA502';
-      case 4: return '#4A4D52';
-      default: return '#8A8F98';
+      case 1: return '#2ED573'; // online - green
+      case 2: return '#6347FF'; // in-game - purple
+      case 3: return '#FFA502'; // in-studio - orange
+      case 4: return '#4A4D52'; // hidden - dark gray
+      default: return '#8A8F98'; // offline - light gray
     }
   };
 

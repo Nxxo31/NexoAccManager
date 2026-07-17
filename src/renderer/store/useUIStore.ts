@@ -21,6 +21,7 @@ interface UIState {
   themeSettings: ThemeSettings | null;
   language: string;
   savePasswords: boolean;
+  disableAgingAlert: boolean;
 
   // Actions
   setActiveView: (view: ViewKey) => void;
@@ -32,6 +33,7 @@ interface UIState {
   setThemeSettings: (settings: ThemeSettings) => void;
   setLanguage: (lang: string) => void;
   setSavePasswords: (value: boolean) => void;
+  setDisableAgingAlert: (value: boolean) => void;
 }
 
 const defaultThemeSettings: ThemeSettings = {
@@ -53,6 +55,7 @@ export const useUIStore = create<UIState>()(
     themeSettings: defaultThemeSettings,
     language: 'es',
     savePasswords: false,
+    disableAgingAlert: false,
     
     setActiveView: (view) => set({ activeView: view }),
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -62,6 +65,7 @@ export const useUIStore = create<UIState>()(
     setSearchQuery: (query: string) => set({ searchQuery: query }),
     setThemeSettings: (settings: ThemeSettings) => set({ themeSettings: settings }),
     setLanguage: (lang: string) => set({ language: lang }),
-    setSavePasswords: (value: boolean) => set({ savePasswords: value }),
+    setSavePasswords: (value) => set({ savePasswords: value }),
+    setDisableAgingAlert: (value) => set({ disableAgingAlert: value }),
   }))
 );

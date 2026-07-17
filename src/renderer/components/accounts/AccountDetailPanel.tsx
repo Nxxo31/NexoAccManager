@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X, Play, Globe, KeyRound, Link2, Zap, Copy, Check,
+  X, Play, Globe, KeyRound, Link2, Zap, Copy, Check, Settings as SettingsIcon,
 } from 'lucide-react';
 import { Account } from '@/types/Account';
 import { useTranslation } from 'react-i18next';
@@ -256,28 +256,87 @@ export const AccountDetailPanel: React.FC<AccountDetailPanelProps> = ({
               </div>
 
               {/* Friends */}
-              {(account as any).friends && (account as any).friends.length > 0 && (
-                <div className="space-y-2 pt-2 border-t border-border">
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    {t('detail.friends', 'Amigos')} ({(account as any).friends.length})
-                  </h4>
-                  <div className="space-y-1.5">
-                    {(account as any).friends.slice(0, 10).map((friend: any) => {
-                      const fType = friend?.presence?.userPresenceType ?? 0;
-                      const fColors = ['#8A8F98', '#2ED573', '#6347FF', '#FFA502', '#4A4D52'];
-                      return (
-                        <div key={friend.id || friend.userId} className="flex items-center gap-2 text-sm">
-                          <div
-                            className="w-2 h-2 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: fColors[fType] || fColors[0] }}
-                          />
-                          <span className="truncate">{friend.username || friend.displayName || 'Unknown'}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                            {(account as any).friends && (account as any).friends.length > 0 && (
+                              <div className="space-y-2 pt-2 border-t border-border">
+                                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                  {t('detail.friends', 'Amigos')} ({(account as any).friends.length})
+                                </h4>
+                                <div className="space-y-1.5">
+                                  {(account as any).friends.slice(0, 10).map((friend: any) => {
+                                    const fType = friend?.presence?.userPresenceType ?? 0;
+                                    const fColors = ['#8A8F98', '#2ED573', '#6347FF', '#FFA502', '#4A4D52'];
+                                    return (
+                                      <div key={friend.id || friend.userId} className="flex items-center gap-2 text-sm">
+                                        <div
+                                          className={`w-2 h-2 rounded-full flex-shrink-0`}
+                                          style={{ backgroundColor: fColors[fType] || fColors[0] }}
+                                        />
+                                        <span className="truncate">{friend.username || friend.displayName || 'Unknown'}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+              
+                            {/* Utilities */}
+                            <div className="space-y-2 pt-2 border-t border-border">
+                              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                {t('detail.utilities', 'Utilidades')}
+                              </h4>
+                              <div className="space-y-1">
+                                <button
+                                  onClick={() => onOpenBrowser(account)}
+                                  className="w-full flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-bg-surface text-foreground text-sm hover:bg-bg-elevated transition-colors"
+                                >
+                                  <Globe className="h-3 w-3" />
+                                  <span>{t('detail.utilities.browseProfile', 'Ver perfil en web')}</span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    // Change password - opens browser to Roblox password change page
+                                    window.open('https://www.roblox.com/my/account#!/security', '_blank');
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-bg-surface text-foreground text-sm hover:bg-bg-elevated transition-colors"
+                                >
+                                  <KeyRound className="h-3 w-3" />
+                                  <span>{t('detail.utilities.changePassword', 'Cambiar contraseña')}</span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    // Change email - opens browser to Roblox email change page
+                                    window.open('https://www.roblox.com/my/account#!/settings', '_blank');
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-bg-surface text-foreground text-sm hover:bg-bg-elevated transition-colors"
+                                >
+                                  <Link2 className="h-3 w-3" />
+                                  <span>{t('detail.utilities.changeEmail', 'Cambiar email')}</span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    // Change display name - opens browser to Roblox display name change
+                                    window.open('https://www.roblox.com/my/account#!/settings', '_blank');
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-bg-surface text-foreground text-sm hover:bg-bg-elevated transition-colors"
+                                >
+                                  <SettingsIcon className="h-3 w-3" />
+                                  <span>{t('detail.utilities.changeDisplayName', 'Cambiar nombre visible')}</span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    // Log out other sessions - IPC settings:security:logout-all
+                                    const api = (window as any).api;
+                                    if (api?.settings?.security) {
+                                      api.settings.security.logoutAll();
+                                    }
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-bg-surface text-foreground text-sm hover:bg-bg-elevated transition-colors"
+                                >
+                                  <Zap className="h-3 w-3" />
+                                  <span>{t('detail.utilities.logoutOtherSessions', 'Cerrar otras sesiones')}</span>
+                                </button>
+                              </div>
+                            </div>
             </div>
           </motion.aside>
         </>
