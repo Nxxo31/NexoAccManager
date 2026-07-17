@@ -1,22 +1,75 @@
 # NexoAccManager — PROJECT.md
-# Última actualización: 2026-07-16 (consolidación docs)
-# Versión actual: 3.0.0 (release completo — Fases 1-6 completadas)
+# Última actualización: 2026-07-17 (rediseño UI v3.0 + evaluación estado)
+# Versión actual: 3.0.0 (rediseño UI completado)
 
 ## Estado actual
 
 | Métrica | Valor |
 |---------|-------|
-| Versión | 3.0.0 (refactor UI en progreso) |
-| Último commit | 41c5408 — feat(v3.0.0): nueva arquitectura UI |
+| Versión | 3.0.0 |
+| Último commit | cb95b48 — feat(v3.0): rediseño UI |
 | tsc | 0 errores |
-| vitest | 82/82 pasando |
+| vitest | 121/121 pasando (11 archivos) |
 | lint | pendiente |
 | build | ✅ exitoso — AppImage + snap (linux) |
-| NSIS | v2.5.1 publicado (fix type:module), v3.0.0 pendiente |
-| Playwright | pendiente — selectores actualizados, por verificar |
-| Mockup UI | docs/mockups/nam-v3-ui-mockup.html (target visual v3.0) |
+| NSIS | v3.0.0 publicado en GitHub (Latest) |
+| Playwright | pendiente — infraestructura existe, selectores desactualizados |
+| Release GitHub | v3.0.0 (único release activo, viejos eliminados) |
 
-## Hotfix v2.5.1 (2026-07-16)
+## Rediseño UI v3.0 (2026-07-17 — commit cb95b48)
+
+Cambios solicitados por el usuario y completados:
+1. ✅ AddAccountModal: solo login navegador (removidos tabs Cookie + Importación Masiva)
+2. ✅ JoinBar: removido botón "Barajar", mantenido Place ID + Job ID + VIP
+3. ✅ Sidebar: 'presence' → 'amigos' (Friends Hub con icono User)
+4. ✅ PresenceView → FriendsHubView (stub — funcionalidad a implementar)
+5. ✅ TopBar: toggle tema claro/oscuro arreglado (Sun/Moon icons)
+6. ✅ AccountGrid: grupos con headers + favoritas (star toggle)
+7. ✅ SettingsView: "Cerrar todas las instancias" movido aquí desde JoinBar
+8. ✅ App.tsx: imports corregidos, FriendsHubView integrada, onKillAll en Settings
+
+## Pendiente — Próximos pasos priorizados (evaluación 2026-07-17)
+
+### 🔴 PRIORIDAD ALTA — Funcionalidad core incompleta
+
+| # | Tarea | Estado | Descripción |
+|---|-------|--------|-------------|
+| P1 | FriendsHubView implementación real | Stub | Solo render título. Necesita: lista amigos real via IPC `account:friends:list`, polling de presencia, solicitudes de amistad, seguir/dejar seguir, ver perfil. Backend IPC existe en main.ts pero no conectado. |
+| P2 | Botones AccountGrid sin backend | Parcial | Favoritos (star) hace console.log — necesita IPC `account:setFavorite` + persistencia. Grupos: no hay UI para crear/mover grupos (solo display). Edit alias/description: handlers existen pero flujo no verificado. |
+| P3 | Tema claro funcionando | Frontend listo | Toggle Sun/Moon arreglado en TopBar, pero CSS de tema claro no verificado — puede necesitar variables CSS para modo light. |
+| P4 | Save/Copy Password flujo completo | Backend listo | IPC `account:savePassword`/`account:getPassword` existe. UI: toggle en Settings funciona. Falta: UI en AccountDetailPanel para guardar/copiar, verificación de que el flujo funciona end-to-end. |
+
+### 🟡 PRIORIDAD MEDIA — Features del ecosistema Roblox
+
+| # | Tarea | Origen | Descripción |
+|---|-------|--------|-------------|
+| M1 | Multi-select Ctrl/Shift | RAM v4 | Seleccionar múltiples cuentas para acciones en lote (launch, delete, move group) |
+| M2 | Group launch (packages) | MultiRoblox | Lanzar grupo entero de cuentas a un mismo servidor |
+| M3 | Kill All funcional | MultiRoblox | Botón en Settings existe pero necesita IPC `roblox:killAll` conectado y verificado |
+| M4 | Presence polling real-time | Roblox API | PresenceService existe pero FriendsHubView no hace polling. Necesita interval 30s + actualización de dots |
+| M5 | Server browser: ping + filtros | RoPro | ServerBrowser existe pero mejoras de UX: ping, filter by player count, recent servers |
+| M6 | Charts: top games browser | MultiRoblox | Browser de juegos top played/rated/earning |
+
+### 🟢 PRIORIDAD BAJA — Diferenciación avanzada
+
+| # | Tarea | Origen | Descripción |
+|---|-------|--------|-------------|
+| B1 | Botting Mode | RAM v4 | Timers + rejoins + exemptions para farming |
+| B2 | Mixer (FPS/quality/volume) | MultiRoblox | Control centralizado de calidad/FPS/volumen |
+| B3 | Anti-AFK | MultiRoblox | Intervalo configurable, taps benignos |
+| B4 | Process detection real-time | MultiBlox | Detectar instancias de Roblox corriendo sin lanzar desde NAM |
+| B5 | FastFlag management | Bloxstrap | Editor de framerate limit, graphics fidelity |
+| B6 | Discord Rich Presence | Bloxstrap | Mostrar juego actual en Discord |
+| B7 | Local Web API | RAM v4 | HTTP server con endpoints /launch /join /accounts |
+| B8 | Launch Diagnostics | RAM v4 | Detectar mutex conflicts |
+| B9 | Tests E2E/a11y/visual | — | Playwright actualizado, axe-core ≥95, visual regression baselines |
+
+### Decisiones pendientes del usuario
+- ¿Implementar FriendsHub con Roblox Friends API real o mantener stub?
+- ¿Añadir Botting Mode (riesgo de ToS) o mantener NAM limpio?
+- ¿Priorizar multi-select + group launch antes que friends/presence?
+
+## Resumen histórico (fases previas — completadas)
 - **ROOT CAUSE**: `package.json` tenía `"type": "module"` — Vite compila main process a CommonJS (`require()`), pero Node trataba `.js` como ESM
 - **FIX**: Removido `"type": "module"`. Vite maneja ESM internamente.
 - **Commit**: `045085f` → tag `v2.5.1` → GitHub Action NSIS generado
