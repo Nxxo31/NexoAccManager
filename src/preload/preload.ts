@@ -210,6 +210,8 @@ contextBridge.exposeInMainWorld('api', {
     joinServer: (placeId: string, jobId: string, accountId: string) =>
       invoke('roblox:servers:join', placeId, jobId, accountId),
     searchUser: (username: string) => invoke('roblox:search-user', username),
+    openProfile: (userId: number | string) =>
+      invoke('shell:open-external', `https://www.roblox.com/users/${userId}/profile`),
     joinGroup: (accountId: string, groupId: number) => invoke('roblox:join-group', accountId, groupId),
     quickLogin: (accountId: string) => invoke('roblox:quick-login', accountId),
     killAll: () => invoke('roblox:kill-all'),
@@ -260,6 +262,14 @@ contextBridge.exposeInMainWorld('api', {
   },
   shell: {
     openExternal: (url: string) => invoke('shell:open-external', url),
+  },
+  // Games favorites
+  games: {
+    addFavorite: (accountId: string, placeId: number) =>
+      invoke('games:addFavorite', { accountId, placeId }),
+    removeFavorite: (accountId: string, placeId: number) =>
+      invoke('games:removeFavorite', { accountId, placeId }),
+    getFavorites: (accountId: string) => invoke('games:getFavorites', accountId),
   },
   // Theme / Appearance
   theme: {

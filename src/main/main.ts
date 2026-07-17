@@ -1428,6 +1428,17 @@ class NexoApp {
     });
 
     // =================================================================
+    // ROBLOX: openProfile - opens user profile in default browser
+    // =================================================================
+    ipcMain.handle('roblox:openProfile', async (_, userId: unknown) => {
+      if (typeof userId !== 'string' && typeof userId !== 'number') {
+        return err('userId must be a string or number');
+      }
+      const url = `https://www.roblox.com/users/${userId}/profile`;
+      return ok({ url });
+    });
+
+    // =================================================================
     // AVANZADO — utilidades
     // =================================================================
 

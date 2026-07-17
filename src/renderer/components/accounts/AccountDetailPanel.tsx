@@ -326,7 +326,7 @@ export const AccountDetailPanel: React.FC<AccountDetailPanelProps> = ({
                                   onClick={() => {
                                     const api = (window as any).api;
                                     if (api?.settings?.security) {
-                                      api.settings.security.logoutAll(account.id);
+                                      api.security.logoutAll(account.id);
                                     }
                                   }}
                                   className="w-full flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-bg-surface text-foreground text-sm hover:bg-bg-elevated transition-colors"
