@@ -20,6 +20,7 @@ interface UIState {
   searchQuery: string;
   themeSettings: ThemeSettings | null;
   language: string;
+  savePasswords: boolean;
 
   // Actions
   setActiveView: (view: ViewKey) => void;
@@ -30,6 +31,7 @@ interface UIState {
   setSearchQuery: (query: string) => void;
   setThemeSettings: (settings: ThemeSettings) => void;
   setLanguage: (lang: string) => void;
+  setSavePasswords: (value: boolean) => void;
 }
 
 const defaultThemeSettings: ThemeSettings = {
@@ -50,6 +52,7 @@ export const useUIStore = create<UIState>()(
     searchQuery: '',
     themeSettings: defaultThemeSettings,
     language: 'es',
+    savePasswords: false,
     
     setActiveView: (view) => set({ activeView: view }),
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -59,5 +62,6 @@ export const useUIStore = create<UIState>()(
     setSearchQuery: (query: string) => set({ searchQuery: query }),
     setThemeSettings: (settings: ThemeSettings) => set({ themeSettings: settings }),
     setLanguage: (lang: string) => set({ language: lang }),
+    setSavePasswords: (value: boolean) => set({ savePasswords: value }),
   }))
 );

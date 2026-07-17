@@ -160,10 +160,17 @@ export default function App() {
     }
   }, [api]);
 
-  const handlePanelCopyPassword = React.useCallback((_acc: Account) => {
-    // TODO: implement when savePasswords feature is ready (Fase 3.1)
-    console.log('Copy password not yet implemented');
-  }, []);
+  const handlePanelCopyPassword = React.useCallback(async (acc: Account) => {
+    if (!api) return;
+    try {
+      const result = await api.account.getPassword(acc.id);
+      if (result && result.success && result.data) {
+        await navigator.clipboard.writeText(result.data);
+      }
+    } catch (e) {
+      console.error('Copy password error:', e);
+    }
+  }, [api]);
 
   const handlePanelCopyRbxPlayer = React.useCallback((acc: Account) => {
     if (api?.roblox?.copyRbxPlayerLink) {
@@ -218,6 +225,9 @@ export default function App() {
                   onEditAlias={(acc) => { setSelectedAccount(acc); setEditingAlias(true); }}
                   onEditDescription={(acc) => { setSelectedAccount(acc); setEditingDesc(true); }}
                   onCopyPlaceId={(acc) => handleCopyPlaceId(acc.savedPlaceId || '')}
+                  onReorder={(reordered) => {
+                    useAccountStore.getState().setAccounts(reordered);
+                  }}
                   hideUsernames={hideUsernames}
                   jobIdShuffle={useUIStore.getState().jobIdShuffle}
                 />

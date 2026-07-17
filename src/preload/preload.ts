@@ -18,6 +18,8 @@ type IpcChannel =
   | 'account:profile:update'
   | 'account:avatar-thumbnail'
   | 'account:bulk-import'
+  | 'account:savePassword'
+  | 'account:getPassword'
   | 'account:friends:list'
   | 'account:friends:requests'
   | 'account:friends:respond'
@@ -155,7 +157,9 @@ contextBridge.exposeInMainWorld('api', {
     unblockUser: (accountId: string, userId: number) => invoke('account:unblock:user', accountId, userId),
     followUser: (accountId: string, userId: number) => invoke('account:follow:user', accountId, userId),
     unfollowUser: (accountId: string, userId: number) => invoke('account:unfollow:user', accountId, userId),
-    bulkImport: (input: string, format: 'user:pass' | 'cookies') => invoke('account:bulk-import', input, format),
+    bulkImport: (input: string, format: 'user:pass' | 'cookies') => invoke('account:bulk-import',
+  'account:savePassword',
+  'account:getPassword', input, format),
   },
   roblox: {
     launch: (accountId: string, placeId?: string, jobId?: string) =>
@@ -260,6 +264,8 @@ export interface Api {
     followUser: (accountId: string, userId: number) => Promise<boolean>;
     unfollowUser: (accountId: string, userId: number) => Promise<boolean>;
     bulkImport: (input: string, format: 'user:pass' | 'cookies') => Promise<any>;
+    savePassword: (accountId: string, password: string) => Promise<void>;
+    getPassword: (accountId: string) => Promise<string | null>;
   };
   roblox: {
     launch: (accountId: string, placeId?: string, jobId?: string) => Promise<boolean>;

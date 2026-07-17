@@ -68,10 +68,17 @@
 - Archivos nuevos: JoinBar.tsx, AccountDetailPanel.tsx, PresenceView.tsx
 - Commit: d3bdc4c
 
-### Fase 3 — Paridad funcional con RAM (PRIORIDAD MEDIA)
-- 3.1 Save/Copy Password — toggle global en Settings, cifrar con CryptoService, botón copiar en DetailPanel
-- 3.2 Account Groups UI — group field ya existe en Account type; visualizar como separadores en AccountGrid; dropdown en DetailPanel
-- 3.3 Account Sorting (drag-drop) — framer-motion Reorder en AccountGrid; persistir orden en store
+### Fase 3.1-3.3 — Save/Copy Password + Groups + Drag-drop (✅ COMPLETADO — 2026-07-16)
+- 3.1 ✅ Save/Copy Password: `password` field en Account type, IPC `account:savePassword`/`account:getPassword` con AES-256-GCM, toggle global `savePasswords` en SettingsView, `handlePanelCopyPassword` implementado en App.tsx con `navigator.clipboard.writeText`
+- 3.2 ✅ Account Groups UI: group separators visuales en AccountGrid (header con nombre + contador + color accent), cuentas sin grupo al final, dropdown de grupo en AccountDetailPanel
+- 3.3 ✅ Drag-drop sorting: `framer-motion Reorder.Group` en AccountGrid, persistencia via `onReorder` callback → `useAccountStore.setAccounts`, cursor grab/grabbing, visual feedback con whileDrag scale 1.02 + shadow
+- SettingsView reescrito con toggle switch para savePasswords (accesible, aria-checked)
+- preload.ts: canales `account:savePassword` + `account:getPassword` añadidos al whitelist
+- main.ts: handlers IPC con CryptoService encrypt/decrypt
+- Validación: tsc 0 errores, vitest 82/82, build exitoso (AppImage + snap)
+- Commit: [pendiente]
+
+### Fase 3.4-3.8 — Resto de paridad RAM (PENDIENTE)
 - 3.4 Recent Games — historial global al hacer Join Server; tab "Recientes" en GamesView; hover en JoinBar → dropdown
 - 3.5 Favorite Games — FavoriteGame type; IPC games:addFavorite/removeFavorite/listFavorites; tab "Favoritos" en GamesView; star icon en GameCard
 - 3.6 Presence UI — PresenceView dedicada; polling cada 30s; cuentas online → juego actual + Place/Job ID; botón "Unirse"; friends list expandable; search para añadir amigo

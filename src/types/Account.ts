@@ -16,6 +16,7 @@ export interface Account {
   cookieExpiresAt?: Date;       // Fecha de expiración de la cookie
   savedPlaceId?: string;        // Place ID guardado para esta cuenta
   savedJobId?: string;          // Job ID guardado para esta cuenta
+  password?: string;              // Contraseña (cifrada, si savePasswords=true)
 }
 
 /**

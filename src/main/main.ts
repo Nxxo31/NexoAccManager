@@ -312,6 +312,44 @@ class NexoApp {
       }
     });
 
+    // Save password (encrypted) — Phase 3.1
+    ipcMain.handle('account:savePassword', async (_, accountId: unknown, password: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      if (!isNonEmptyString(password)) {
+        return err('Payload inválido: password debe ser un string no vacío');
+      }
+      try {
+        const { CryptoService } = await import('./core/CryptoService');
+        const crypto = new CryptoService();
+        const encrypted = crypto.encrypt(password);
+        this.accountManager.setAccountField(accountId.trim(), 'password', encrypted);
+        return ok(true);
+      } catch (e) {
+        return err(`Error guardando contraseña: ${(e as Error).message}`);
+      }
+    });
+
+    // Get password (decrypted) — Phase 3.1
+    ipcMain.handle('account:getPassword', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const account = this.accountManager.getAccountById(accountId.trim());
+        if (!account) return err('Cuenta no encontrada');
+        const encrypted = account.fields?.['password'];
+        if (!encrypted) return ok(null);
+        const { CryptoService } = await import('./core/CryptoService');
+        const crypto = new CryptoService();
+        const decrypted = crypto.decrypt(encrypted);
+        return ok(decrypted);
+      } catch (e) {
+        return err(`Error obteniendo contraseña: ${(e as Error).message}`);
+      }
+    });
+
     ipcMain.handle('account:move', async (_, accountId: unknown, groupName: unknown) => {
       if (!isNonEmptyString(accountId)) {
         return err('Payload inválido: accountId debe ser un string no vacío');
