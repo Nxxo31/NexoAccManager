@@ -18,6 +18,27 @@ vi.mock('@renderer/store/useUIStore', () => ({
   }),
 }));
 
+// Mock i18next
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, fallback: string) => {
+      // Map specific keys to Spanish text matching test expectations
+      const translations: Record<string, string> = {
+        'views.settings.security': 'Seguridad',
+        'views.settings.advanced': 'Avanzado',
+        'views.settings.instanceManagement': 'Gestión de instancias',
+        'views.settings.savePasswords': 'Guardar contraseñas',
+        'views.settings.disableAgingAlert': 'Desactivar alerta de antigüedad',
+        'views.settings.autoRelaunch': 'Auto-relanzar cuentas',
+        'views.settings.connectionWatcher': 'Monitor de conexión',
+        'views.settings.preventDuplicateInstances': 'Prevenir instancias duplicadas',
+        'views.settings.openPanel': 'Abrir panel de ajustes',
+      };
+      return translations[key] || fallback;
+    },
+  }),
+}));
+
 // Mock window.api
 beforeEach(() => {
   (window as any).api = {

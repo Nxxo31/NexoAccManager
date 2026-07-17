@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
-export type ViewKey = 'accounts' | 'servers' | 'games' | 'settings' | 'presence';
+export type ViewKey = 'accounts' | 'servers' | 'games' | 'settings' | 'friends';
 
 export interface ThemeSettings {
   theme: string;

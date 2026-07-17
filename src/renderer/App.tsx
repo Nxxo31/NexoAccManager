@@ -14,7 +14,7 @@ import { EditDescriptionModal } from './components/accounts/EditDescriptionModal
 import { ServerView } from './components/views/ServerView';
 import { GamesView } from './components/views/GamesView';
 import { SettingsView } from './components/views/SettingsView';
-import { PresenceView } from './components/views/PresenceView';
+import { FriendsHubView } from './components/views/FriendsHubView';
 import { useAccountStore } from './store/useAccountStore';
 import { useUIStore } from './store/useUIStore';
 import { useAccountActions } from './hooks/useAccountActions';
@@ -68,7 +68,6 @@ export default function App() {
 
   React.useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
 
-  // Sync theme and language
   React.useEffect(() => {
     if (!api) return;
     (async () => {
@@ -81,7 +80,6 @@ export default function App() {
         }
       } catch (e) { console.error('Theme load error:', e); }
     })();
-
     (async () => {
       try {
         const langResult = await api.language.get();
@@ -94,11 +92,10 @@ export default function App() {
     })();
   }, [api]);
 
-  // Cookie expiry events
   React.useEffect(() => {
     if (!api?.cookieEvents?.onExpiring) return;
-    const cleanupExpiring = api.cookieEvents.onExpiring((accountId: string, hoursLeft: number) => {
-      console.warn(`Cookie expiring: ${accountId}, ${hoursLeft}h left`);
+    const cleanupExpiring = api.cookieEvents.onExpiring((accountId: string, _hoursLeft: number) => {
+      console.warn(`Cookie expiring: ${accountId}`);
     });
     const cleanupExpired = api.cookieEvents.onExpired((accountId: string) => {
       console.warn(`Cookie expired: ${accountId}`);
@@ -107,7 +104,6 @@ export default function App() {
     return () => { cleanupExpiring?.(); cleanupExpired?.(); };
   }, [api, fetchAccounts]);
 
-  // Filter accounts by search query
   const filteredAccounts = React.useMemo(() => {
     if (!searchQuery.trim()) return accounts;
     const q = searchQuery.toLowerCase();
@@ -119,11 +115,9 @@ export default function App() {
     );
   }, [accounts, searchQuery]);
 
-  // Handlers for JoinBar
   const handleJoin = React.useCallback(async () => {
     if (!api || !joinPlaceId.trim()) return;
     try {
-      // Launch all accounts to the specified server
       for (const acc of accounts) {
         if (api.roblox?.joinServer) {
           await api.roblox.joinServer(acc.id, joinPlaceId.trim(), joinJobId.trim() || undefined);
@@ -149,7 +143,6 @@ export default function App() {
     }
   }, [api]);
 
-  // Handlers for AccountDetailPanel
   const handlePanelLaunch = React.useCallback((acc: Account) => {
     handleLaunchApp(acc.id);
   }, [handleLaunchApp]);
@@ -172,22 +165,13 @@ export default function App() {
     }
   }, [api]);
 
-  const handlePanelCopyRbxPlayer = React.useCallback((acc: Account) => {
-    if (api?.roblox?.copyRbxPlayerLink) {
-      api.roblox.copyRbxPlayerLink(acc.id, joinPlaceId, joinJobId);
-    }
-  }, [api, joinPlaceId, joinJobId]);
-
-  const handlePanelQuickLogin = React.useCallback((acc: Account) => {
-    if (api?.roblox?.quickLogin) {
-      api.roblox.quickLogin(acc.id);
-    }
-  }, [api]);
-
   const handleSelectAccount = React.useCallback((acc: Account) => {
     setSelectedAccount(acc);
     setDetailPanelOpen(true);
   }, [setSelectedAccount]);
+
+  // Pasar killAll a SettingsView
+  const handleKillAllCallback = React.useCallback(() => handleKillAll(), [handleKillAll]);
 
   return (
     <ErrorBoundary>
@@ -202,7 +186,6 @@ export default function App() {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
         >
-          {/* Accounts view with JoinBar */}
           {activeView === 'accounts' && (
             <div className="flex flex-col h-full">
               <JoinBar
@@ -211,7 +194,6 @@ export default function App() {
                 onPlaceIdChange={setJoinPlaceId}
                 onJobIdChange={setJoinJobId}
                 onJoin={handleJoin}
-                onKillAll={handleKillAll}
               />
               <div className="flex-1 overflow-y-auto">
                 <AccountGrid
@@ -225,7 +207,7 @@ export default function App() {
                   onEditAlias={(acc) => { setSelectedAccount(acc); setEditingAlias(true); }}
                   onEditDescription={(acc) => { setSelectedAccount(acc); setEditingDesc(true); }}
                   onCopyPlaceId={(acc) => handleCopyPlaceId(acc.savedPlaceId || '')}
-                  onReorder={(reordered) => {
+                  onReorder={(reordered: Account[]) => {
                     useAccountStore.getState().setAccounts(reordered);
                   }}
                   hideUsernames={hideUsernames}
@@ -235,22 +217,14 @@ export default function App() {
             </div>
           )}
 
-          {/* Servers view */}
           {activeView === 'servers' && <ServerView />}
-
-          {/* Games view */}
           {activeView === 'games' && <GamesView />}
-
-          {/* Presence view */}
-          {activeView === 'presence' && <PresenceView />}
-
-          {/* Settings view */}
+          {activeView === 'friends' && <FriendsHubView />}
           {activeView === 'settings' && (
-            <SettingsView onOpenModal={() => setActiveModal('settings')} />
+            <SettingsView onOpenModal={() => setActiveModal('settings')} onKillAll={handleKillAllCallback} />
           )}
         </AppLayout>
 
-        {/* AccountDetailPanel slide-in */}
         <AccountDetailPanel
           account={selectedAccount}
           isOpen={detailPanelOpen}
@@ -258,22 +232,19 @@ export default function App() {
           onLaunch={handlePanelLaunch}
           onOpenBrowser={handlePanelBrowser}
           onCopyPassword={handlePanelCopyPassword}
-          onCopyRbxPlayer={handlePanelCopyRbxPlayer}
-          onQuickLogin={handlePanelQuickLogin}
+          onCopyRbxPlayer={() => {}}
+          onQuickLogin={() => {}}
           onEditAlias={(acc) => { setDetailPanelOpen(false); setSelectedAccount(acc); setEditingAlias(true); }}
           onEditDescription={(acc) => { setDetailPanelOpen(false); setSelectedAccount(acc); setEditingDesc(true); }}
           onCopyPlaceId={handleCopyPlaceId}
         />
 
-        {/* Modals */}
         {showAddModal && (
           <ModalShell isOpen={showAddModal} onClose={() => setShowAddModal(false)} className="w-full max-w-md">
             <AddAccountModal
               isOpen={showAddModal}
               onClose={() => setShowAddModal(false)}
               onLoginBrowser={handleLoginBrowser}
-              onAddCookie={handleAddCookie}
-              onBulkImport={handleBulkImport}
             />
           </ModalShell>
         )}
@@ -333,7 +304,7 @@ export default function App() {
               onClose={() => setEditingDesc(false)}
               account={selectedAccount}
               descDraft={selectedAccount.description || ''}
-              setDescDraft={(v) => {}}
+              setDescDraft={() => {}}
               descSaving={false}
               handleSaveDesc={handleSaveDescInline}
             />

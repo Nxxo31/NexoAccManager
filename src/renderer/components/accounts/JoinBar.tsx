@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { Shuffle, LogIn, XCircle, Clock, Crown } from 'lucide-react';
+import { LogIn, Crown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useUIStore } from '@renderer/store/useUIStore';
 
 interface JoinBarProps {
   placeId: string;
@@ -9,7 +8,6 @@ interface JoinBarProps {
   onPlaceIdChange: (v: string) => void;
   onJobIdChange: (v: string) => void;
   onJoin: () => void;
-  onKillAll: () => void;
 }
 
 export const JoinBar: React.FC<JoinBarProps> = ({
@@ -18,21 +16,16 @@ export const JoinBar: React.FC<JoinBarProps> = ({
   onPlaceIdChange,
   onJobIdChange,
   onJoin,
-  onKillAll,
 }) => {
   const { t } = useTranslation();
-  const jobIdShuffle = useUIStore((s) => s.jobIdShuffle);
-  const toggleJobIdShuffle = useUIStore((s) => s.toggleJobIdShuffle);
   const [vipLink, setVipLink] = React.useState('');
   const [showVip, setShowVip] = React.useState(false);
 
-  // 4.4 — Detect VIP server links
+  // VIP server link detection — parse accessCode and placeId
   const handleVipLinkChange = (value: string) => {
     setVipLink(value);
-    // Parse roblox://...?accessCode=XXX or https://roblox.com/share?code=XXX
     const codeMatch = value.match(/(?:accessCode|code)=([a-zA-Z0-9-]+)/);
     if (codeMatch) {
-      // Extract placeId from the VIP link if present
       const placeMatch = value.match(/placeId=(\d+)/);
       if (placeMatch) {
         onPlaceIdChange(placeMatch[1]);
@@ -75,24 +68,7 @@ export const JoinBar: React.FC<JoinBarProps> = ({
           />
         </div>
 
-        {/* Shuffle toggle */}
-        <label className="flex items-center gap-1.5 cursor-pointer select-none ml-1">
-          <button
-            onClick={toggleJobIdShuffle}
-            className={`flex items-center gap-1 px-2 h-8 rounded-md text-xs font-medium transition-colors ${
-              jobIdShuffle
-                ? 'bg-accent/20 text-accent border border-accent/40'
-                : 'text-muted-foreground border border-border hover:bg-bg-elevated'
-            }`}
-            aria-pressed={jobIdShuffle}
-            aria-label={t('joinbar.shuffle', 'Barajar')}
-          >
-            <Shuffle className="h-3.5 w-3.5" />
-            <span>{t('joinbar.shuffle', 'Barajar')}</span>
-          </button>
-        </label>
-
-        {/* VIP Server Link (4.4) */}
+        {/* VIP Server Link */}
         <button
           onClick={() => setShowVip(!showVip)}
           className={`flex items-center gap-1 px-2 h-8 rounded-md text-xs font-medium transition-colors ${
@@ -109,16 +85,6 @@ export const JoinBar: React.FC<JoinBarProps> = ({
 
         <div className="flex-1" />
 
-        {/* Kill All */}
-        <button
-          onClick={onKillAll}
-          className="flex items-center gap-1.5 px-3 h-8 rounded-md text-xs font-medium text-error border border-error/30 hover:bg-error/10 transition-colors"
-          aria-label={t('joinbar.killAll', 'Cerrar todas')}
-          title={t('joinbar.killAllTitle', 'Cierra todas las instancias de Roblox')}
-        >
-          <XCircle className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">{t('joinbar.killAll', 'Cerrar todas')}</span>
-        </button>
         {/* Join */}
         <button
           onClick={onJoin}

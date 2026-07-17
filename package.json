@@ -3,7 +3,6 @@
   "version": "3.0.0",
   "description": "Open-source multi-account manager for gaming platforms — 100% local, no servers, no cloud",
   "main": "dist/main/main.js",
-
   "author": {
     "name": "NexoAccManager Contributors",
     "email": "nexoaccmanager@users.noreply.github.com"
@@ -46,6 +45,7 @@
     "@types/better-sqlite3": "^7.6.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
+    "@types/react-beautiful-dnd": "^13.1.8",
     "@types/react-dom": "^18.2.0",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^4.2.0",
@@ -63,6 +63,7 @@
     "msw": "^2.15.0",
     "postcss": "^8.4.0",
     "react": "^18.2.0",
+    "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^18.2.0",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^3.4.0",

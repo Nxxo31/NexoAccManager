@@ -5,14 +5,14 @@ import { useAccountStore } from '@renderer/store/useAccountStore';
 import { useUIStore, type ViewKey } from '@renderer/store/useUIStore';
 import {
   Users, Server, Gamepad2, Settings as SettingsIcon,
-  ChevronLeft, ChevronRight, Wifi,
+  ChevronLeft, ChevronRight, User,
 } from 'lucide-react';
 
 const navItems: { key: ViewKey; icon: React.ElementType; labelKey: string }[] = [
   { key: 'accounts', icon: Users, labelKey: 'sidebar.accounts' },
   { key: 'servers', icon: Server, labelKey: 'sidebar.servers' },
   { key: 'games', icon: Gamepad2, labelKey: 'sidebar.games' },
-  { key: 'presence', icon: Wifi, labelKey: 'sidebar.presence' },
+  { key: 'friends', icon: User, labelKey: 'sidebar.friends' },
   { key: 'settings', icon: SettingsIcon, labelKey: 'sidebar.settings' },
 ];
 

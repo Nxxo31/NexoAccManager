@@ -1,13 +1,14 @@
 import * as React from 'react';
-import { Settings as SettingsIcon, KeyRound, Zap, Wifi, CopyCheck } from 'lucide-react';
+import { Settings as SettingsIcon, KeyRound, Zap, Wifi, CopyCheck, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useUIStore } from '@renderer/store/useUIStore';
 
 interface SettingsViewProps {
   onOpenModal: () => void;
+  onKillAll?: () => void;
 }
 
-export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenModal }) => {
+export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenModal, onKillAll }) => {
   const { t } = useTranslation();
   const {
     savePasswords, setSavePasswords,
@@ -43,14 +44,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenModal }) => {
   const handleToggleConnectionWatcher = React.useCallback(async (value: boolean) => {
     setConnectionWatcher(value);
     try {
-      if (api?.settings?.setConnectionWatcher) await api.settings.setConnectionWatcher(value);
+      if (api?.settings?.set) await api.settings.set('connectionWatcher', value);
     } catch (e) { console.error('Error persisting connectionWatcher:', e); }
   }, [setConnectionWatcher, api]);
 
   const handleTogglePreventDuplicate = React.useCallback(async (value: boolean) => {
     setPreventDuplicateInstances(value);
     try {
-      if (api?.settings?.setPreventDuplicateInstances) await api.settings.setPreventDuplicateInstances(value);
+      if (api?.settings?.set) await api.settings.set('preventDuplicateInstances', value);
     } catch (e) { console.error('Error persisting preventDuplicateInstances:', e); }
   }, [setPreventDuplicateInstances, api]);
 
@@ -91,7 +92,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenModal }) => {
         <SettingsIcon className="h-5 w-5 text-primary" />
         <h2 className="text-xl font-bold">{t('views.settings.title', 'Ajustes')}</h2>
       </div>
-      <p className="text-muted-foreground">{t('views.settings.description', 'Configuración avanzada de la aplicación')}</p>
+      <p className="text-muted-foreground">{t('views.settings.description', 'Configuracion avanzada de la aplicacion')}</p>
 
       {/* Security Settings */}
       <div className="space-y-3">
@@ -100,8 +101,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenModal }) => {
         </h3>
         <Toggle
           icon={<KeyRound className="h-5 w-5 text-muted-foreground" />}
-          label={t('views.settings.savePasswords', 'Guardar contraseñas')}
-          desc={t('views.settings.savePasswordsDesc', 'Cifra y guarda contraseñas localmente para copiarlas después')}
+          label={t('views.settings.savePasswords', 'Guardar contrasenas')}
+          desc={t('views.settings.savePasswordsDesc', 'Cifra y guarda contrasenas localmente')}
           value={savePasswords}
           onToggle={handleToggleSavePasswords}
           ariaKey="toggle-save-passwords"
@@ -115,7 +116,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenModal }) => {
         </h3>
         <Toggle
           icon={<KeyRound className="h-5 w-5 text-muted-foreground" />}
-          label={t('views.settings.disableAgingAlert', 'Desactivar alerta de antigüedad')}
+          label={t('views.settings.disableAgingAlert', 'Desactivar alerta de antiguedad')}
           desc={t('views.settings.disableAgingAlertDesc', 'Desactivar las alertas de cuenta expirante')}
           value={disableAgingAlert}
           onToggle={handleToggleDisableAgingAlert}
@@ -126,20 +127,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenModal }) => {
       {/* Instance Management */}
       <div className="space-y-3">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          {t('views.settings.instanceManagement', 'Gestión de instancias')}
+          {t('views.settings.instanceManagement', 'Gestion de instancias')}
         </h3>
         <Toggle
           icon={<Zap className="h-5 w-5 text-muted-foreground" />}
           label={t('views.settings.autoRelaunch', 'Auto-relanzar cuentas')}
-          desc={t('views.settings.autoRelaunchDesc', 'Relanzar automáticamente cuentas que se desconecten')}
+          desc={t('views.settings.autoRelaunchDesc', 'Relanzar automaticamente cuentas desconectadas')}
           value={autoRelaunch}
           onToggle={handleToggleAutoRelaunch}
           ariaKey="toggle-auto-relaunch"
         />
         <Toggle
           icon={<Wifi className="h-5 w-5 text-muted-foreground" />}
-          label={t('views.settings.connectionWatcher', 'Monitor de conexión')}
-          desc={t('views.settings.connectionWatcherDesc', 'Monitorear conexiones activas de Roblox en tiempo real')}
+          label={t('views.settings.connectionWatcher', 'Monitor de conexion')}
+          desc={t('views.settings.connectionWatcherDesc', 'Monitorear conexiones Roblox en tiempo real')}
           value={connectionWatcher}
           onToggle={handleToggleConnectionWatcher}
           ariaKey="toggle-connection-watcher"
@@ -147,12 +148,32 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenModal }) => {
         <Toggle
           icon={<CopyCheck className="h-5 w-5 text-muted-foreground" />}
           label={t('views.settings.preventDuplicateInstances', 'Prevenir instancias duplicadas')}
-          desc={t('views.settings.preventDuplicateInstancesDesc', 'Evitar lanzar la misma cuenta dos veces simultáneamente')}
+          desc={t('views.settings.preventDuplicateInstancesDesc', 'Evitar lanzar la misma cuenta dos veces')}
           value={preventDuplicateInstances}
           onToggle={handleTogglePreventDuplicate}
           ariaKey="toggle-prevent-duplicate"
         />
       </div>
+
+      {/* Kill All Instances — moved from JoinBar */}
+      {onKillAll && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            {t('views.settings.dangerZone', 'Zona peligrosa')}
+          </h3>
+          <button
+            onClick={onKillAll}
+            className="flex items-center gap-2 w-full p-3 rounded-lg border border-error/40 bg-error/10 hover:bg-error/20 transition-colors"
+            aria-label={t('views.settings.killAll', 'Cerrar todas las instancias')}
+          >
+            <AlertTriangle className="h-5 w-5 text-error" />
+            <div className="text-left">
+              <p className="text-sm font-medium text-error">{t('views.settings.killAll', 'Cerrar todas las instancias')}</p>
+              <p className="text-xs text-muted-foreground">{t('views.settings.killAllDesc', 'Cierra todos los procesos de Roblox activos')}</p>
+            </div>
+          </button>
+        </div>
+      )}
 
       {/* Open Settings Panel */}
       <button

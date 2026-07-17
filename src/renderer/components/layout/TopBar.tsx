@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Search, Settings as SettingsIcon, Moon, Sun, EyeOff, Plus } from 'lucide-react';
+import { Search, Settings as SettingsIcon, Moon, Sun, EyeOff, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface TopBarProps {
