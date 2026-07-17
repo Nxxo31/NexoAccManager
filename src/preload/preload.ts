@@ -76,6 +76,11 @@ type IpcChannel =
   | "settings:connectionWatcher:set"
   | "settings:preventDuplicateInstances:get"
   | "settings:preventDuplicateInstances:set"
+  | "roblox:search-user"
+  | "roblox:join-group"
+  | "roblox:quick-login"
+  | "settings:webapi:get"
+  | "settings:webapi:set"
 ;
 const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'account:add',
@@ -194,6 +199,9 @@ contextBridge.exposeInMainWorld('api', {
       invoke('roblox:servers:list', placeId, accountId),
     joinServer: (placeId: string, jobId: string, accountId: string) =>
       invoke('roblox:servers:join', placeId, jobId, accountId),
+    searchUser: (username: string) => invoke('roblox:search-user', username),
+    joinGroup: (accountId: string, groupId: number) => invoke('roblox:join-group', accountId, groupId),
+    quickLogin: (accountId: string) => invoke('roblox:quick-login', accountId),
     distributeAccounts: (placeId: string, accountIds: string[]) =>
       invoke('roblox:servers:distribute', placeId, accountIds),
   },
@@ -212,6 +220,8 @@ contextBridge.exposeInMainWorld('api', {
     setConnectionWatcher: (enabled: boolean) => invoke('settings:connectionWatcher:set', enabled),
     getPreventDuplicateInstances: () => invoke('settings:preventDuplicateInstances:get'),
     setPreventDuplicateInstances: (enabled: boolean) => invoke('settings:preventDuplicateInstances:set', enabled),
+    getWebApi: () => invoke('settings:webapi:get'),
+    setWebApi: (enabled: boolean, port?: number) => invoke('settings:webapi:set', enabled, port),
   },
   security: {
     getSessions: (accountId: string) => invoke('settings:security:sessions', accountId),

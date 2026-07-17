@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X, Play, Globe, KeyRound, Link2, Zap, Copy, Check, Settings as SettingsIcon,
+  X, Play, Globe, KeyRound, Link2, Zap, Copy, Check, Settings as SettingsIcon, UserPlus,
 } from 'lucide-react';
 import { Account } from '@/types/Account';
 import { useTranslation } from 'react-i18next';
@@ -324,10 +324,9 @@ export const AccountDetailPanel: React.FC<AccountDetailPanelProps> = ({
                                 </button>
                                 <button
                                   onClick={() => {
-                                    // Log out other sessions - IPC settings:security:logout-all
                                     const api = (window as any).api;
                                     if (api?.settings?.security) {
-                                      api.settings.security.logoutAll();
+                                      api.settings.security.logoutAll(account.id);
                                     }
                                   }}
                                   className="w-full flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-bg-surface text-foreground text-sm hover:bg-bg-elevated transition-colors"
@@ -335,6 +334,40 @@ export const AccountDetailPanel: React.FC<AccountDetailPanelProps> = ({
                                   <Zap className="h-3 w-3" />
                                   <span>{t('detail.utilities.logoutOtherSessions', 'Cerrar otras sesiones')}</span>
                                 </button>
+                                {/* 4.6 — Outfit Viewer */}
+                                <button
+                                  onClick={() => {
+                                    window.open(`https://www.roblox.com/users/${account.robloxUserId}/profile`, '_blank');
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-bg-surface text-foreground text-sm hover:bg-bg-elevated transition-colors"
+                                >
+                                  <Globe className="h-3 w-3" />
+                                  <span>{t('detail.utilities.viewOutfit', 'Ver outfit y perfil')}</span>
+                                </button>
+                                {/* 4.8 — Join Group */}
+                                <button
+                                  onClick={() => {
+                                    const groupId = prompt(t('detail.utilities.joinGroupPrompt', 'ID del grupo:'));
+                                    if (groupId && account.id) {
+                                      const api = (window as any).api;
+                                      api?.roblox?.joinGroup?.(account.id, groupId);
+                                    }
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 rounded-md border border-border bg-bg-surface text-foreground text-sm hover:bg-bg-elevated transition-colors"
+                                >
+                                  <UserPlus className="h-3 w-3" />
+                                  <span>{t('detail.utilities.joinGroup', 'Unirse a grupo')}</span>
+                                </button>
+                                {/* 4.9 — Quick Log In */}
+                                {onQuickLogin && (
+                                  <button
+                                    onClick={() => onQuickLogin(account)}
+                                    className="w-full flex items-center gap-2 px-3 py-2 rounded-md border border-primary/30 bg-primary/10 text-primary text-sm hover:bg-primary/20 transition-colors"
+                                  >
+                                    <Zap className="h-3 w-3" />
+                                    <span>{t('detail.utilities.quickLogin', 'Inicio rápido')}</span>
+                                  </button>
+                                )}
                               </div>
                             </div>
             </div>

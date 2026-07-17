@@ -102,6 +102,11 @@ const ALLOWED_CHANNELS = new Set([
   'settings:connectionWatcher:set',
   'settings:preventDuplicateInstances:get',
   'settings:preventDuplicateInstances:set',
+  'roblox:search-user',
+  'roblox:join-group',
+  'roblox:quick-login',
+  'settings:webapi:get',
+  'settings:webapi:set',
 ]);
 
 // Solución para __dirname en ESM
@@ -1322,6 +1327,113 @@ class NexoApp {
         return ok(true);
       } catch (e) {
         return err(`Error configurando preventDuplicateInstances: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // FASE 4.5 — Player Finder (buscar jugador por username)
+    // =================================================================
+    ipcMain.handle('roblox:search-user', async (_, username: unknown) => {
+      if (!isNonEmptyString(username)) return err('username inválido');
+      try {
+        const response = await axios.get(
+          `https://users.roblox.com/v1/usernames/users`,
+          {
+            method: 'POST',
+            data: { usernames: [username.trim()], excludeBannedUsers: true },
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+        const data = response.data;
+        if (data?.data?.length > 0) {
+          const user = data.data[0];
+          return ok({ id: user.id, name: user.name, displayName: user.displayName });
+        }
+        return err('Usuario no encontrado');
+      } catch (e) {
+        return err(`Error buscando usuario: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // FASE 4.8 — Join Group (unirse a grupo de Roblox)
+    // =================================================================
+    ipcMain.handle('roblox:join-group', async (_, accountId: unknown, groupId: unknown) => {
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
+      if (!isPositiveInteger(groupId)) return err('groupId inválido');
+      try {
+        const account = this.accountManager.getAccountById(accountId);
+        if (!account) return err('Cuenta no encontrada');
+        // Get decrypted cookie
+        const cookie = this.crypto.decrypt((account as any).encrypted_cookie || account.cookie || '');
+        if (!cookie) return err('Cookie no disponible');
+        // Get CSRF token
+        const csrfRes = await axios.post('https://auth.roblox.com/v2/login', {}, {
+          headers: { Cookie: `.ROBLOSECURITY=${cookie}` },
+        });
+        const csrfToken = csrfRes.headers['x-csrf-token'];
+        if (!csrfToken) return err('No se pudo obtener token CSRF');
+        // Join group
+        await axios.post(
+          `https://groups.roblox.com/v1/groups/${Number(groupId)}/users`,
+          {},
+          {
+            headers: {
+              Cookie: `.ROBLOSECURITY=${cookie}`,
+              'X-CSRF-TOKEN': csrfToken,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        return ok(true);
+      } catch (e) {
+        return err(`Error uniéndose al grupo: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // FASE 4.9 — Quick Login (inicio rápido sin navegador)
+    // =================================================================
+    ipcMain.handle('roblox:quick-login', async (_, accountId: unknown) => {
+      if (!isNonEmptyString(accountId)) return err('accountId inválido');
+      try {
+        const account = this.accountManager.getAccountById(accountId);
+        if (!account) return err('Cuenta no encontrada');
+        const cookie = this.crypto.decrypt((account as any).encrypted_cookie || account.cookie || '');
+        if (!cookie) return err('Cookie no disponible');
+        // Verify cookie
+        // Use launchRoblox with placeId=0 for quick login
+        const result = await this.accountManager.launchRoblox(accountId, '0', undefined);
+        return ok(result);
+      } catch (e) {
+        return err(`Error en inicio rápido: ${(e as Error).message}`);
+      }
+    });
+
+    // =================================================================
+    // FASE 4.7 — Local Web API (configuración de puerto y permisos)
+    // =================================================================
+    ipcMain.handle('settings:webapi:get', async () => {
+      try {
+        const enabled = this.db.getSetting('webApiEnabled') === 'true';
+        const port = parseInt(this.db.getSetting('webApiPort') || '8080', 10);
+        return ok({ enabled, port });
+      } catch (e) {
+        return err(`Error obteniendo Web API config: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('settings:webapi:set', async (_, enabled: unknown, port: unknown) => {
+      if (typeof enabled !== 'boolean') return err('enabled debe ser boolean');
+      if (port !== undefined && (typeof port !== 'number' || !Number.isInteger(port) || port < 1 || port > 65535)) {
+        return err('port debe ser entero 1-65535');
+      }
+      try {
+        this.db.setSetting('webApiEnabled', String(enabled));
+        if (port !== undefined) this.db.setSetting('webApiPort', String(port));
+        return ok(true);
+      } catch (e) {
+        return err(`Error configurando Web API: ${(e as Error).message}`);
       }
     });
 

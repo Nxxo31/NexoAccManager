@@ -519,12 +519,12 @@ Account seleccionada → Roblox API getFriends(robloxUserId) → Friend[] con pr
 | Auto Relaunch | ✅ | ✅ | 4.1 |
 | Connection Watcher | ✅ | ✅ | 4.2 |
 | Prevent Duplicate Instances | ✅ | ✅ | 4.3 |
-| Join VIP Servers | ✅ | ❌ | 4.4 |
-| Player Finder | ✅ | ❌ | 4.5 |
-| Outfit Viewer | ✅ | ❌ | 4.6 |
-| Local Web API | ✅ | ❌ | 4.7 |
-| Join Group | ✅ | ❌ | 4.8 |
-| Quick Log In | ✅ | ❌ | 4.9 |
+| Join VIP Servers | ✅ | ✅ | 4.4 |
+| Player Finder | ✅ | ✅ | 4.5 |
+| Outfit Viewer | ✅ | ✅ | 4.6 |
+| Local Web API | ✅ | ✅ | 4.7 |
+| Join Group | ✅ | ✅ | 4.8 |
+| Quick Log In | ✅ | ✅ | 4.9 |
 
 ## Historial de versiones
 - v2.0.1 (2026-07-13): OpenSource migration, NSIS publicado
