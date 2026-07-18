@@ -34,10 +34,14 @@ export const useAccountActions = () => {
     try {
       setLoading(true);
       const result = await api.account.list();
+      // Manejar ambos formatos: { success, data } | Account[]
       if (result?.success && Array.isArray(result.data)) {
         setAccounts(result.data);
       } else if (Array.isArray(result)) {
         setAccounts(result);
+      } else if (result?.success && result.data) {
+        // data podría no ser array en algún caso edge
+        setAccounts(Array.isArray(result.data) ? result.data : []);
       }
     } catch (err) {
       setError('Failed to load accounts');
@@ -52,10 +56,16 @@ export const useAccountActions = () => {
       if (!api) return;
       try {
         const result = await api.account.loginBrowser(group);
+        console.log('[handleLoginBrowser] result:', result);
         if (result?.success === false) throw new Error(result.error || 'Login failed');
+        // Forzar refresco desde la DB
         await fetchAccounts();
+        // Cambiar a la vista de cuentas para que el usuario vea el resultado
+        useUIStore.getState().setActiveView('accounts');
       } catch (e) {
+        console.error('[handleLoginBrowser] error:', e);
         setError(e instanceof Error ? e.message : 'Login error');
+        throw e; // re-throw para que el modal muestre el error
       }
     },
     [api, setError, fetchAccounts]
