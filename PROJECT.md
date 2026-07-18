@@ -1,19 +1,19 @@
 # NexoAccManager — PROJECT.md
 # Última actualización: 2026-07-18 (todas las características de fase 1 y fase 2 completadas)
-# Versión actual: 3.0.0 (todas las características funcionales)
+# Versión actual: 3.1.1 (todas las características funcionales + fix login flow)
 
 ## Estado actual
 
-| Métrica | Valor |
-|---------|-------|
-| Versión | 3.1.0 |
-| Último commit | 49a078e — chore: bump version to 3.1.0 |
-| Tag | v3.1.0 |
-| tsc | 0 errores |
-| vitest | 121/121 pasando (11 archivos) |
-| lint | pendiente |
-| build | ⏳ GitHub Action en progreso — NSIS Windows |
-| Release GitHub | v3.1.0 (en progreso, tag v3.1.0 pushado) |
+|| Métrica | Valor |
+||---------|-------|
+|| Versión | 3.1.1 |
+|| Último commit | 79db923 — fix(login): forzar cambio a vista accounts + mejorar fetchAccounts + logging |
+|| Tag | v3.1.1 |
+|| tsc | 0 errores |
+|| vitest | 121/121 pasando (11 archivos) |
+|| lint | pendiente |
+|| build | ✅ Release v3.1.1 publicado (NexoAccManager.Setup.3.1.1.exe) |
+|| Release GitHub | v3.1.1 (disponible para descarga) |
 
 ## Resumen de características completadas
 
