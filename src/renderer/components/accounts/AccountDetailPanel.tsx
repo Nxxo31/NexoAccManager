@@ -2,9 +2,11 @@ import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Play, Globe, KeyRound, Link2, Zap, Copy, Check, Settings as SettingsIcon, UserPlus,
+  Save,
 } from 'lucide-react';
 import { Account } from '@/types/Account';
 import { useTranslation } from 'react-i18next';
+import { useUIStore } from '@renderer/store/useUIStore';
 
 interface AccountDetailPanelProps {
   account: Account | null;
@@ -84,7 +86,55 @@ export const AccountDetailPanel: React.FC<AccountDetailPanelProps> = ({
   onCopyPlaceId,
 }) => {
   const { t } = useTranslation();
+  const savePasswords = useUIStore((s) => s.savePasswords);
   const [copied, setCopied] = React.useState(false);
+  const [passwordInput, setPasswordInput] = React.useState('');
+  const [passwordSaved, setPasswordSaved] = React.useState(false);
+  const [hasPassword, setHasPassword] = React.useState(false);
+
+  const api = React.useMemo(() => (typeof window !== 'undefined' ? (window as any).api : null), []);
+
+  // Check if account has a saved password
+  React.useEffect(() => {
+    if (account && savePasswords && api) {
+      api.account.getPassword(account.id).then((result: any) => {
+        if (result?.success && result.data) {
+          setHasPassword(true);
+        } else {
+          setHasPassword(false);
+        }
+      }).catch(() => setHasPassword(false));
+    } else {
+      setHasPassword(false);
+    }
+  }, [account, savePasswords, api]);
+
+  const handleSavePassword = async () => {
+    if (!account || !passwordInput || !api) return;
+    try {
+      await api.account.savePassword(account.id, passwordInput);
+      setPasswordSaved(true);
+      setHasPassword(true);
+      setPasswordInput('');
+      setTimeout(() => setPasswordSaved(false), 2000);
+    } catch (e) {
+      console.error('Error saving password:', e);
+    }
+  };
+
+  const handleCopyPasswordLocal = async () => {
+    if (!account || !api) return;
+    try {
+      const result = await api.account.getPassword(account.id);
+      if (result?.success && result.data) {
+        await navigator.clipboard.writeText(result.data);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch (e) {
+      console.error('Error copying password:', e);
+    }
+  };
 
   if (!account) return null;
 
@@ -189,6 +239,47 @@ export const AccountDetailPanel: React.FC<AccountDetailPanelProps> = ({
                 <CookieStatus account={account} />
               </div>
 
+              {/* Password (save/copy) — only when savePasswords is enabled */}
+              {savePasswords && (
+                <div className="space-y-2 py-2 border-t border-border">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    {t('detail.password', 'Contraseña')}
+                  </h4>
+                  {hasPassword ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground flex-1">
+                        {t('detail.passwordSaved', 'Contraseña guardada')}
+                      </span>
+                      <button
+                        onClick={handleCopyPasswordLocal}
+                        className="p-1.5 rounded-md hover:bg-bg-surface transition-colors"
+                        aria-label={t('detail.copyPassword', 'Copiar Contraseña')}
+                      >
+                        {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="password"
+                        value={passwordInput}
+                        onChange={(e) => setPasswordInput(e.target.value)}
+                        placeholder={t('detail.enterPassword', 'Ingrese contraseña...')}
+                        className="flex-1 px-2 py-1 text-sm rounded-md border border-border bg-bg-surface text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                      />
+                      <button
+                        onClick={handleSavePassword}
+                        disabled={!passwordInput}
+                        className={passwordInput ? 'p-1.5 rounded-md hover:bg-primary/20 transition-colors' : 'p-1.5 rounded-md opacity-50 cursor-not-allowed'}
+                        aria-label={t('detail.savePassword', 'Guardar Contraseña')}
+                      >
+                        {passwordSaved ? <Check className="h-4 w-4 text-success" /> : <Save className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Saved Place/Job ID */}
               {(account.savedPlaceId || account.savedJobId) && (
                 <div className="space-y-1.5 py-2 border-t border-border">
@@ -233,7 +324,7 @@ export const AccountDetailPanel: React.FC<AccountDetailPanelProps> = ({
                   {t('detail.browser', 'Abrir en Navegador')}
                 </button>
                 <button
-                  onClick={() => onCopyPassword(account)}
+                  onClick={handleCopyPasswordLocal}
                   className="w-full flex items-center gap-2 px-3 py-2 rounded-md bg-bg-surface text-foreground text-sm hover:bg-bg-elevated transition-colors border border-border"
                 >
                   <KeyRound className="h-4 w-4" />

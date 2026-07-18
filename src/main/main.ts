@@ -4,13 +4,14 @@ import path from 'path';
 import { exec as execCb } from 'child_process';
 import { promisify } from 'util';
 import { AccountManager } from './core/AccountManager';
+import { AccountSettingsService } from './core/AccountSettingsService';
 import { CryptoService } from './core/CryptoService';
 import { DatabaseManager } from './storage/DatabaseManager';
-import { AccountSettingsService } from './core/AccountSettingsService';
 import { PresenceService } from './services/PresenceService';
+import { BottingService } from './services/BottingService';
+import { GamesService } from './services/GamesService';
 import { CookieExpiryService } from './services/CookieExpiryService';
 import { ThemeService, ThemeSettings, ThemeId } from './core/ThemeService';
-
 // =============================================================================
 // TYPE GUARDS PARA VALIDACIÓN DE PAYLOADS IPC (Defense in Depth)
 // Nunca confiar en los datos que llegan del renderer
@@ -70,12 +71,14 @@ const MAX_ACCOUNTS = 50;
 class NexoApp {
   private mainWindow: BrowserWindow | null = null;
   private accountManager: AccountManager;
-  private db: DatabaseManager;
-  private crypto: CryptoService;
-  private accountSettingsService: AccountSettingsService;
-  presenceService: PresenceService;
-  cookieExpiryService: CookieExpiryService;
-  private themeService: ThemeService;
+    private db: DatabaseManager;
+    private crypto: CryptoService;
+    private accountSettingsService: AccountSettingsService;
+    private presenceService: PresenceService;
+    private bottingService: BottingService;
+    private cookieExpiryService: CookieExpiryService;
+    private themeService: ThemeService;
+    private gamesService: GamesService;
 
   constructor() {
     this.db = new DatabaseManager();
@@ -83,8 +86,22 @@ class NexoApp {
     this.accountManager = new AccountManager(this.db, this.crypto);
     this.accountSettingsService = new AccountSettingsService();
     this.presenceService = new PresenceService(this.db, this.crypto);
+    this.bottingService = new BottingService(this.accountManager, this.presenceService);
     this.cookieExpiryService = new CookieExpiryService(this.db, this.crypto);
     this.themeService = new ThemeService(this.db);
+    this.gamesService = new GamesService();
+  }
+
+  cleanup(): void {
+    try {
+      this.presenceService?.cleanup?.();
+    } catch { /* ignore */ }
+    try {
+      this.cookieExpiryService?.stop?.();
+    } catch { /* ignore */ }
+    try {
+      this.bottingService?.stop?.();
+    } catch { /* ignore */ }
   }
 
   async initialize(): Promise<void> {
@@ -1439,6 +1456,48 @@ class NexoApp {
     });
 
     // =================================================================
+    // BOTTING MODE (opt-in, user assumes ToS ban risk)
+    // =================================================================
+    ipcMain.handle('botting:start', async (_, data: unknown) => {
+      if (!Array.isArray(data) || data.length < 2) {
+        return err('Payload inválido: [accountIds: string[], intervalMinutes: number, placeId?: string, jobId?: string]');
+      }
+      const [accountIds, intervalMinutes, placeId, jobId] = data as [unknown, unknown, unknown?, unknown?];
+      if (!Array.isArray(accountIds) || !accountIds.every(id => typeof id === 'string')) {
+        return err('Payload inválido: accountIds debe ser string[]');
+      }
+      if (typeof intervalMinutes !== 'number' || isNaN(intervalMinutes) || intervalMinutes < 1) {
+        return err('Payload inválido: intervalMinutes debe ser número >= 1');
+      }
+      const safePlaceId = typeof placeId === 'string' ? placeId : undefined;
+      const safeJobId = typeof jobId === 'string' ? jobId : undefined;
+      this.bottingService.start(
+        accountIds as string[],
+        intervalMinutes as number,
+        safePlaceId,
+        safeJobId
+      );
+      return ok({ started: true });
+    });
+
+    ipcMain.handle('botting:stop', async () => {
+      this.bottingService.stop();
+      return ok({ stopped: true });
+    });
+
+    ipcMain.handle('botting:getStatus', async () => {
+      return ok(this.bottingService.getStatus());
+    });
+
+    ipcMain.handle('botting:setInterval', async (_, intervalMinutes: unknown) => {
+      if (typeof intervalMinutes !== 'number' || isNaN(intervalMinutes) || intervalMinutes <= 0) {
+        return err('Payload inválido: intervalMinutes debe ser número > 0');
+      }
+      this.bottingService.setInterval(intervalMinutes as number);
+      return ok({ updated: true });
+    });
+
+    // =================================================================
     // AVANZADO — utilidades
     // =================================================================
 
@@ -1570,8 +1629,7 @@ app.whenReady().then(async () => {
 app.on('window-all-closed', () => {
   if (appInstance) {
     try {
-      appInstance.presenceService?.cleanup();
-      appInstance.cookieExpiryService?.stop?.();
+      appInstance.cleanup();
     } catch { /* ignore on quit */ }
   }
   app.quit();

@@ -207,9 +207,13 @@ export default function App() {
                   onCopyPlaceId={(acc) => handleCopyPlaceId(acc.savedPlaceId || '')}
                   onToggleFavorite={(acc, isFav) => {
                     useAccountStore.getState().setAccountField(acc.id, "isFavorite", isFav);
+                    const api = (window as any).api;
+                    api?.account?.setField?.(acc.id, "isFavorite", String(isFav));
                   }}
                   onChangeGroup={(acc, newGroup) => {
                     useAccountStore.getState().setAccountField(acc.id, "group", newGroup);
+                    const api = (window as any).api;
+                    api?.account?.setField?.(acc.id, "group", newGroup);
                   }}
 
                   onReorder={(reordered: Account[]) => {
