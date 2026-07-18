@@ -66,64 +66,21 @@ Result pattern in IPC: `{ success, data }` | `{ success: false, error }` — nev
 - Never let PROJECT.md be outdated by more than one commit
 - Never claim "done" without verifying with real tool output
 
-## Development loop for this project — HARD GATES
+## Development loop for this project
 
-<!-- Flujo confirmado por Sebastian el 2026-07-18: Flujo durante (opción B).
-     Spec SIEMPRE antes de codear features >1 archivo.
-     Mockup sketch solo si toca layout/visual.
-     Sin diagramas C4 (proyecto conocido). -->
-
-### Gate 0 — Requisitos
 1. Read PROJECT.md → check active phase and known limitations
 2. `git status` → ver estado del repo
 3. Verificar LSP activo: `hermes lsp status` — si no hay clientes: `hermes lsp restart`
+4. Skills loaded automatically by the agent before writing code: Electron + electron-desktop-dev (Electron stack), spec-creation (multi-file features), sketch (UI mockups). The agent does NOT need a file to remind it — it loads them.
+5. For tasks >1 archivo or UI work: the agent thinks first about what it's going to build, shows mockups if UI, and only then writes code. No intermediate .md files — design lives inline in PROJECT.md if needed.
+6. `npx tsc --noEmit` — must be 0 errors
+7. `npx vitest run` — must pass
+8. `npm run lint` — must pass
+9. Update PROJECT.md with results BEFORE commit (only project doc allowed)
+10. `git add -A && git commit -m "tipo(scope): descripcion en español"`
+11. `git push` → next task immediately
 
-### Gate 1 — Spec OBLIGATORIO (tareas >1 archivo)
-Para cualquier tarea que toque más de 1 archivo o modifique layout/visual:
-1. Cargar skill `spec-creation`
-2. Escribir `docs/specs/YYYY-MM-DD-<feature>.md` con:
-   - Objective (1-2 oraciones, el QUÉ, no el CÓMO)
-   - Interfaces exactas (Props TypeScript, IPC channels con tipos)
-   - State Flow (user → component → store → result)
-   - Error cases (empty, loading, error, edge)
-   - Non-Functional Requirements (rendimiento, a11y, animaciones — medibles)
-   - Expected test cases
-3. **NO se codea nada sin SPEC.md aprobado.**
-4. Para bugfix de 1 línea o typo → saltar Gate 1, ir directo a Gate 2.
-
-### Gate 1.5 — Mockup si toca UI
-Si el spec toca `.tsx`/`.jsx` o modifica layout:
-1. Cargar skill `sketch`
-2. Generar 2-3 variantes HTML desechables en `/tmp/nexoacc-mockups/`
-3. Mostrar al usuario variantes y dejar elegir antes de codear
-4. **NO se codea UI sin mockup aprobado.**
-
-### Gate 2 — Implementación
-1. Cargar skill `spec-driven-development` (ejecuta el spec)
-2. Code — don't explain the plan, execute it
-3. Minimal change que cumpla el spec — no unnecessary refactors
-4. Full `write_file` > multiline `sed` (NEVER sed for JSX/TSX blocks)
-5. LSP corre automáticamente en cada `write_file`/`patch` — fix errores inmediatamente
-6. Atomic commit por unidad lógica de cambio
-
-### Gate 3 — Validación
-1. `npx tsc --noEmit` — must be 0 errors
-2. `npx vitest run` — must pass
-3. `npm run lint` — must pass
-4. Si se creó SPEC.md en Gate 1: cargar skill `spec-validation` y comparar vs spec
-5. Cualquier drift crítico → STOP, fix before commit
-
-### Gate 4 — Code review subagente
-1. Cargar skill `requesting-code-review`
-2. Dispatch reviewer subagent con el diff (sin contexto compartido)
-3. Fail-closed: cualquier security/logic issue → fix antes de commit
-4. Address findings: critical blocking, important blocking, suggestions non-blocking
-
-### Gate 5 — Documentación y push
-1. Update PROJECT.md with results BEFORE commit
-2. `git add -A && git commit -m "tipo(scope): descripcion en español"`
-3. `git push` → next task
-4. Si toca UI: cargar `ui-systematic-testing` para testing visual/funcional/usabilidad
+NO separate spec files, drift reports, docs/specs/, architecture overviews, or any .md outside PROJECT.md. Everything goes in PROJECT.md.
 
 ## Editing code files (TSX/JSX/TS/JS)
 - NEVER use `sed -i` with multiline regex or JSX/TSX tag replacements
