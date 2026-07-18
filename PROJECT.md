@@ -6,15 +6,14 @@
 
 | Métrica | Valor |
 |---------|-------|
-| Versión | 3.0.0 |
-| Último commit | e9f1a2d — feat(all): funcionalidad completa amigos, favoritos, save/copy password, botting, multi-select, tema claro |
+| Versión | 3.1.0 |
+| Último commit | 49a078e — chore: bump version to 3.1.0 |
+| Tag | v3.1.0 |
 | tsc | 0 errores |
 | vitest | 121/121 pasando (11 archivos) |
 | lint | pendiente |
-| build | ✅ exitoso — AppImage + snap (linux) |
-| NSIS | v3.0.0 publicado en GitHub (Latest) |
-| Playwright | pendiente — infraestructura existe, selectores desactualizados |
-| Release GitHub | v3.0.0 (único release activo, viejos eliminados) |
+| build | ⏳ GitHub Action en progreso — NSIS Windows |
+| Release GitHub | v3.1.0 (en progreso, tag v3.1.0 pushado) |
 
 ## Resumen de características completadas
 
