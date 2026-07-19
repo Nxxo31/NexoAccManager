@@ -159,7 +159,7 @@ export const useAccountActions = () => {
 
   // ─── Social/actions ─────────────────────────────────────────
 
-  const handleFollowUser = useCallback(
+  const followUser = useCallback(
     async (userId: number) => {
       if (!api || !selectedAccount) return;
       try {
@@ -329,7 +329,7 @@ export const useAccountActions = () => {
     handleDeleteAccount,
     handleSaveAlias,
     handleSaveDescription,
-    handleFollowUser,
+    followUser,
     handleLaunchGame,
     handleJoinServer,
     handleLaunchApp,

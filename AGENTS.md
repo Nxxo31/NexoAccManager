@@ -71,6 +71,7 @@ Result pattern in IPC: `{ success, data }` | `{ success: false, error }` — nev
 1. Read PROJECT.md → check active phase and known limitations
 2. `git status` → ver estado del repo
 3. Verificar LSP activo: `hermes lsp status` — si no hay clientes: `hermes lsp restart`
+   **Nota en WSL**: El servidor LSP de TypeScript está instalado, pero el cliente solo se conecta cuando un editor (VS Code, etc.) abre un archivo `.ts` o `.tsx`. Mientras no haya un archivo abierto, `hermes lsp status` mostrará `active clients: none`; esto es esperado y no indica un problema. La fuente de verdad para tipos es siempre `npx tsc --noEmit`, que debe dar 0 errores antes de hacer commit.
 4. Skills loaded automatically by the agent before writing code: Electron + electron-desktop-dev (Electron stack), spec-creation (multi-file features), sketch (UI mockups). The agent does NOT need a file to remind it — it loads them.
 5. For tasks >1 archivo or UI work: the agent thinks first about what it's going to build, shows mockups if UI, and only then writes code. No intermediate .md files — design lives inline in PROJECT.md if needed.
 6. `npx tsc --noEmit` — must be 0 errors

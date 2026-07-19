@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NX-Manager - Airy & Editorial</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #DE350D;
+      --accent: #6347FF;
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --border: #334155;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+    }
+    
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #f1f5f9;
+      --bg-tertiary: #e2e8f0;
+      --text-primary: #0f172a;
+      --text-secondary: #64748b;
+      --border: #cbd5e1;
+    }
+    
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .group-badge {
+      background: rgba(99, 71, 255, 0.1);
+      color: #6347FF;
+      border: 1px solid rgba(99, 71, 255, 0.2);
+    }
+    
+    [data-theme="light"] .group-badge {
+      background: rgba(99, 71, 255, 0.05);
+      border: 1px solid rgba(99, 71, 255, 0.1);
+    }
+    
+    .account-row:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    
+    [data-theme="light"] .account-row:hover {
+      background: rgba(0, 0, 0, 0.02);
+    }
+  </style>
+</head>
+<body class="bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-200">
+  <div class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="h-14 flex items-center justify-between px-6 border-b border-[var(--border)] bg-[var(--bg-secondary)]">
+      <div class="flex items-center space-x-3">
+        <div class="h-8 w-8 flex items-center justify-center bg-[var(--primary)]/10 text-[var(--primary)] rounded-md text-xs font-medium">
+          NX
+        </div>
+        <div>
+          <h1 class="text-[var(--text-primary)] font-semibold">NX-Manager</h1>
+          <p class="text-[var(--text-secondary)] text-sm">Roblox Account Manager</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4">
+        <button id="theme-toggle" class="p-2 rounded-hover bg-[var(--bg-tertiary)]/30 hover:bg-[var(--bg-tertiary)]/50 transition-colors">
+          <i id="theme-icon" class="fa-solid fa-moon text-[var(--text-secondary)]"></i>
+        </button>
+        <button class="p-2 rounded-hover bg-[var(--bg-tertiary)]/30 hover:bg-[var(--bg-tertiary)]/50 transition-colors" title="Configuración avanzada">
+          <i class="fa-solid fa-gear text-[var(--text-secondary)]"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex min-h-0">
+      <!-- Left Slicer -->
+      <aside class="w-64 border-r border-[var(--border)] bg-[var(--bg-secondary)] flex flex-col">
+        <div class="flex-1 overflow-y-auto p-6 space-y-6">
+          <!-- Search & Add Account -->
+          <div class="flex items-center space-x-4">
+            <div class="flex-1 relative">
+              <input type="text" placeholder="Buscar cuentas..." class="w-full pl-10 pr-4 py-3 rounded-xl bg-[var(--bg-tertiary)]/50 border border-[var(--border)]/30 text-[var(--text-primary)] placeholder-[var(--text-secondary)]/60 focus:outline-none focus:border-[var(--accent)] focus:bg-[var(--bg-tertiary)] transition-all duration-200">
+              <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]/50"></i>
+            </div>
+            <button class="flex items-center justify-center w-12 h-12 rounded-xl bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/20 transition-all duration-200" title="Agregar cuenta">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </div>
+          
+          <!-- Toggle Show/Hide -->
+          <div class="flex items-center justify-between text-[var(--text-secondary)] text-sm">
+            <span>Mostrar cuentas ocultas</span>
+            <label class="relative inline-flex h-6 w-11">
+              <input type="checkbox" class="sr-only peer" />
+              <div class="w-11 h-6 bg-[var(--bg-tertiary)]/50 rounded-full cursor-pointer peer peer-checked:bg-[var(--accent)]/20 transition-all duration-200">
+                <div class="absolute left-0.5 top-0.5 h-5 w-5 bg-white rounded-full transform transition-transform peer-checked:translate-x-6"></div>
+              </div>
+            </label>
+          </div>
+          
+          <!-- Accounts List -->
+          <div class="mt-4 space-y-3">
+            <!-- Account Cards -->
+            <div class="account-card bg-[var(--bg-tertiary)]/30 rounded-xl p-4 border border-[var(--border)]/30 hover:border-[var(--border)]/50 transition-all duration-200 cursor-pointer">
+              <div class="flex items-start space-x-4">
+                <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-[var(--primary)]/10 text-[var(--primary)] rounded-xl text-xs font-medium">
+                  RBX
+                </div>
+                <div class="flex-1 min-w-0 space-y-1">
+                  <div class="flex items-center justify-between w-full">
+                    <h3 class="text-[var(--text-primary)] font-semibold truncate">BuilderMan123</h3>
+                    <div class="flex items-center space-x-2 text-sm">
+                      <span class="px-2 py-0.5 text-xs rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">Amigos</span>
+                      <span class="px-2 py-0.5 text-xs rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">Desarrolladores</span>
+                    </div>
+                  </div>
+                  <p class="text-[var(--text-secondary)] text-sm line-clamp 2">Cuenta oficial de Roblox para pruebas y demostraciones</p>
+                  <div class="mt-2 flex items-center space-x-3 text-xs">
+                    <span class="flex items-center space-x-1">
+                      <i class="fa-solid fa-circle text-[var(--success)] text-xs"></i>
+                      <span>En línea</span>
+                    </span>
+                    <span class="flex items-center space-x-1">
+                      <i class="fa-solid fa-clock text-[var(--text-secondary)] text-xs"></i>
+                      <span>Último acceso: hace 2h</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="account-card bg-[var(--bg-tertiary)]/30 rounded-xl p-4 border border-[var(--border)]/30 hover:border-[var(--border)]/50 transition-all duration-200 cursor-pointer">
+              <div class="flex items-start space-x-4">
+                <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-[var(--primary)]/10 text-[var(--primary)] rounded-xl text-xs font-medium">
+                  RBX
+                </div>
+                <div class="flex-1 min-w-0 space-y-1">
+                  <div class="flex items-center justify-between w-full">
+                    <h3 class="text-[var(--text-primary)] font-semibold truncate">LuatexMaster</h3>
+                    <div class="flex items-center space-x-2 text-sm">
+                      <span class="px-2 py-0.5 text-xs rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">Creadores</span>
+                      <span class="px-2 py-0.5 text-xs rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">Beta Testers</span>
+                    </div>
+                  </div>
+                  <p class="text-[var(--text-secondary)] text-sm line-clamp 2">Experto en scripting de Lua para juegos Roblox avanzados</p>
+                  <div class="mt-2 flex items-center space-x-3 text-xs">
+                    <span class="flex items-center space-x-1">
+                      <i class="fa-solid fa-circle text-[var(--error)] text-xs"></i>
+                      <span>Ausente</span>
+                    </span>
+                    <span class="flex items-center space-x-1">
+                      <i class="fa-solid fa-clock text-[var(--text-secondary)] text-xs"></i>
+                      <span>Último acceso: ayer</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="account-card bg-[var(--bg-tertiary)]/30 rounded-xl p-4 border border-[var(--border)]/30 hover:border-[var(--border)]/50 transition-all duration-200 cursor-pointer">
+              <div class="flex items-start space-x-4">
+                <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-[var(--primary)]/10 text-[var(--primary)] rounded-xl text-xs font-medium">
+                  RBX
+                </div>
+                <div class="flex-1 min-w-0 space-y-1">
+                  <div class="flex items-center justify-between w-full">
+                    <h3 class="text-[var(--text-primary)] font-semibold truncate">PixelArtist88</h3>
+                    <div class="flex items-center space-x-2 text-sm">
+                      <span class="px-2 py-0.5 text-xs rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">Diseñadores</span>
+                      <span class="px-2 py-0.5 text-xs rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">Vendedores</span>
+                    </div>
+                  </div>
+                  <p class="text-[var(--text-secondary)] text-sm line-clamp 2">Creador de ropa y accesorios populares en el catálogo</p>
+                  <div class="mt-2 flex items-center space-x-3 text-xs">
+                    <span class="flex items-center space-x-1">
+                      <i class="fa-solid fa-circle text-[var(--warning)] text-xs"></i>
+                      <span>Ausente</span>
+                    </span>
+                    <span class="flex items-center space-x-1">
+                      <i class="fa-solid fa-clock text-[var(--text-secondary)] text-xs"></i>
+                      <span>Último acceso: hace 3h</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <section class="flex-1 flex flex-col overflow-hidden bg-[var(--bg-primary)]">
+        <!-- Header -->
+        <header class="h-16 flex items-center px-6 border-b border-[var(--border)] bg-[var(--bg-secondary)]">
+          <h2 class="text-[var(--text-primary)] font-semibold text-lg">Panel de Detalles</h2>
+        </header>
+        
+        <!-- Content -->
+        <div class="flex-1 overflow-auto p-6 space-y-6">
+          <!-- Welcome State -->
+          <div class="text-center py-16">
+            <i class="fa-solid fa-user-gear text-5xl text-[var(--text-secondary)]/30 mb-6"></i>
+            <h3 class="text-[var(--text-primary)] font-semibold mb-4">Seleccione una cuenta para ver detalles</h3>
+            <p class="text-[var(--text-secondary)] text-lg max-w-xl mx-auto">
+              Aquí podrá ver información detallada de la cuenta seleccionada, incluyendo outfit, amigos activos, presencia en juegos y configuraciones de seguridad.
+            </p>
+          </div>
+          
+          <!-- Account Details Preview (hidden by default) -->
+          <div class="hidden space-y-6" id="account-details">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- Left Column -->
+              <div class="space-y-6">
+                <div class="bg-[var(--bg-tertiary)]/30 rounded-xl p-5 border border-[var(--border)]/30">
+                  <h3 class="text-[var(--text-primary)] font-semibold mb-3 flex items-center space-x-2">
+                    <i class="fa-solid fa-user-tie text-[var(--primary)]"></i>
+                    Perfil
+                  </h3>
+                  <div class="space-y-3">
+                    <div class="flex items-center space-x-3">
+                      <span class="w-8 text-[var(--text-secondary)]">Usuario:</span>
+                      <span class="text-[var(--text-primary)] font-medium">BuilderMan123</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                      <span class="w-8 text-[var(--text-secondary)]">Alias:</span>
+                      <span class="text-[var(--text-primary)]">Constructor oficial</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                      <span class="w-8 text-[var(--text-secondary)]">Descripción:</span>
+                      <span class="text-[var(--text-primary)]">Cuenta oficial de Roblox para pruebas y demostraciones</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                      <span class="w-8 text-[var(--text-secondary)]">Creada:</span>
+                      <span class="text-[var(--text-primary)]">15/03/2020</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="bg-[var(--bg-tertiary)]/30 rounded-xl p-5 border border-[var(--border)]/30">
+                  <h3 class="text-[var(--text-primary)] font-semibold mb-3 flex items-center space-x-2">
+                    <i class="fa-solid fa-shield-halved text-[var(--primary)]"></i>
+                    Seguridad
+                  </h3>
+                  <div class="space-y-3">
+                    <div class="flex items-center space-x-3">
+                      <span class="w-8 text-[var(--text-secondary)]">2FA:</span>
+                      <span class="text-[var(--success)]">Activado</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                      <span class="w-8 text-[var(--text-secondary)]">Email verificado:</span>
+                      <span class="text-[var(--success)]">Sí</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                      <span class="w-8 text-[var(--text-secondary)]">Contraseña guardada:</span>
+                      <span class="text-[var(--text-primary)]">••••••••</span>
+                      <button class="ml-2 px-2 py-0.5 text-xs rounded bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20">
+                        <i class="fa-solid fa-copy"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Right Column -->
+              <div class="space-y-6">
+                <div class="bg-[var(--bg-tertiary)]/30 rounded-xl p-5 border border-[var(--border)]/30">
+                  <h3 class="text-[var(--text-primary)] font-semibold mb-3 flex items-center space-x-2">
+                    <i class="fa-solid fa-gamepad text-[var(--primary)]"></i>
+                    Presencia Actual
+                  </h3>
+                  <div class="space-y-4">
+                    <div class="flex items-center space-x-4">
+                      <div class="h-10 w-10 flex items-center justify-center bg-[var(--accent)]/10 text-[var(--accent)] rounded-xl">
+                        <i class="fa-solid fa-gamepad"></i>
+                      </div>
+                      <div class="flex-1 space-y-1">
+                        <p class="text-[var(--text-primary)] font-medium">Adopt Me!</p>
+                        <p class="text-[var(--text-secondary)] text-sm">Servidor: Brookhaven RP #2458</p>
+                      </div>
+                    </div>
+                    <div class="flex items-center space-x-3 text-sm">
+                      <span class="w-8 text-[var(--text-secondary)]">Job ID:</span>
+                      <span class="text-[var(--text-primary)] monospace">JobID-7a3b9c2d-1e4f-4a5b-8c6d-2e1f0a3b4c5d</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="bg-[var(--bg-tertiary)]/30 rounded-xl p-5 border border-[var(--border)]/30">
+                  <h3 class="text-[var(--text-primary)] font-semibold mb-3 flex items-center space-x-2">
+                    <i class="fa-solid fa-users text-[var(--primary)]"></i>
+                    Amigos Activos
+                  </h3>
+                  <div class="space-y-3">
+                    <div class="flex items-center space-x-3 p-3 bg-[var(--accent)]/10 rounded-lg">
+                      <i class="fa-solid fa-circle text-[var(--success)] text-xs"></i>
+                      <span class="text-[var(--text-primary)]">BuilderMan123</span>
+                    </div>
+                    <div class="flex items-center space-x-3 p-3 bg-[var(--accent)]/10 rounded-lg">
+                      <i class="fa-solid fa-circle text-[var(--success)] text-xs"></i>
+                      <span class="text-[var(--text-primary)]">LuatexMaster</span>
+                    </div>
+                    <div class="flex items-center space-x-3 p-3 bg-[var(--accent)]/10 rounded-lg">
+                      <i class="fa-solid fa-circle text-[var(--error)] text-xs"></i>
+                      <span class="text-[var(--text-primary)]">PixelArtist88</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      // Theme toggle
+      const themeToggle = document.getElementById('theme-toggle');
+      const themeIcon = document.getElementById('theme-icon');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+      const currentTheme = localStorage.getItem('theme') || (prefersDark.matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      themeIcon.className = `fa-solid fa-${currentTheme === 'dark' ? 'moon' : 'sun'}`;
+      
+      themeToggle.addEventListener('click', () => {
+        const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        themeIcon.className = `fa-solid fa-${newTheme === 'dark' ? 'moon' : 'sun'}`;
+      });
+      
+      // Simple account selection simulation
+      const accountCards = document.querySelectorAll('.account-card');
+      const accountDetails = document.getElementById('account-details');
+      
+      accountCards.forEach(card => {
+        card.addEventListener('click', () => {
+          // Remove active class from all cards
+          accountCards.forEach(c => c.classList.remove('border-[var(--accent)]', 'border-2'));
+          // Add active class to clicked card
+          card.classList.add('border-[var(--accent)]', 'border-2');
+          // Show account details
+          accountDetails.classList.remove('hidden');
+        });
+      });
+    </script>
+  </body>
+</html>

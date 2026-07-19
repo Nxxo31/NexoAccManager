@@ -37,13 +37,11 @@ export const useAccountStore = create<AccountState>()(
         error: null,
 
         setAccounts: (accounts: Account[]) => set({ accounts }),
-        addAccount: (account: Account) => set((state) => ({
-          accounts: [...state.accounts, account]
-        })),
+        addAccount: (account: Account) => set((state) => ({ accounts: [...state.accounts, account] })),
         updateAccount: (id: string, updates: Partial<Account>) => set((state) => ({
           accounts: state.accounts.map(acc =>
             acc.id === id ? { ...acc, ...updates } : acc
-          )
+          ),
         })),
         removeAccount: (id: string) => set((state) => ({
           accounts: state.accounts.filter(acc => acc.id !== id),
@@ -74,9 +72,9 @@ export const useAccountStore = create<AccountState>()(
           selectedIds: state.accounts.map(acc => acc.id)
         })),
         setAccountField: (id: string, key: string, value: any) => set((state) => ({
-          accounts: state.accounts.map((acc) =>
+          accounts: state.accounts.map(acc =>
             acc.id === id ? { ...acc, [key]: value } : acc
-          )
+          ),
         })),
         setLoading: (loading: boolean) => set({ loading }),
         setError: (error: string | null) => set({ error }),

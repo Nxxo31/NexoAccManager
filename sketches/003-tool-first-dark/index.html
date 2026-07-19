@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NX-Manager - Tool First Dark</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #DE350D;
+      --accent: #6347FF;
+      --bg-primary: #0a0a0a;
+      --bg-secondary: #111111;
+      --bg-tertiary: #1a1a1a;
+      --bg-quaternary: #222222;
+      --text-primary: #ffffff;
+      --text-secondary: #a0a0a0;
+      --text-muted: #666666;
+      --border: #333333;
+      --border-light: #444444;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+    }
+    
+    [data-theme="light"] {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-tertiary: #f1f3f5;
+      --bg-quaternary: #e9ecef;
+      --text-primary: #212529;
+      --text-secondary: #6c757d;
+      --text-muted: #868e96;
+      --border: #dee2e6;
+      --border-light: #e9ecef;
+    }
+    
+    .tool-btn {
+      @apply w-10 h-10 flex items-center justify-center rounded-lg 
+             hover:bg-[var(--bg-tertiary)] transition-colors duration-200 
+             text-[var(--text-secondary)] hover:text-[var(--text-primary)];
+    }
+    
+    .tool-btn.active {
+      @apply bg-[var(--accent)]/20 text-[var(--accent)];
+    }
+    
+    .tool-btn.primary {
+      @apply bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/20;
+    }
+    
+    .input-field {
+      @apply w-full pl-10 pr-4 py-3 rounded-xl 
+             bg-[var(--bg-tertiary)] border border-[var(--border)]/50 
+             text-[var(--text-primary)] placeholder-[var(--text-muted)]/60
+             focus:outline-none focus:border-[var(--accent)] focus:bg-[var(--bg-tertiary)]/60
+             transition-all duration-200;
+    }
+    
+    .account-row {
+      @apply flex items-start space-x-3 p-3 rounded-lg 
+             hover:bg-[var(--bg-tertiary)]/50 cursor-grab transition-all duration-200;
+    }
+    
+    .account-row.dragging {
+      @apply opacity-70 scale-[0.98];
+    }
+    
+    .group-tag {
+      @apply inline-flex items-center px-2.5 py-0.5 text-xs rounded 
+             font-medium border border-[var(--border)]/30 
+             bg-[var(--bg-tertiary)]/30 text-[var(--text-secondary)];
+    }
+    
+    .group-tag.amigos {
+      @apply border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)];
+    }
+    
+    .group-tag.creadores {
+      @apply border-[var(--primary)]/30 bg-[var(--primary)]/10 text-[var(--primary)];
+    }
+    
+    .group-tag.desarrolladores {
+      @apply border-[var(--success)]/30 bg-[var(--success)]/10 text-[var(--success)];
+    }
+  </style>
+</head>
+<body class="bg-[var(--bg-primary)] text-[var(--text-primary)] min-h-screen flex flex-col transition-colors duration-200">
+  <div class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="h-14 flex items-center justify-between px-4 border-b border-[var(--border-light)] bg-[var(--bg-secondary)]">
+      <div class="flex items-center space-x-2">
+        <div class="h-6 w-6 flex items-center justify-center bg-[var(--primary)]/10 text-[var(--primary)] rounded text-xs font-bold">
+          NX
+        </div>
+        <span class="text-[var(--text-secondary)] font-medium">NX-Manager</span>
+      </div>
+      <div class="flex items-center space-x-3">
+        <button id="theme-toggle" class="tool-btn" title="Cambiar tema">
+          <i id="theme-icon" class="fa-solid fa-moon"></i>
+        </button>
+        <button class="tool-btn" title="Configuración avanzada">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex min-h-0 overflow-hidden">
+      <!-- Left Slicer -->
+      <aside class="w-64 border-r border-[var(--border-light)] bg-[var(--bg-secondary)] flex flex-col">
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+          <!-- Search & Add Account -->
+          <div class="flex items-center space-x-2">
+            <div class="flex-1 relative">
+              <input type="text" placeholder="Buscar cuentas..." class="input-field" />
+              <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]/50"></i>
+            </div>
+            <button class="tool-btn primary" title="Agregar cuenta">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </div>
+          
+          <!-- Toggle Show/Hide -->
+          <div class="flex items-center justify-between text-[var(--text-muted)] text-sm">
+            <span>Mostrar cuentas ocultas</span>
+            <label class="relative inline-flex h-5 w-9">
+              <input type="checkbox" class="sr-only peer" />
+              <div class="w-9 h-5 bg-[var(--bg-tertiary)]/50 rounded-full cursor-pointer peer peer-checked:bg-[var(--accent)]/20 transition-colors">
+                <div class="absolute left-0.5 top-0.5 h-4 w-4 bg-[var(--bg-primary)] rounded-full transform transition-transform peer-checked:translate-x-5"></div>
+              </div>
+            </label>
+          </div>
+          
+          <!-- Accounts List -->
+          <div class="mt-2 space-y-2">
+            <!-- Account Row 1 -->
+            <div class="account-row" draggable="true">
+              <div class="flex-shrink-0 h-8 w-8 flex items-center justify-center bg-[var(--primary)]/10 text-[var(--primary)] rounded-lg text-xs font-medium">
+                RBX
+              </div>
+              <div class="flex-1 min-w-0 space-y-0.5">
+                <div class="flex items-start justify-between w-full">
+                  <div class="flex-1 min-w-0">
+                    <div class="font-medium truncate max-w-0">BuilderMan123</div>
+                    <div class="text-xs text-[var(--text-muted)] line-clamp-1">Cuenta principal de desarrollo</div>
+                  </div>
+                  <div class="flex items-center space-x-1.5 text-xs">
+                    <span class="group-tag amigos">Amigos</span>
+                    <span class="group-tag creadores">Creadores</span>
+                    <span class="group-tag desarrolladores">Desarrolladores</span>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2 text-xs text-[var(--text-muted)]">
+                  <span class="flex items-center space-x-1">
+                    <i class="fa-solid fa-circle text-[var(--success)] text-xs"></i>
+                    <span>En línea</span>
+                  </span>
+                  <span class="flex items-center space-x-1">
+                    <i class="fa-solid fa-clock text-[var(--text-muted)] text-xs"></i>
+                    <span>Activo hace 2m</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Account Row 2 -->
+            <div class="account-row" draggable="true">
+              <div class="flex-shrink-0 h-8 w-8 flex items-center justify-center bg-[var(--primary)]/10 text-[var(--primary)] rounded-lg text-xs font-medium">
+                RBX
+              </div>
+              <div class="flex-1 min-w-0 space-y-0.5">
+                <div class="flex items-start justify-between w-full">
+                  <div class="flex-1 min-w-0">
+                    <div class="font-medium truncate max-w-0">LuatexMaster</div>
+                    <div class="text-xs text-[var(--text-muted)] line-clamp-1">Experto en programación Lua</div>
+                  </div>
+                  <div class="flex items-center space-x-1.5 text-xs">
+                    <span class="group-tag creadores">Creadores</span>
+                    <span class="group-tag desarrolladores">Desarrolladores</span>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2 text-xs text-[var(--text-muted)]">
+                  <span class="flex items-center space-x-1">
+                    <i class="fa-solid fa-circle text-[var(--warning)] text-xs"></i>
+                    <span>Ausente</span>
+                  </span>
+                  <span class="flex items-center space-x-1">
+                    <i class="fa-solid fa-clock text-[var(--text-muted)] text-xs"></i>
+                    <span>Activo hace 1h</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Account Row 3 -->
+            <div class="account-row" draggable="true">
+              <div class="flex-shrink-0 h-8 w-8 flex items-center justify-center bg-[var(--primary)]/10 text-[var(--primary)] rounded-lg text-xs font-medium">
+                RBX
+              </div>
+              <div class="flex-1 min-w-0 space-y-0.5">
+                <div class="flex items-start justify-between w-full">
+                  <div class="flex-1 min-w-0">
+                    <div class="font-medium truncate max-w-0">PixelArtist88</div>
+                    <div class="text-xs text-[var(--text-muted)] line-clamp-1">Creador de ropa y accesorios</div>
+                  </div>
+                  <div class="flex items-center space-x-1.5 text-xs">
+                    <span class="group-tag amigos">Amigos</span>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2 text-xs text-[var(--text-muted)]">
+                  <span class="flex items-center space-x-1">
+                    <i class="fa-solid fa-circle text-[var(--error)] text-xs"></i>
+                    <span>Desconectado</span>
+                  </span>
+                  <span class="flex items-center space-x-1">
+                    <i class="fa-solid fa-clock text-[var(--text-muted)] text-xs"></i>
+                    <span>Activo hace 5h</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="flex-1 flex flex-col overflow-hidden bg-[var(--bg-primary)]">
+        <header class="h-14 flex items-center px-4 border-b border-[var(--border-light)] bg-[var(--bg-secondary)]">
+          <h2 class="text-[var(--text-primary)] font-semibold text-lg">Cuentas de Roblox</h2>
+        </header>
+        <div class="flex-1 overflow-auto p-6 space-y-6">
+          <!-- Welcome State -->
+          <div class="text-center py-12">
+            <div class="flex items-center justify-center mb-6">
+              <div class="h-12 w-12 flex items-center justify-center bg-[var(--primary)]/10 text-[var(--primary)] rounded-xl text-2xl">
+                RBX
+              </div>
+            </div>
+            <p class="text-[var(--text-muted)] mb-4">Seleccione una cuenta para ver sus detalles</p>
+            <div class="flex flex-col items-center space-x-2">
+              <button class="px-4 py-2 rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 transition-colors">
+                Explorar características
+              </button>
+              <button class="px-4 py-2 rounded-lg bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/20 transition-colors">
+                Añadir primera cuenta
+              </button>
+            </div>
+          </div>
+          
+          <!-- Quick Stats -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-[var(--bg-tertiary)]/50 rounded-xl p-4 border border-[var(--border-light)]/30">
+              <div class="flex items-center space-x-3">
+                <div class="h-8 w-8 flex items-center justify-center bg-[var(--accent)]/10 text-[var(--accent)] rounded-lg">
+                  <i class="fa-solid fa-users"></i>
+                </div>
+                <div class="space-y-0.5">
+                  <p class="text-[var(--text-muted)] text-sm">Cuentas Totales</p>
+                  <p class="text-[var(--text-primary)] font-semibold text-lg">3</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-[var(--bg-tertiary)]/50 rounded-xl p-4 border border-[var(--border-light)]/30">
+              <div class="flex items-center space-x-3">
+                <div class="h-8 w-8 flex items-center justify-center bg-[var(--success)]/10 text-[var(--success)] rounded-lg">
+                  <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <div class="space-y-0.5">
+                  <p class="text-[var(--text-muted)] text-sm">Cuentas Activas</p>
+                  <p class="text-[var(--text-primary)] font-semibold text-lg">2</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-[var(--bg-tertiary)]/50 rounded-xl p-4 border border-[var(--border-light)]/30">
+              <div class="flex items-center space-x-3">
+                <div class="h-8 w-8 flex items-center justify-center bg-[var(--warning)]/10 text-[var(--warning)] rounded-lg">
+                  <i class="fa-solid fa-clock"></i>
+                </div>
+                <div class="space-y-0.5">
+                  <p class="text-[var(--text-muted)] text-sm">Sesiones Activas</p>
+                  <p class="text-[var(--text-primary)] font-semibold text-lg">1</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-[var(--bg-tertiary)]/50 rounded-xl p-4 border border-[var(--border-light)]/30">
+              <div class="flex items-center space-x-3">
+                <div class="h-8 w-8 flex items-center justify-center bg-[var(--primary)]/10 text-[var(--primary)] rounded-lg">
+                  <i class="fa-solid fa-gamepad"></i>
+                </div>
+                <div class="space-y-0.5">
+                  <p class="text-[var(--text-muted)] text-sm">Juegos Jugados</p>
+                  <p class="text-[var(--text-primary)] font-semibold text-lg">5</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      // Theme toggle
+      const themeToggle = document.getElementById('theme-toggle');
+      const themeIcon = document.getElementById('theme-icon');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+      const currentTheme = localStorage.getItem('theme') || (prefersDark.matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      themeIcon.className = `fa-solid fa-${currentTheme === 'dark' ? 'moon' : 'sun'}`;
+      
+      themeToggle.addEventListener('click', () => {
+        const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        themeIcon.className = `fa-solid fa-${newTheme === 'dark' ? 'moon' : 'sun'}`;
+      });
+      
+      // Simple drag simulation
+      const accountRows = document.querySelectorAll('.account-row');
+      accountRows.forEach(row => {
+        row.addEventListener('dragstart', () => {
+          row.classList.add('dragging');
+        });
+        row.addEventListener('dragend', () => {
+          row.classList.remove('dragging');
+        });
+      });
+    </script>
+  </body>
+</html>
