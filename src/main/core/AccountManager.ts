@@ -173,16 +173,26 @@ export class AccountManager {
       return false;
     }
 
-    if (enabled) {
-      const ok = this.multiRobloxService.enable();
-      if (!ok) {
-        console.error('[AccountManager] No se pudo habilitar Multi-Roblox');
-        this.multiRobloxEnabled = false;
-        this.db.setSetting('MultiRoblox', 'false');
-        return false;
+    try {
+      if (enabled) {
+        // enable() es void en MultiRobloxService — lanza si falla internamente (reg query/add)
+        const before = this.multiRobloxService.isEnabled();
+        this.multiRobloxService.enable();
+        // Si la operación de registro no cambió el estado y la plataforma era Windows, falló silenciosamente
+        if (MultiRobloxService.isSupported() && !this.multiRobloxService.isEnabled() && !before) {
+          console.error('[AccountManager] No se pudo habilitar Multi-Roblox (registro sin cambio)');
+          this.multiRobloxEnabled = false;
+          this.db.setSetting('MultiRoblox', 'false');
+          return false;
+        }
+      } else {
+        this.multiRobloxService.disable();
       }
-    } else {
-      this.multiRobloxService.disable();
+    } catch (e) {
+      console.error('[AccountManager] Error habilitando/deshabilitando Multi-Roblox:', e);
+      this.multiRobloxEnabled = false;
+      this.db.setSetting('MultiRoblox', 'false');
+      return false;
     }
 
     return this.multiRobloxEnabled;
@@ -408,8 +418,10 @@ export class AccountManager {
       throw new Error('No se encontrÃ³ RobloxPlayerLauncher.exe en AppData/Local/Roblox/Versions');
     }
 
-    // Crear perfil temporal
-    const profilePath = this.multiRobloxService.createTempProfile(accountId);
+    // Crear perfil temporal — MultiRobloxService.createProfile(index: number)
+    // Usamos el accountId como hash numérico para el index del perfil
+    const profileIndex = Math.abs(accountId.split('').reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 0)) % 1000;
+    const profilePath = this.multiRobloxService.createProfile(profileIndex);
 
     // Argumentos para Roblox
     const args: string[] = [];

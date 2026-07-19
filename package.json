@@ -1,5 +1,5 @@
 {
-  "name": "nexoaccmanager",
+  "name": "nx-manager",
   "version": "3.1.1",
   "description": "Open-source multi-account manager for gaming platforms — 100% local, no servers, no cloud",
   "main": "dist/main/main.js",
@@ -76,8 +76,8 @@
     "zustand": "^5.0.14"
   },
   "build": {
-    "appId": "com.nexoaccmanager.app",
-    "productName": "NexoAccManager",
+    "appId": "com.nxmanager.app",
+    "productName": "NX-Manager",
     "directories": {
       "output": "release"
     },

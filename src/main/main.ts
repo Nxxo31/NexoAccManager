@@ -12,6 +12,7 @@ import { BottingService } from './services/BottingService';
 import { GamesService } from './services/GamesService';
 import { CookieExpiryService } from './services/CookieExpiryService';
 import { ThemeService, ThemeSettings, ThemeId } from './core/ThemeService';
+import { MultiRobloxService } from './core/MultiRobloxService';
 // =============================================================================
 // TYPE GUARDS PARA VALIDACIÓN DE PAYLOADS IPC (Defense in Depth)
 // Nunca confiar en los datos que llegan del renderer
@@ -79,12 +80,14 @@ class NexoApp {
     private cookieExpiryService: CookieExpiryService;
     private themeService: ThemeService;
     private gamesService: GamesService;
+    private multiRobloxService: MultiRobloxService;
 
   constructor() {
     this.db = new DatabaseManager();
     this.crypto = new CryptoService();
     this.accountManager = new AccountManager(this.db, this.crypto);
     this.accountSettingsService = new AccountSettingsService();
+    this.multiRobloxService = new MultiRobloxService();
     this.presenceService = new PresenceService(this.db, this.crypto);
     this.bottingService = new BottingService(this.accountManager, this.presenceService);
     this.cookieExpiryService = new CookieExpiryService(this.db, this.crypto);
@@ -1407,38 +1410,11 @@ class NexoApp {
     // =================================================================
     // KILL ALL — cerrar todas las instancias de Roblox
     // =================================================================
-    const exec = promisify(execCb);
+    // Delegamos al servicio MultiRobloxService
     ipcMain.handle('roblox:kill-all', async () => {
       try {
-        const platform = process.platform;
-        let killed = 0;
-        const TIMEOUT_MS = 5000;
-
-        let command: string;
-        if (platform === 'win32') {
-          command = 'taskkill /IM "RobloxPlayerBeta.exe" /F';
-        } else if (platform === 'linux' || platform === 'darwin') {
-          command = 'pkill -f "RobloxPlayer" || pkill -f "roblox" || true';
-        } else {
-          return err(`Plataforma no soportada: ${platform}`);
-        }
-
-        try {
-          const { stdout, stderr } = await exec(command, { timeout: TIMEOUT_MS });
-          // stdout contiene el conteo de procesos terminados en Windows
-          const match = stdout.match(/TERMINATED\s+(\d+)/i);
-          killed = match ? parseInt(match[1], 10) : 1;
-          if (stderr && stderr.trim()) {
-            console.warn('[kill-all] stderr:', stderr.trim());
-          }
-        } catch (e: any) {
-          // pkill retorna código 1 cuando no hay procesos que matar — no es error real
-          if (e.code !== 1) {
-            console.warn('[kill-all] Error:', e.message);
-          }
-        }
-
-        return ok({ killed });
+        const result = await this.multiRobloxService.killAll();
+        return ok(result);
       } catch (e) {
         return err(`Error cerrando instancias: ${(e as Error).message}`);
       }
