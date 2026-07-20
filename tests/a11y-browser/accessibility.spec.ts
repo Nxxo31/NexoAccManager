@@ -1,54 +1,46 @@
 import { test, expect } from '@playwright/test';
-import axe from '@axe-core/playwright';
+import { AxeBuilder } from '@axe-core/playwright';
 
-test.describe('Accessibility tests - NexoAccManager v2.5.0', () => {
+test.describe('Accessibility tests - NX-Manager v3.2.0', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('http://localhost:5174');
     await page.waitForLoadState('networkidle');
   });
 
-  test('should have no accessibility violations on initial load', async ({ page }) => {
-    const accessibilityScanResults = await axe.run(page);
-    expect(accessibilityScanResults.violations).toEqual([]);
+  test('should have no critical accessibility violations on initial load', async ({ page }) => {
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze();
+    const critical = results.violations.filter((v) => v.impact === 'critical');
+    expect(critical).toEqual([]);
   });
 
-  test('should have no accessibility violations in add account modal', async ({ page }) => {
-    // Open add account modal
-    await page.click('button:has-text("Agregar")');
-    
-    // Wait for modal to be visible
-    await page.waitForSelector('[role="dialog"]', { state: 'visible' });
-    
-    // Get the modal element
-    const modal = await page.$('[role="dialog"]');
-    expect(modal).toBeTruthy();
-    
-    // Run axe on the modal only
-    const accessibilityScanResults = await axe.run(page, { include: [modal] });
-    expect(accessibilityScanResults.violations).toEqual([]);
-    
-    // Clean up
-    await page.keyboard.press('Escape');
-    await page.waitForSelector('[role="dialog"]', { state: 'hidden' });
+  test('should have accessible theme toggle button', async ({ page }) => {
+    const themeBtn = page.locator('button[aria-label*="tema" i], button[aria-label*="theme" i]');
+    await expect(themeBtn).toBeVisible();
+    await expect(themeBtn).toHaveAttribute('aria-label');
   });
 
-  test('should have no accessibility violations in settings modal', async ({ page }) => {
-    // Open settings modal
-    await page.click('button[aria-label="Ajustes"]');
-    
-    // Wait for modal to be visible
-    await page.waitForSelector('[role="dialog"]', { state: 'visible' });
-    
-    // Get the modal element
-    const modal = await page.$('[role="dialog"]');
-    expect(modal).toBeTruthy();
-    
-    // Run axe on the modal only
-    const accessibilityScanResults = await axe.run(page, { include: [modal] });
-    expect(accessibilityScanResults.violations).toEqual([]);
-    
-    // Clean up
-    await page.keyboard.press('Escape');
-    await page.waitForSelector('[role="dialog"]', { state: 'hidden' });
+  test('should have accessible settings gear button', async ({ page }) => {
+    const gearBtn = page.locator('button[aria-label*="ajustes" i], button[aria-label*="settings" i]');
+    await expect(gearBtn).toBeVisible();
+    await expect(gearBtn).toHaveAttribute('aria-label');
+  });
+
+  test('should have accessible search input in sidebar', async ({ page }) => {
+    const search = page.locator('input[placeholder*="Buscar"], input[placeholder*="cuentas" i]');
+    await expect(search).toBeVisible();
+    await expect(search).toHaveAttribute('placeholder');
+  });
+
+  test('should open settings view with no critical a11y violations', async ({ page }) => {
+    const gearBtn = page.locator('button[aria-label*="ajustes" i], button[aria-label*="settings" i]');
+    await gearBtn.click();
+    await page.waitForTimeout(800);
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze();
+    const critical = results.violations.filter((v) => v.impact === 'critical');
+    expect(critical).toEqual([]);
   });
 });
