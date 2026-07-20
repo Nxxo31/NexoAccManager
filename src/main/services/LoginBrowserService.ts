@@ -1,11 +1,11 @@
 /**
  * LoginBrowserService - Login con ventana de navegador de Roblox
- *
+ * 
  * Abre un BrowserWindow que carga roblox.com, el usuario inicia sesión normalmente,
  * y capturamos la cookie .ROBLOSECURITY automáticamente del session.cookies.
- *
+ * 
  * Inspirado en el flujo de RAM Original (ic3w0lf22).
- *
+ * 
  * Seguridad:
  * - La ventana usa su propia session partition (aislada)
  * - nodeIntegration: false, contextIsolation: true
@@ -99,13 +99,19 @@ export class LoginBrowserService {
       // Escuchar cambios de cookies
       cookieListener = async (_event, cookie, cause) => {
         if (cookie.name === '.ROBLOSECURITY' && !cookieCaptured && (cause === 'explicit' || cause === 'overwrite')) {
-          cookieCaptured = true;
-
-          const cookieValue = cookie.value;
+          // Trim the cookie value and validate domain
+          const cookieValue = cookie.value?.trim() ?? '';
           if (!cookieValue || cookieValue.length < 10) {
-            cookieCaptured = false;
+            // Too short to be a valid Roblox cookie
             return;
           }
+          // Only accept cookies from .roblox.com domain
+          if (cookie.domain && !cookie.domain.endsWith('.roblox.com')) {
+            // Ignore cookies from other domains
+            return;
+          }
+
+          cookieCaptured = true;
 
           try {
             const userInfo = await this.getUserInfo(cookieValue);
