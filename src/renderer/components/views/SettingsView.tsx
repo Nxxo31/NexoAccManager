@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { useUIStore } from '@renderer/store/useUIStore';
 
 interface SettingsViewProps {
-  onOpenModal: () => void;
+  onOpenModal?: () => void;
   onKillAll?: () => void;
 }
 
@@ -128,7 +128,7 @@ function shade(hex: string, amt: number): string {
   return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 }
 
-export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenModal, onKillAll }) => {
+export const SettingsView: React.FC<SettingsViewProps> = ({ onKillAll }) => {
   const { t } = useTranslation();
   const {
     savePasswords, setSavePasswords,
@@ -346,13 +346,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenModal, onKillA
         </div>
       )}
 
-      {/* Open Settings Panel */}
-      <button
-        onClick={onOpenModal}
-        className="px-4 py-2 text-sm rounded bg-primary text-white hover:bg-primary-dark transition-colors"
-      >
-        {t('views.settings.openPanel', 'Abrir panel de ajustes')}
-      </button>
     </div>
   );
 };

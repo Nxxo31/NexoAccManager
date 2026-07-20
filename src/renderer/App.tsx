@@ -194,7 +194,7 @@ export default function App() {
           {activeView === 'games' && <GamesView />}
           {activeView === 'friends' && <FriendsHubView />}
           {activeView === 'settings' && (
-            <SettingsView onOpenModal={() => useUIStore.getState().setActiveView('accounts')} onKillAll={handleKillAllCallback} />
+            <SettingsView onKillAll={handleKillAllCallback} />
           )}
         </AppLayout>
 

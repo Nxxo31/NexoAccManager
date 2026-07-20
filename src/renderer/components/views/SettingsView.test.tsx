@@ -32,7 +32,6 @@ vi.mock('react-i18next', () => ({
         'views.settings.autoRelaunch': 'Auto-relanzar cuentas',
         'views.settings.connectionWatcher': 'Monitor de conexión',
         'views.settings.preventDuplicateInstances': 'Prevenir instancias duplicadas',
-        'views.settings.openPanel': 'Abrir panel de ajustes',
       };
       return translations[key] || fallback;
     },
@@ -83,8 +82,9 @@ describe('SettingsView', () => {
     expect(screen.getByText('Prevenir instancias duplicadas')).toBeInTheDocument();
   });
 
-  it('renders open panel button', () => {
-    render(<SettingsView onOpenModal={() => {}} />);
-    expect(screen.getByText('Abrir panel de ajustes')).toBeInTheDocument();
+  it('renders kill all button when provided', () => {
+    const onKillAll = vi.fn();
+    render(<SettingsView onKillAll={onKillAll} />);
+    expect(screen.getByText('Cerrar todas las instancias')).toBeInTheDocument();
   });
 });
