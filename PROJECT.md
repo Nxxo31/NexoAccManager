@@ -1,19 +1,31 @@
 # NexoAccManager — PROJECT.md
-# Última actualización: 2026-07-18 (todas las características de fase 1 y fase 2 completadas)
-# Versión actual: 3.1.1 (todas las características funcionales + fix login flow)
+# Última actualización: 2026-07-19 (UI rework + notification bar + rename NX-Manager)
+# Versión actual: 3.2.0 (UI rework shell + NotificationBar + botting IPC expuesto + rename NX-Manager)
 
 ## Estado actual
 
-|| Métrica | Valor |
-||---------|-------|
-|| Versión | 3.1.1 |
-|| Último commit | 79db923 — fix(login): forzar cambio a vista accounts + mejorar fetchAccounts + logging |
-|| Tag | v3.1.1 |
-|| tsc | 0 errores |
-|| vitest | 121/121 pasando (11 archivos) |
-|| lint | pendiente |
-|| build | ✅ Release v3.1.1 publicado (NexoAccManager.Setup.3.1.1.exe) |
-|| Release GitHub | v3.1.1 (disponible para descarga) |
+| Métrica | Valor |
+|---------|-------|
+| Versión | 3.2.0 |
+| Último commit | 004cfd8 — feat(branding): renombrar app a NX-Manager |
+| Branch | feature/ui-rework-slice → main (PR #2 open) |
+| tsc | 0 errores |
+| vitest | 131/131 pasando (12 archivos) |
+| lint | pendiente |
+| build | En progreso (electron-builder NSIS) |
+| Release GitHub | v3.1.1 publicado; v3.2.0 pending |
+
+## v3.2.0 — UI rework + NotificationBar + branding
+
+- **UI shell nuevo**: Sidebar lateral (accounts slicer con búsqueda, login directo, inline group edit, drag-drop, collapse), TopBar mínima (theme + settings), AppLayout con NotificationBar fuera del flujo. JoinBar eliminado. Tests: Sidebar (11), TopBar (7).
+- **NotificationBar toast system**: useUIStore con AppNotification + add/dismiss/clear. Component con framer-motion, 5 tipos (info/success/warning/error/loading), auto-dismiss configurable. Login flow integrado con notificaciones loading/success/error.
+- **GamesView reescrito limpio (159 líneas)**: búsqueda via IPC roblox:games:search, selección de cuenta, ServerView reuse al seleccionar juego.
+- **Botting IPC expuesto**: botting:start/stop/getStatus/setInterval añadidos a IpcChannel union, ALLOWED_CHANNELS y Api interface en preload.ts. Handlers ya existían en main.ts.
+- **settings:notifications:\* añadidos al IpcChannel union** (faltaban; causaban error TS2769).
+- **Renombrado NX-Manager**: main.ts (window title + tray label), LoginBrowserService.ts (login window title), package.json (nsis.shortcutName), locales es/en/pt (header.title). CryptoService salt PRESERVADA (rompería cookies existentes).
+- **tsconfig.json**: moduleResolution: bundler, paths only (sin baseUrl) — requerido para TypeScript 5.9.3.
+- **AGENTS.md**: documentado LSP en WSL (cliente solo conecta con editor abierto; tsc como source of truth).
+- **.github/workflows/code-review.yml**: PR checks (tsc, lint, vitest, coverage, build).
 
 ## Resumen de características completadas
 
