@@ -3,6 +3,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider } from './context/ThemeContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { AccountGrid } from './components/accounts/AccountGrid';
+import { AccountsView } from './components/views/AccountsView';
 import { AccountDetailPanel } from './components/accounts/AccountDetailPanel';
 import ServerBrowser from './components/server-browser/ServerBrowser';
 import SettingsPanel from './components/settings/SettingsPanel';
@@ -158,37 +159,11 @@ export default function App() {
           onOpenSettings={() => useUIStore.getState().setActiveView('settings')}
         >
           {activeView === 'accounts' && (
-            <div className="flex flex-col h-full">
-              <div className="flex-1 overflow-y-auto">
-                <AccountGrid
-                  accounts={filteredAccounts}
-                  selectedAccount={selectedAccount}
-                  onSelectAccount={handleSelectAccount}
-                  onDeleteAccount={(acc) => handleDeleteAccount(acc.id)}
-                  onPlayAccount={(acc) => handleLaunchApp(acc.id)}
-                  onFollowAccount={(acc) => followUser(acc.robloxUserId)}
-                  onShowAccountControl={(acc) => { setSelectedAccount(acc); setShowAccountControl(true); }}
-                  onEditAlias={(acc) => { setSelectedAccount(acc); setEditingAlias(true); }}
-                  onEditDescription={(acc) => { setSelectedAccount(acc); setEditingDesc(true); }}
-                  onCopyPlaceId={(acc) => handleCopyPlaceId(acc.savedPlaceId || '')}
-                  onToggleFavorite={(acc, isFav) => {
-                    useAccountStore.getState().setAccountField(acc.id, "isFavorite", isFav);
-                    const api = (window as any).api;
-                    api?.account?.setField?.(acc.id, "isFavorite", String(isFav));
-                  }}
-                  onChangeGroup={(acc, newGroup) => {
-                    useAccountStore.getState().setAccountField(acc.id, "group", newGroup);
-                    const api = (window as any).api;
-                    api?.account?.setField?.(acc.id, "group", newGroup);
-                  }}
-                  onReorder={(reordered: Account[]) => {
-                    useAccountStore.getState().setAccounts(reordered);
-                  }}
-                  hideUsernames={hideUsernames}
-                  jobIdShuffle={useUIStore.getState().jobIdShuffle}
-                />
-              </div>
-            </div>
+            <AccountsView
+              onShowAccountControl={(acc) => { setSelectedAccount(acc); setShowAccountControl(true); }}
+              onEditAlias={(acc) => { setSelectedAccount(acc); setEditingAlias(true); }}
+              onEditDescription={(acc) => { setSelectedAccount(acc); setEditingDesc(true); }}
+            />
           )}
           {activeView === 'servers' && <ServerView />}
           {activeView === 'games' && <GamesView />}

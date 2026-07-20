@@ -2,6 +2,7 @@ import * as React from 'react';
 import Sidebar from './Sidebar';
 import { TopBar } from './TopBar';
 import { NotificationBar } from './NotificationBar';
+import { SelectionBar } from './SelectionBar';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -30,6 +31,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           <div className="flex-1 overflow-y-auto">{children}</div>
         </div>
       </div>
+      {/* Popout flotante de cuentas seleccionadas — interconecta las vistas */}
+      <SelectionBar />
     </>
   );
 };

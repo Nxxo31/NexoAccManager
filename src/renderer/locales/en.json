@@ -334,5 +334,56 @@
     "es": "Spanish",
     "en": "English",
     "pt": "Portuguese"
+  },
+  "selectionBar": {
+    "title": "Selected Accounts",
+    "selected": "accounts selected",
+    "promptPlace": "Place ID (empty = use each account's saved):",
+    "promptJob": "Job ID (empty = use each account's saved):",
+    "launching": "Launching accounts...",
+    "launchDone": "Launch completed",
+    "killConfirm": "Close Roblox instances for selected accounts?",
+    "killDone": "Instances closed",
+    "killFailed": "Error closing instances",
+    "clear": "Clear selection",
+    "launchAll": "Launch all",
+    "killAll": "Kill all",
+    "remove": "Remove",
+    "removeConfirm": "Remove these accounts from NexoAccManager?",
+    "sendTo": "Send to:",
+    "disclaimer": "Selection persists when switching views. Bulk operations use each account's saved Place/Job IDs unless you specify one.",
+    "servers": "Servers",
+    "games": "Games",
+    "friends": "Friends",
+    "toggle": "Add to selection"
+  },
+  "views": {
+    "games": {
+      "multiSearched": "Multi-account search",
+      "multiMode": "Multi-account mode enabled",
+      "multiModeDesc": "Searching with {{count}} accounts. Results show which accounts found each game.",
+      "foundBy": "Found by {{n}} account(s)"
+    },
+    "servers": {
+      "placeIdRequired": "Place ID required",
+      "placeIdRequiredDesc": "Enter a valid numeric Place ID",
+      "selectAccountsFirst": "Select accounts first",
+      "selectAccountsFirstDesc": "Mark at least 2 accounts in the Sidebar",
+      "distributing": "Distributing accounts...",
+      "distributed": "Distribution completed",
+      "distributeFailed": "Error distributing",
+      "multiMode": "Multi-account distribution",
+      "multiModeDesc": "{{count}} accounts selected. Distribute them across different servers of the same game.",
+      "placeIdPlaceholder": "Place ID (numeric)",
+      "distribute": "Distribute",
+      "distributeWarn": "The backend uses the cookie of the first accountId to list servers and then distributes jobIds among the remaining accounts. Ensure all accounts have valid cookies."
+    },
+    "friends": {
+      "bulkFollow": "Following user...",
+      "bulkFollowDone": "Bulk follow completed",
+      "multiMode": "Multi-account mode enabled",
+      "multiModeDesc": "{{count}} accounts selected. In results you can follow with a single account or with all accounts at once.",
+      "followAll": "Follow with all selected accounts"
+    }
   }
 }

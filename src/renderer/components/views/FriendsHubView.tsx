@@ -1,10 +1,11 @@
 import * as React from 'react';
 import {
   User, UserPlus, UserCheck, UserMinus, Clock, Loader2, AlertCircle,
-  RefreshCw, ChevronDown, Search, ExternalLink,
+  RefreshCw, ChevronDown, Search, ExternalLink, Layers,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAccountStore } from '@renderer/store/useAccountStore';
+import { useUIStore } from '@renderer/store/useUIStore';
 import { Account } from '@/types/Account';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -53,6 +54,8 @@ export const FriendsHubView: React.FC = () => {
   const { t } = useTranslation();
   const accounts = useAccountStore((s) => s.accounts);
   const selectedAccount = useAccountStore((s) => s.selectedAccount);
+  const selectedIds = useAccountStore((s) => s.selectedIds);
+  const addNotification = useUIStore((s) => s.addNotification);
 
   const [activeTab, setActiveTab] = React.useState<Tab>('friends');
   const [friends, setFriends] = React.useState<Friend[]>([]);
@@ -66,6 +69,9 @@ export const FriendsHubView: React.FC = () => {
   const [searchUsername, setSearchUsername] = React.useState('');
   const [searchResults, setSearchResults] = React.useState<any[]>([]);
   const [searching, setSearching] = React.useState(false);
+  const [bulkFollowing, setBulkFollowing] = React.useState(false);
+
+  const hasMultiSelection = selectedIds.length >= 2;
 
   const api = React.useMemo(() => (typeof window !== 'undefined' ? (window as any).api : null), []);
 
@@ -173,6 +179,37 @@ export const FriendsHubView: React.FC = () => {
       setError((e as Error).message);
     }
   };
+
+  // Interconexión: follow de un mismo userId con TODAS las cuentas seleccionadas.
+  // Roblox Friends API es por-cuenta, así que iteramos accountIds.
+  const handleFollowWithAllSelected = React.useCallback(async (userId: number) => {
+    if (!api?.account || selectedIds.length < 2) return;
+    setBulkFollowing(true);
+    const id = addNotification({
+      type: 'loading',
+      title: t('views.friends.bulkFollow', 'Siguiendo usuario…'),
+      message: `${selectedIds.length} ${t('common.accounts', 'cuentas')}`,
+      durationMs: 0,
+    });
+    let okCount = 0;
+    let errCount = 0;
+    for (const accId of selectedIds) {
+      try {
+        await api.account.followUser(accId, userId);
+        okCount++;
+      } catch {
+        errCount++;
+      }
+    }
+    useUIStore.getState().dismissNotification(id);
+    addNotification({
+      type: errCount === 0 ? 'success' : errCount === selectedIds.length ? 'error' : 'warning',
+      title: t('views.friends.bulkFollowDone', 'Follow masivo completado'),
+      message: `${okCount} ok · ${errCount} error`,
+      durationMs: 5000,
+    });
+    setBulkFollowing(false);
+  }, [api, selectedIds, addNotification, t]);
 
   const handleUnfollowUser = async (userId: number) => {
     if (!api?.account || !activeAccount?.id) return;
@@ -327,6 +364,24 @@ export const FriendsHubView: React.FC = () => {
       </div>
 
       {/* Search user to follow */}
+      {hasMultiSelection && (
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/10 border border-primary/30">
+          <Layers className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-foreground">
+            <p className="font-medium text-primary">
+              {t('views.friends.multiMode', 'Modo multi-cuenta activado')}
+            </p>
+            <p className="text-muted-foreground">
+              {t(
+                'views.friends.multiModeDesc',
+                '{{count}} cuentas seleccionadas. En los resultados puedes seguir con una sola o con todas las cuentas a la vez.',
+                { count: selectedIds.length }
+              )}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-2">
         <input
           type="text"
@@ -368,13 +423,28 @@ export const FriendsHubView: React.FC = () => {
                 <p className="text-sm font-medium truncate">{user.displayName || user.username}</p>
                 <p className="text-xs text-muted-foreground truncate">@{user.username}</p>
               </div>
+              {/* Follow con cuenta activa */}
               <button
                 onClick={() => handleFollowUser(user.id || user.userId)}
                 className="flex items-center gap-1 px-2 py-1 text-xs rounded border border-border hover:bg-accent/20 transition-colors"
                 aria-label={t('views.friends.follow', 'Seguir')}
+                title={t('views.friends.follow', 'Seguir con cuenta activa')}
               >
                 <UserPlus className="h-3 w-3" />
               </button>
+              {/* Follow con todas las cuentas seleccionadas (bulk) */}
+              {hasMultiSelection && (
+                <button
+                  onClick={() => handleFollowWithAllSelected(user.id || user.userId)}
+                  disabled={bulkFollowing}
+                  className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-primary/20 text-primary border border-primary/40 hover:bg-primary/30 disabled:opacity-50 transition-colors"
+                  aria-label={t('views.friends.followAll', 'Seguir con todas las cuentas seleccionadas')}
+                  title={t('views.friends.followAll', 'Seguir con todas las cuentas seleccionadas')}
+                >
+                  <Layers className="h-3 w-3" />
+                  {hasMultiSelection ? selectedIds.length : ''}
+                </button>
+              )}
               <button
                 onClick={() => handleOpenProfile(user.id || user.userId)}
                 className="flex items-center gap-1 px-2 py-1 text-xs rounded border border-border hover:bg-bg-surface transition-colors"

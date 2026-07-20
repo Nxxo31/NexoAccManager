@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import Sidebar from '@renderer/components/layout/Sidebar';
 
-// Mock useAccountStore
+// Resetable mock state
 const mockAccountStore = {
   accounts: [
     { id: 'acc-1', username: 'user1', displayName: 'User One', group: 'main' },
@@ -10,105 +10,111 @@ const mockAccountStore = {
   ],
   selectedAccount: null,
   setSelectedAccount: vi.fn(),
-  searchQuery: '',
-  setSearchQuery: vi.fn(),
 };
 vi.mock('@renderer/store/useAccountStore', () => ({
   useAccountStore: (selector: any) => selector(mockAccountStore),
 }));
 
-// Mock useUIStore
 const mockUIStore = {
   sidebarCollapsed: false,
   toggleSidebar: vi.fn(),
   showAccounts: true,
   toggleShowAccounts: vi.fn(),
-  searchQuery: '',
-  setSearchQuery: vi.fn(),
+  setShowAccounts: vi.fn(),
+  activeView: 'accounts',
+  setActiveView: vi.fn(),
 };
 vi.mock('@renderer/store/useUIStore', () => ({
   useUIStore: (selector: any) => selector(mockUIStore),
 }));
 
-// Mock useAccountActions
 vi.mock('@renderer/hooks/useAccountActions', () => ({
-  useAccountActions: () => ({ handleLoginBrowser: vi.fn() }),
+  useAccountActions: () => ({}),
 }));
 
-// Mock react-i18next
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string, fallback: string) => fallback }),
+  useTranslation: () => ({ t: (_k: string, fallback: string) => fallback }),
 }));
 
 describe('Sidebar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // restore default mock state before each test
+    mockAccountStore.accounts = [
+      { id: 'acc-1', username: 'user1', displayName: 'User One', group: 'main' },
+      { id: 'acc-2', username: 'user2', displayName: 'User Two', group: '' },
+    ];
+    mockAccountStore.selectedAccount = null;
+    mockUIStore.sidebarCollapsed = false;
+    mockUIStore.showAccounts = true;
+    mockUIStore.activeView = 'accounts';
   });
 
   it('renders brand name when expanded', () => {
     render(<Sidebar />);
-    // Brand splits text across spans; check for "Acc" which only appears in brand
     expect(screen.getByText('Acc')).toBeInTheDocument();
   });
 
-  it('renders search input when expanded', () => {
+  it('renders collapse/expand button', () => {
     render(<Sidebar />);
-    expect(screen.getByPlaceholderText(/Search accounts/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Collapse/i)).toBeInTheDocument();
   });
 
-  it('renders login button when expanded', () => {
+  it('renders navigation menu items when expanded', () => {
     render(<Sidebar />);
-    const loginBtn = screen.getByLabelText(/Login/i);
-    expect(loginBtn).toBeInTheDocument();
+    expect(screen.getByText('Accounts')).toBeInTheDocument();
+    expect(screen.getByText('Servers')).toBeInTheDocument();
+    expect(screen.getByText('Games')).toBeInTheDocument();
+    expect(screen.getByText('Friends')).toBeInTheDocument();
+    expect(screen.getByText('Settings')).toBeInTheDocument();
   });
 
-  it('renders accounts list when not collapsed and showAccounts is true', () => {
+  it('toggles sidebar on collapse button click', () => {
+    render(<Sidebar />);
+    fireEvent.click(screen.getByLabelText(/Collapse/i));
+    expect(mockUIStore.toggleSidebar).toHaveBeenCalledTimes(1);
+  });
+
+  it('sets active view when clicking a nav item', () => {
+    render(<Sidebar />);
+    fireEvent.click(screen.getByText('Servers'));
+    expect(mockUIStore.setActiveView).toHaveBeenCalledWith('servers');
+  });
+
+  it('shows account list when not collapsed and showAccounts is true', () => {
     render(<Sidebar />);
     expect(screen.getByText('User One')).toBeInTheDocument();
     expect(screen.getByText('User Two')).toBeInTheDocument();
   });
 
-  it('shows group badge for accounts with group', () => {
+  it('hides account list when showAccounts is false', () => {
+    mockUIStore.showAccounts = false;
     render(<Sidebar />);
-    expect(screen.getByText('main')).toBeInTheDocument();
+    expect(screen.queryByText('User One')).not.toBeInTheDocument();
   });
 
-  it('shows "No group" badge for accounts without group', () => {
+  it('toggles Show accounts checkbox (calls setShowAccounts with negated value)', () => {
     render(<Sidebar />);
-    expect(screen.getByText('No group')).toBeInTheDocument();
+    const checkbox = screen.getByLabelText(/Show accounts/i) as HTMLInputElement;
+    expect(checkbox.checked).toBe(true);
+    fireEvent.click(checkbox);
+    expect(mockUIStore.setShowAccounts).toHaveBeenCalledWith(false);
   });
 
-  it('shows "No accounts to show" when account list is empty', () => {
+  it('renders "No accounts to show" when account list is empty', () => {
     mockAccountStore.accounts = [];
     render(<Sidebar />);
-    expect(screen.getByText('No accounts to show')).toBeInTheDocument();
-    mockAccountStore.accounts = [
-      { id: 'acc-1', username: 'user1', displayName: 'User One', group: 'main' },
-      { id: 'acc-2', username: 'user2', displayName: 'User Two', group: '' },
-    ];
+    expect(screen.getByText(/No accounts to show/i)).toBeInTheDocument();
   });
 
-  it('renders account count in footer', () => {
+  it('renders account count in footer when accounts present and showAccounts true', () => {
     render(<Sidebar />);
     expect(screen.getByText(/2\/50/)).toBeInTheDocument();
   });
 
-  it('toggles sidebar on collapse button click', () => {
+  it('selects an account when clicking in the account list', () => {
     render(<Sidebar />);
-    const toggleBtn = screen.getByLabelText(/Collapse/i);
-    fireEvent.click(toggleBtn);
-    expect(mockUIStore.toggleSidebar).toHaveBeenCalledTimes(1);
-  });
-
-  it('calls setSearchQuery when typing in search', () => {
-    render(<Sidebar />);
-    const searchInput = screen.getByPlaceholderText(/Search accounts/i);
-    fireEvent.change(searchInput, { target: { value: 'user1' } });
-    expect(mockUIStore.setSearchQuery).toHaveBeenCalledWith('user1');
-  });
-
-  it('shows "Show accounts" toggle when expanded', () => {
-    render(<Sidebar />);
-    expect(screen.getByText('Show accounts')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('User One').closest('button')!);
+    expect(mockAccountStore.setSelectedAccount).toHaveBeenCalled();
   });
 });

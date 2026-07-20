@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Gamepad2, Search, RefreshCw } from 'lucide-react';
+import { Gamepad2, Search, Layers } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAccountStore } from '@renderer/store/useAccountStore';
 import { useUIStore } from '@renderer/store/useUIStore';
@@ -13,46 +13,116 @@ interface RobloxGame {
   playerCount?: number;
   maxPlayers?: number;
   creator?: string;
+  universeId?: number;
+}
+
+interface SearchHit {
+  placeId: number;
+  name: string;
+  thumbnail?: string;
+  playerCount?: number;
+  maxPlayers?: number;
+  description?: string;
+  creator?: string;
+  universeId?: number;
+}
+
+// Resultado de búsqueda fusionado a través de N cuentas. Cada juego se marca con
+// los accountIds que lo devolvieron, para que laSelectionBar pueda repartir.
+interface MergedGame extends RobloxGame {
+  foundBy: string[]; // accountIds que lo encontraron
 }
 
 export const GamesView: React.FC = () => {
   const { t } = useTranslation();
   const [search, setSearch] = React.useState('');
-  const [results, setResults] = React.useState<RobloxGame[]>([]);
+  const [results, setResults] = React.useState<MergedGame[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const accounts = useAccountStore((s) => s.accounts);
   const selectedAccount = useAccountStore((s) => s.selectedAccount);
   const setSelectedAccount = useAccountStore((s) => s.setSelectedAccount);
+  const selectedIds = useAccountStore((s) => s.selectedIds);
 
   const setSelectedPlaceId = useUIStore((s) => s.setSelectedPlaceId);
   const setActiveView = useUIStore((s) => s.setActiveView);
+  const addNotification = useUIStore((s) => s.addNotification);
 
   const api = React.useMemo(
     () => (typeof window !== 'undefined' ? (window as any).api : null),
     []
   );
 
+  // Para la búsqueda: usar las seleccionadas (si hay ≥2) o un solo selector.
+  const hasMultiSelection = selectedIds.length >= 2;
+
+  // Cuenta "activa" para el selector individual (fallback / single mode)
   const activeAccount: Account | undefined = React.useMemo(
     () => selectedAccount || accounts[0],
     [selectedAccount, accounts]
   );
 
+  // Cuentas a usar para la búsqueda
+  const searchAccounts: Account[] = React.useMemo(() => {
+    if (hasMultiSelection) return accounts.filter((a) => selectedIds.includes(a.id));
+    return activeAccount ? [activeAccount] : [];
+  }, [hasMultiSelection, selectedIds, accounts, activeAccount]);
+
   const handleSearch = async () => {
-    if (!search.trim() || !activeAccount?.id) return;
+    if (!search.trim() || searchAccounts.length === 0) return;
     setLoading(true);
     setError(null);
     try {
-      if (!api?.roblox?.searchGame) {
-        setError('API no disponible');
-        return;
+      // Buscar con la primera cuenta (los resultados de Roblox son los mismos
+      // sin importar la cuenta; el placeId es canónico). Para verificar conexión,
+      // si hay multi-selección, iteramos la búsqueda con cada cuenta y marcamos
+      // qué cuentas devolvieron el juego (foundBy).
+      const merged = new Map<number, MergedGame>();
+
+      for (const acc of searchAccounts) {
+        if (!api?.roblox?.searchGame) continue;
+        try {
+          const result = await api.roblox.searchGame(search.trim(), acc.id);
+          const hits: SearchHit[] = Array.isArray(result)
+            ? result
+            : result?.data || [];
+          for (const hit of hits) {
+            const key = hit.placeId;
+            const existing = merged.get(key);
+            if (existing) {
+              existing.foundBy.push(acc.id);
+            } else {
+              merged.set(key, {
+                placeId: hit.placeId,
+                name: hit.name,
+                description: hit.description,
+                thumbnail: hit.thumbnail,
+                playerCount: hit.playerCount,
+                maxPlayers: hit.maxPlayers,
+                creator: hit.creator,
+                universeId: hit.universeId,
+                foundBy: [acc.id],
+              });
+            }
+          }
+        } catch (e) {
+          // Silencioso para una cuenta; reportamos solo error global si todas fallan
+          if (searchAccounts.length === 1) {
+            setError((e as Error).message || 'Error en búsqueda');
+          }
+        }
       }
-      const result = await api.roblox.searchGame(search.trim(), activeAccount.id);
-      const data: RobloxGame[] = Array.isArray(result)
-        ? result
-        : result?.data || [];
-      setResults(data);
+
+      setResults(Array.from(merged.values()));
+      if (hasMultiSelection && merged.size > 0) {
+        addNotification({
+          type: 'info',
+          title: t('views.games.multiSearched', 'Búsqueda multi-cuenta'),
+          message: `${merged.size} juegos · ${searchAccounts.length} ${t('common.accounts', 'cuentas')}`,
+          durationMs: 3000,
+        });
+      }
     } catch (e) {
       setError((e as Error).message || 'Error en búsqueda');
     } finally {
@@ -93,7 +163,27 @@ export const GamesView: React.FC = () => {
         </p>
       ) : (
         <>
-          {/* Account selector */}
+          {/* Banner multi-selección */}
+          {hasMultiSelection && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/10 border border-primary/30">
+              <Layers className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-foreground">
+                <p className="font-medium text-primary">
+                  {t('views.games.multiMode', 'Modo multi-cuenta activado')}
+                </p>
+                <p className="text-muted-foreground">
+                  {t(
+                    'views.games.multiModeDesc',
+                    'Buscando con {{count}} cuentas. Los resultados muestran qué cuentas encontraron cada juego.',
+                    { count: selectedIds.length }
+                  )}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Account selector (solo en modo single) */}
+          {!hasMultiSelection && (
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
               {t('views.games.selectAccount', 'Seleccionar cuenta:')}
@@ -123,6 +213,7 @@ export const GamesView: React.FC = () => {
               </div>
             </div>
           </div>
+          )}
 
           {/* Search bar */}
           <div className="flex gap-2 max-w-md">
@@ -143,7 +234,7 @@ export const GamesView: React.FC = () => {
             </div>
             <button
               onClick={handleSearch}
-              disabled={loading || !search.trim() || !activeAccount?.id}
+              disabled={loading || !search.trim() || searchAccounts.length === 0}
               className="px-4 py-2 text-sm rounded bg-primary text-white hover:bg-primary/90 disabled:opacity-40 transition-colors"
             >
               {t('common.search', 'Buscar')}
@@ -216,12 +307,22 @@ export const GamesView: React.FC = () => {
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center justify-between w-full">
                       <h4 className="text-sm font-medium truncate">{game.name}</h4>
-                      {game.playerCount !== undefined &&
-                        game.maxPlayers !== undefined && (
-                          <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
-                            {game.playerCount}/{game.maxPlayers}
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                        {hasMultiSelection && game.foundBy.length > 0 && (
+                          <span
+                            className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium"
+                            title={t('views.games.foundBy', 'Encontrado por {{n}} cuenta(s)', { n: game.foundBy.length })}
+                          >
+                            {game.foundBy.length}/{selectedIds.length}
                           </span>
                         )}
+                        {game.playerCount !== undefined &&
+                          game.maxPlayers !== undefined && (
+                            <span className="text-xs text-muted-foreground">
+                              {game.playerCount}/{game.maxPlayers}
+                            </span>
+                          )}
+                      </div>
                     </div>
                     {game.description && (
                       <p className="text-xs text-muted-foreground line-clamp-2">
