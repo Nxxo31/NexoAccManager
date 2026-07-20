@@ -81,8 +81,261 @@
 
 ---
 
-## Spec v3.3.0 — UI coherente y minimalista (Basado en investigación)
+## Modelo y Arquitectura Backend v3.4.0 (2026-07-20) — Facade Pattern
 
+**Decisión:** refactor del backend con Facade Pattern sobre todas las APIs Roblox, manteniendo Servicios transversales separados. Responde al problema de "control claro del backend" y "arquitectura idónea".
+
+**Patrón:** Facade (GoF) — un objeto único `RobloxContext` expone API simplificada; internamente orquesta servicios especializados. Los IPC handlers `roblox:*` ya no importan dinámicamente cada servicio; delegan al Facade.
+- Fuente canónica: GoF Design Patterns Elements of Reusable Object-Oriented Software (Gamma/Helm/Johnson/Vlissides)
+- Documentación Microsoft: "Facade Pattern — provides a simplified interface to a complex subsystem" https://learn.microsoft.com/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/
+
+---
+
+### Matriz de servicios — estado actual vs target
+
+| Archivo | Líneas | Clase | Categoría actual | Categoría target | Roblox API? | Cambio v3.4.0 |
+|---------|--------|-------|-------------------|------------------|-------------|---------------|
+| services/LoginBrowserService.ts | 185 | LoginBrowserService | Roblox auth | **RobloxContext.auth** | BrowserWindow (no HTTP) | Enveloped by Facade |
+| services/RobloxAuthService.ts | 211 | RobloxAuthService | Roblox auth | **RobloxContext.auth** | users.roblox.com/v1/users/authenticated | Enveloped by Facade |
+| services/GamesService.ts | 402 | GamesService | Roblox data | **RobloxContext.games** | games.roblox.com/v1/games | Enveloped by Facade |
+| services/ServersService.ts | 234 | ServersService | Roblox data | **RobloxContext.servers** | games.roblox.com/v1/games/{id}/servers/Public, presence.roblox.com | Enveloped by Facade |
+| services/PresenceService.ts | 540 | PresenceService | Roblox data | **RobloxContext.presence** | presence.roblox.com/v1/presence | Enveloped by Facade |
+| services/BottingService.ts | 138 | BottingService | Roblox action | **RobloxContext.botting** | (lanza procesos) | Enveloped by Facade |
+| services/CookieExpiryService.ts | 188 | CookieExpiryService | Roblox maintenance | **RobloxContext.cookies** | Valida contra auth endpoint | Enveloped by Facade |
+| core/AccountManager.ts | 612 | AccountManager | Account lifecycle | **AccountManager** (sin cambio) | Usa cookie descifrada para launch | Sin refactor |
+| core/AccountSettingsService.ts | 984 | AccountSettingsService | Roblox settings | **AccountSettingsService** (sin cambio) | settings.roblox.com via cookie | Sin refactor |
+| core/CryptoService.ts | 81 | CryptoService | Cross-cutting | **CryptoService** (sin cambio) | No | Sin refactor |
+| core/MultiRobloxService.ts | 182 | MultiRobloxService | Cross-cutting | **MultiRobloxService** (sin cambio) | No (mutex Windows) | Sin refactor |
+| core/ThemeService.ts | 180 | ThemeService | Cross-cutting | **ThemeService** (sin cambio) | No | Sin refactor |
+
+**Total sobre Facade:** 7 servicios Roblox (1,798 líneas)  
+**Permanecen separados:** 5 servicios transversales (2,039 líneas)
+
+---
+
+### Arquitectura target — Capas
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  IPC Layer (main.ts handlers)                                       │
+│  ─────────────────────────────────────────────────────────────────  │
+│  account:*  → AccountManager                                        │
+│  roblox:*   → RobloxContext (Facade)  ← UNIFIED POINT               │
+│  settings:* → AccountSettingsService                                │
+│  theme:*    → ThemeService                                           │
+└─────────────┬───────────────────────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  Facade Layer — RobloxContext.ts                                     │
+│  ─────────────────────────────────────────────────────────────────  │
+│  auth:      login(), loginWithBrowser(), verifyCookie()              │
+│  games:     search(placeId, cookie), getFavorites()                  │
+│  servers:   listServers(placeId, cookie), getUsersInServer()        │
+│  presence:  getRecentGames(), getFriends()                           │
+│  botting:   start(placeId), stop(), getStatus()                      │
+│  cookies:   refresh(accountId), getExpiry(accountId)                 │
+└─────────────┬───────────────────────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  Services Layer (internos del Facade)                                │
+│  ─────────────────────────────────────────────────────────────────  │
+│  LoginBrowserService  RobloxAuthService  GamesService               │
+│  ServersService        PresenceService     BottingService            │
+│  CookieExpiryService                                                 │
+└─────────────┬───────────────────────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  Cross-cutting Services (separados, no Facade)                       │
+│  ─────────────────────────────────────────────────────────────────  │
+│  AccountManager (DB)    CryptoService (AES)                           │
+│  AccountSettingsService (Roblox settings via cookie)                 │
+│  MultiRobloxService (mutex)  ThemeService (CSS)                      │
+│  DatabaseManager (SQLite better-sqlite3)                             │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Justificación capas:**
+- **IPC Layer** delega al Facade para todo `roblox:*`. No instancia servicios directamente ni importa dinámicamente.
+- **Facade Layer** (RobloxContext) es la capa de orquestación. Recibe dependencias vía constructor (poor-man's DI). Expone API estable a los handlers.
+- **Services Layer** sigue existiendo — el Facade los compone, no los elimina. Cada servicio mantiene su single responsibility.
+- **Cross-cutting** persiste fuera del Facade: account lifecycle, crypto, DB, theme. AccountSettingsService usa cookies pero es settings, no API Roblox propiamente.
+
+---
+
+### Interfaces TypeScript — RobloxContext (target)
+
+```typescript
+// src/main/services/RobloxContext.ts (a crear en v3.4.0)
+
+export interface IRobloxContext {
+  // Auth subsystem
+  auth: {
+    loginWithBrowser(): Promise<{ cookie: string; userId: number; username: string }>;
+    login(username: string, password: string): Promise<{ cookie: string; userId: number }>;
+    verifyCookie(cookie: string): Promise<{ authenticated: boolean; userId: number }>;
+  };
+  // Games subsystem
+  games: {
+    search(query: string, cookie: string): Promise<GameInfo[]>;
+  };
+  // Servers subsystem
+  servers: {
+    list(placeId: string, cookie: string, opts?: { sortOrder?: 'Asc'|'Desc'; limit?: number; maxPing?: number }): Promise<RobloxServer[]>;
+    getUsersInServer(placeId: string, jobId: string, cookie: string): Promise<RobloxServerUser[]>;
+  };
+  // Presence subsystem
+  presence: {
+    getRecentGames(userId: number, cookie: string): Promise<RecentGame[]>;
+    getFriends(cookie: string): Promise<Friend[]>;
+  };
+  // Botting subsystem
+  botting: {
+    start(accountId: string, placeId: string): Promise<boolean>;
+    stop(): boolean;
+    getStatus(): { running: boolean; accounts: string[] };
+  };
+  // Cookie maintenance subsystem
+  cookies: {
+    refresh(accountId: string): Promise<boolean>;
+    getExpiry(accountId: string): Date | null;
+  };
+}
+
+export class RobloxContext implements IRobloxContext {
+  // Constructor — DI manual (poor-man's DI like NexoApp actual)
+  constructor(
+    private loginBrowser: LoginBrowserService,
+    private auth: RobloxAuthService,
+    private gamesService: GamesService,
+    private serversService: ServersService,
+    private presenceService: PresenceService,
+    private bottingService: BottingService,
+    private cookieExpiryService: CookieExpiryService,
+    private accountManager: AccountManager,  // para refresh cookies
+  ) {}
+
+  auth: { ... }; games: { ... }; servers: { ... };
+  presence: { ... }; botting: { ... }; cookies: { ... };
+}
+```
+
+---
+
+### Cambios en NexoApp (main.ts)
+
+```typescript
+// Antes (v3.2.0) — instanciación dispersa, handler importa dinámicamente
+class NexoApp {
+  private accountManager = new AccountManager(db, crypto);
+  // En cada handler: const { GamesService } = await import('./services/GamesService');
+}
+
+// Después (v3.4.0) — Facade compuesto en NexoApp
+class NexoApp {
+  private roblox: RobloxContext;
+
+  constructor() {
+    const loginBrowser = new LoginBrowserService();
+    const authService = new RobloxAuthService();
+    const gamesService = new GamesService();
+    const serversService = new ServersService();
+    const presenceService = new PresenceService(db, crypto);
+    const bottingService = new BottingService(accountManager, presenceService);
+    const cookieExpiryService = new CookieExpiryService(db, crypto);
+
+    this.roblox = new RobloxContext(
+      loginBrowser, authService, gamesService,
+      serversService, presenceService, bottingService,
+      cookieExpiryService, accountManager
+    );
+  }
+
+  // Handlers antes: const { LoginBrowserService } = await import(...);
+  // Después: this.roblox.auth.loginWithBrowser()
+}
+```
+
+---
+
+### Matriz de rutas Roblox API (inventario consolidado)
+
+| Operación | Endpoint | Servicio actual | En Facade como |
+|-----------|----------|-----------------|----------------|
+| Login con browser | roblox.com/login (BrowserWindow) | LoginBrowserService | `roblox.auth.loginWithBrowser()` |
+| Verificar cookie autenticada | users.roblox.com/v1/users/authenticated | RobloxAuthService + AccountManager | `roblox.auth.verifyCookie()` |
+| Login username/password | auth.roblox.com/v2/login | RobloxAuthService | `roblox.auth.login()` |
+| Buscar juegos | games.roblox.com/v1/games ( búsqueda) | GamesService.searchGame | `roblox.games.search()` |
+| Listar servidores públicos | games.roblox.com/v1/games/{id}/servers/Public | ServersService.getGameServers | `roblox.servers.list()` |
+| Usuarios en servidor (friends) | presence.roblox.com/v1/presence/users | ServersService.getServerUsers | `roblox.servers.getUsersInServer()` |
+| Presencia / juegos recientes | presence.roblox.com/v1/presence/all | PresenceService | `roblox.presence.getRecentGames()` |
+| Lista de amigos | friends.roblox.com/v1/users/{id}/friends | AccountSettingsService | `roblox.presence.getFriends()` |
+| Obtener auth ticket | auth.roblox.com/v1/authentication-ticket | AccountManager.getAuthTicket | `roblox.auth.getAuthTicket()` (mover a Facade) |
+| Obtener CSRF token | auth.roblox.com/v2/logout | AccountManager.getCsrfToken | `roblox.auth.getCsrfToken()` (mover a Facade) |
+| Cambiar settings cuenta | settings.roblox.com/... | AccountSettingsService | `accountSettings.*` (sin cambio) |
+| Avatar headshot | thumbnails.roblox.com/v1/users/avatar-headshot | ServersService/AccountSettingsService | `roblox.presence.getAvatar()` |
+| Lanzar Roblox (protocolo) | roblox-player:// | AccountManager.launchRoblox | `accountManager.launchRoblox()` (sin cambio) |
+| Lanzar Roblox (multi) | spawn RobloxPlayerLauncher.exe | AccountManager.launchRobloxDirect | `accountManager.launchRoblox()` (sin cambio) |
+
+---
+
+### Test Strategy v3.4.0 (TDD plan)
+
+**Tests unitarios RobloxContext** (deben fallar primero — anti-sesgo semántico):
+
+1. `describe('RobloxContext') / it('auth.loginWithBrowser delegates to LoginBrowserService')`
+2. `describe('RobloxContext') / it('auth.verifyCookie delegates to RobloxAuthService')`
+3. `describe('RobloxContext') / it('games.search delegates to GamesService')`
+4. `describe('RobloxContext') / it('servers.list delegates to ServersService with opts')`
+5. `describe('RobloxContext') / it('servers.getUsersInServer delegates to ServersService')`
+6. `describe('RobloxContext') / it('presence.getRecentGames delegates to PresenceService')`
+7. `describe('RobloxContext') / it('botting.start delegates to BottingService')`
+8. `describe('RobloxContext') / it('cookies.refresh validates accountId and delegates to CookieExpiryService')`
+9. `describe('RobloxContext') / it('throws if dependency not provided in constructor')`
+
+**Tests de integración backend** (validación REAL, no mock):
+- `it('verifyCookie returns authenticated=true for valid cookie format')` — usa cookie sintética válida del fixture
+- `it('verifyCookie returns authenticated=false for invalid cookie')` — usa cookie inválida
+- `it('games.search returns array for valid query')` — usa mock HTTP con axios-mock-adapter
+- `it('servers.list returns array for valid placeId')` — axios-mock
+
+**Anti-sesgo semántico (regla documentada):**
+- Los tests de delegación verifican que el Facade llama al servicio correcto (mock del servicio subyacente, assert spy llamado con args esperados)
+- Los tests de integración verifican comportamiento REAL: con axios-mock-adapter interceptando, NO con mock del servicio completo
+- Nunca mockear el servicio end-to-end solo para que el test pase
+
+**Acceptance Criteria v3.4.0:**
+- [ ] `RobloxContext.ts` creado con las 6 sub-APIs (auth/games/servers/presence/botting/cookies)
+- [ ] main.ts: todos los handlers `roblox:*` delegan a `this.roblox.<sub-api>.<method>()`
+- [ ] Cero imports dinámicos en handlers `roblox:*` (lazy imports eliminados)
+- [ ] Tests RobloxContext: 9 unitarios (delegación) + 4 integración (REAL behavior via axios-mock-adapter)
+- [ ] tsc 0, vitest 131+9+4=144+ pasando, lint 0
+- [ ] Build Windows NSIS generado
+
+### Non-goals v3.4.0
+- NO introducir contenedor de IoC ni decoradores (se mantiene poor-man's DI)
+- NO cambiar el patrón IPC (invoke/handle)
+- NO añadir features nuevas — solo reorganización arquitectónica
+- NO refactor de AccountManager (sigue con su lógica de lanzar Roblox)
+- NO eliminar ningún servicio — el Facade los compone, no los reemplaza
+- NO mover AccountSettingsService al Facade (es settings, no API Roblox per se)
+
+### Riesgos y mitigaciones
+
+| Riesgo | Probabilidad | Mitigación |
+|--------|--------------|------------|
+| Romper cookies existentes al refactor | Media | CryptoService NO se toca. Salt preservada. |
+| Imports circulares (Facade ↔ AccountManager) | Baja | Facade inyecta AccountManager solo como dependencia, nunca al revés |
+| Latencia adicional por capa | Baja | El Facade solo delega, no hace trabajo extra. Benchmark < 1ms overhead |
+| Tests falsos positivos (sesgo semántico) | Media | Tests de integración con axios-mock-adapter, no mocks de servicios completos |
+| Regresión en handlers `roblox:*` existentes | Alta | Audit IPC end-to-end después del refactor. Smoke tests E2E de cada namespace. |
+
+---
+
+
+## Spec v3.3.0 — UI coherente y minimalista (Basado en investigación)
 ### Objetivo
 Alinear la UI actual con el patrón Master-Detail + Sidebar Navigation canonizado, aplicando design tokens consistentes y uni-form visual minimalista.
 
