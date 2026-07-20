@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAccountStore } from '@renderer/store/useAccountStore';
 import { useUIStore } from '@renderer/store/useUIStore';
-import { ChevronLeft, ChevronRight, Moon, Sun, Settings as SettingsIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Moon, Sun, Settings as SettingsIcon, Users, Server, Gamepad2 } from 'lucide-react';
 import { useAccountActions } from '@renderer/hooks/useAccountActions';
 import type { Account } from '@/types/Account';
 
@@ -18,6 +18,8 @@ const Sidebar: React.FC = () => {
   const setSearchQuery = useUIStore((s) => s.setSearchQuery);
   const showAccounts = useUIStore((s) => s.showAccounts);
   const toggleShowAccounts = useUIStore((s) => s.toggleShowAccounts);
+  const activeView = useUIStore((s) => s.activeView);
+  const setActiveView = useUIStore((s) => s.setActiveView);
   const { handleLoginBrowser } = useAccountActions();
 
   return (
@@ -55,6 +57,59 @@ const Sidebar: React.FC = () => {
           </AnimatePresence>
         </button>
       </div>
+
+      {/* Navigation Menu (only when expanded) */}
+      {!sidebarCollapsed && (
+        <div className="flex flex-col gap-1 p-2">
+          <nav className="flex flex-col gap-1">
+            {/* Accounts */}
+            <button
+              onClick={() => setActiveView('accounts')}
+              className={`flex items-center gap-2 p-2 rounded hover:bg-bg-elevated transition-colors ${activeView === 'accounts' ? 'bg-primary/20 text-primary' : ''}`}
+              aria-label={t('sidebar.nav.accounts', 'Accounts')}
+            >
+              <Users className="h-4 w-4" />
+              <span className="text-xs text-foreground">{t('sidebar.nav.accounts', 'Accounts')}</span>
+            </button>
+            {/* Servers */}
+            <button
+              onClick={() => setActiveView('servers')}
+              className={`flex items-center gap-2 p-2 rounded hover:bg-bg-elevated transition-colors ${activeView === 'servers' ? 'bg-primary/20 text-primary' : ''}`}
+              aria-label={t('sidebar.nav.servers', 'Servers')}
+            >
+              <Server className="h-4 w-4" />
+              <span className="text-xs text-foreground">{t('sidebar.nav.servers', 'Servers')}</span>
+            </button>
+            {/* Games */}
+            <button
+              onClick={() => setActiveView('games')}
+              className={`flex items-center gap-2 p-2 rounded hover:bg-bg-elevated transition-colors ${activeView === 'games' ? 'bg-primary/20 text-primary' : ''}`}
+              aria-label={t('sidebar.nav.games', 'Games')}
+            >
+              <Gamepad2 className="h-4 w-4" />
+              <span className="text-xs text-foreground">{t('sidebar.nav.games', 'Games')}</span>
+            </button>
+            {/* Friends */}
+            <button
+              onClick={() => setActiveView('friends')}
+              className={`flex items-center gap-2 p-2 rounded hover:bg-bg-elevated transition-colors ${activeView === 'friends' ? 'bg-primary/20 text-primary' : ''}`}
+              aria-label={t('sidebar.nav.friends', 'Friends')}
+            >
+              <Users className="h-4 w-4" />
+              <span className="text-xs text-foreground">{t('sidebar.nav.friends', 'Friends')}</span>
+            </button>
+            {/* Settings */}
+            <button
+              onClick={() => setActiveView('settings')}
+              className={`flex items-center gap-2 p-2 rounded hover:bg-bg-elevated transition-colors ${activeView === 'settings' ? 'bg-primary/20 text-primary' : ''}`}
+              aria-label={t('sidebar.nav.settings', 'Settings')}
+            >
+              <SettingsIcon className="h-4 w-4" />
+              <span className="text-xs text-foreground">{t('sidebar.nav.settings', 'Settings')}</span>
+            </button>
+          </nav>
+        </div>
+      )}
 
       {/* Search Bar and Login Button (only when expanded) */}
       {!sidebarCollapsed && (
@@ -94,9 +149,7 @@ const Sidebar: React.FC = () => {
               {accounts.map((acc) => (
                 <div
                   key={acc.id}
-                  className={`flex items-center gap-3 p-2 rounded hover:bg-bg-elevated transition-colors cursor-pointer ${
-                    selectedAccount?.id === acc.id ? 'border-primary/50' : ''
-                  }`}
+                  className={`flex items-center gap-3 p-2 rounded hover:bg-bg-elevated transition-colors cursor-pointer ${selectedAccount?.id === acc.id ? 'border-primary/50' : ''}`}
                   onClick={() => setSelectedAccount(acc)}
                 >
                   {/* Status dot (placeholder: green for online, red for offline) */}
