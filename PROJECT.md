@@ -12,8 +12,8 @@
 | tsc | 0 errores |
 | vitest | 131/131 pasando (12 archivos) |
 | lint | pendiente |
-| build | En progreso (electron-builder NSIS) |
-| Release GitHub | v3.1.1 publicado; v3.2.0 pending |
+| build | ✅ Windows NSIS + Linux AppImage + Linux Snap generados |
+| Release GitHub | v3.2.0 publicado — https://github.com/Nxxo31/NexoAccManager/releases/tag/v3.2.0 |
 
 ## v3.2.0 — UI rework + NotificationBar + branding
 
