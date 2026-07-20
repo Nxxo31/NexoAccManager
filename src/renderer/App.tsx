@@ -21,6 +21,7 @@ import type { Account } from '@/types/Account';
 
 export default function App() {
   const [activeModal, setActiveModal] = React.useState<ViewKey | null>(null);
+  void activeModal; void setActiveModal; // estado reservado para futuros modales
   const [showAccountControl, setShowAccountControl] = React.useState(false);
   const [editingAlias, setEditingAlias] = React.useState(false);
   const [editingDesc, setEditingDesc] = React.useState(false);
@@ -154,7 +155,7 @@ export default function App() {
         <AppLayout
           theme={themeSettings}
           setTheme={useUIStore.getState().setThemeSettings}
-          onOpenSettings={() => setActiveModal('settings')}
+          onOpenSettings={() => useUIStore.getState().setActiveView('settings')}
         >
           {activeView === 'accounts' && (
             <div className="flex flex-col h-full">
@@ -193,7 +194,7 @@ export default function App() {
           {activeView === 'games' && <GamesView />}
           {activeView === 'friends' && <FriendsHubView />}
           {activeView === 'settings' && (
-            <SettingsView onOpenModal={() => setActiveModal('settings')} onKillAll={handleKillAllCallback} />
+            <SettingsView onOpenModal={() => useUIStore.getState().setActiveView('accounts')} onKillAll={handleKillAllCallback} />
           )}
         </AppLayout>
 
