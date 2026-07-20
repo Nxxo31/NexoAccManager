@@ -83,13 +83,94 @@
 
 ## Modelo y Arquitectura Backend v3.4.0 (2026-07-20) — Facade Pattern
 
-**Decisión:** refactor del backend con Facade Pattern sobre todas las APIs Roblox, manteniendo Servicios transversales separados. Responde al problema de "control claro del backend" y "arquitectura idónea".
+**Decisión:** implementación COMPLETA de todas las features de RAM + refactor del backend con Facade Pattern sobre todas las APIs Roblox. Responde al objetivo de tener una app equivalente a RAM v3.7 con arquitectura moderna y código limpio.
 
 **Patrón:** Facade (GoF) — un objeto único `RobloxContext` expone API simplificada; internamente orquesta servicios especializados. Los IPC handlers `roblox:*` ya no importan dinámicamente cada servicio; delegan al Facade.
 - Fuente canónica: GoF Design Patterns Elements of Reusable Object-Oriented Software (Gamma/Helm/Johnson/Vlissides)
 - Documentación Microsoft: "Facade Pattern — provides a simplified interface to a complex subsystem" https://learn.microsoft.com/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/
 
 ---
+
+### Gap Analysis — RAM v3.7 features vs NX-Manager actual
+
+**Fuente:** README.md del repo ic3w0lf22/Roblox-Account-Manager (features table oficial + código)
+
+| # | Feature RAM | Estado NX-Manager | Dónde va en NX-Manager v3.4.0 | Tipo |
+|---|-------------|-------------------|-------------------------------|------|
+| 1 | **Account Encryption** (local, PC-key) | ✅ CryptoService AES-256-GCM | `CryptoService` — sin cambio | Existente |
+| 2 | **Add Account (browser login)** | ✅ LoginBrowserService | `RobloxContext.auth.loginWithBrowser()` | Existente |
+| 3 | **Add Account (user:pass)** | ✅ RobloxAuthService.login | `RobloxContext.auth.login()` | Existente |
+| 4 | **Import Cookies** (drag & drop / bulk cookie) | ❌ NO | `RobloxContext.auth.importCookies()` → nuevo `CookieImportService.ts` | **NUEVO v3.4.0** |
+| 5 | **Bulk User Importing** (user:pass batch) | ❌ NO | `RobloxContext.auth.bulkImport()` → nuevo `BulkImportService.ts` | **NUEVO v3.4.0** |
+| 6 | **Multi Roblox** | ✅ MultiRobloxService | `MultiRobloxService` — sin cambio | Existente |
+| 7 | **Server List** | ✅ ServersService | `RobloxContext.servers.list()` | Existente |
+| 8 | **Join Small Servers** | ✅ pastePlaceId + JobId | `AccountManager.joinServer()` via `roblox:launch` | Existente |
+| 9 | **Join VIP Servers** | ✅ placeId + link | `AccountManager.joinServer()` detecta link VIP | Existente |
+| 10 | **Load Region** (server ping + región) | ❌ NO | `RobloxContext.servers.getServerRegion()` — axPing API / `RobloxServer.PingRegion` | **NUEVO v3.4.0** |
+| 11 | **Player Finder** (search user in servers) | ✅ ServersService.getServerUsers | `RobloxContext.servers.searchPlayer` — busqpor username via presence API | Existente (base ya) |
+| 12 | **Games List** (browse thousands) | ✅ GamesService.searchGameAPI | `RobloxContext.games.search()` | Existente |
+| 13 | **Favorite Games** | ✅ games:add/get/remove IPC | `RobloxContext.games.getFavorites()/add/remove()` | Existente |
+| 14 | **Recent Games** | ✅ PresenceService.getGameHistory | `RobloxContext.presence.getRecentGameData()` — usuarios recientes guardados | Existente |
+| 15 | **Save PlaceId & JobId** | ✅ manageJobId + setting:per-account | `AccountManager.setAccountSettings()` | Existente |
+| 16 | **Shuffle JobId** | ✅ JobIdShuffle feature en lanzadesa de múltiples cuentas | `RobloxContext.servers.randomizeJobId()` | Existente (rama Joining) |
+| 17 | **Open Browser** (abrir navegador con sesión de cuenta) | ✅ `RobloxContext.auth.openBrowserSession()` — BrowserWindow con perfil de cuenta | `RobloxContext.auth.openBrowser()` | Existente |
+| 18 | **Account Utilities** (Rigido perfil, privacy, etc) | ✅ AccountSettingsService | `AccountSettingsService` — sin cambio | Existente |
+| 19 | **Account Sorting** (drag-drop orden) | ✅ UI con framer-motion/A o draghover state | useAccountStore + AccountRow | Existente |
+| 20 | **Account Grouping** (grupos con drag) | ✅ useAccountStore goes select xuGroup + drop | `AccountManager.setAccountGroup()` — lógica existente | Existente |
+| 21 | **Group Sorting** (orden numérico 0-999) | ✅ sortGroups + restore order en useAccountMethods | `AccountManager.sortGroups()` — sóADO | Existente |
+| 22 | **Password Encyption (**optional password) | ❌ NO (solo hardware-based key) | `CryptoService.setPasswordKey()` — hashed conPBKDF2 | **NUEVO v3.4.0** |
+| 23 | **Automatic Cookie Refresh** | ✅ CookieExpiryService | `RobloxContext.cookies.loadRefresh()` | Existente |
+| 24 | **Quick Log In** | ❌ NO | `RobloxContext.auth.quickLogin()` — genera QuickLogin QR/else y display UI | **NUEVO v3.4.0** |
+| 25 | **Join Group** (unirse a grupos Roblox) | ❌ NO | `RobloxContext.botting.joinGroup(groupId)` — usando grupo API + cookie | **NUEVO v3.4.0** |
+| 26 | **Auto Relaunch** | ❌ NO | `RobloxContext.botting.autoRelaunch()` — watcher interno de Presence API + restart instance | **NUEVO v3.4.0** |
+| 27 | **Prevent Duplicate Instances** | ❌ NO | `RobloxContext.botting.preventDuplicates()` — cerealTracker + MutexERIA | **NUEVO v3.4.0** |
+| 28 | **Automatic Connection Loss Detection** | ❌ NO | `RobloxContext.botting.initWatcher()` — WebSocket al cliente o ping presence API | **NUEVO v3.4.0** |
+| 29 | **Close Roblox Beta** | ❌ NO | `RobloxContext.botting.closeBeta()` — detectar proceso "RobloxPlayerBeta.exe" + kill | **NUEVO v3.4.0** |
+| 30 | **FPS Unlocker** | ❌ NO | `RobloxContext.botting.fpsUnlock()` — escribir ClientAppSettings.json | **NUEVO v3.4.0** |
+| 31 | **Sort Account by Usage Date** | ✅ Account.lastUsed < usado | `DatabaseManager` + últimaUsed en useAccountStore | Existente |
+| 32 | **Themes** (customizable) | ✅ ThemeService + CSS vars | `ThemeService` — sin cambio | Existente |
+| 33 | **Developer Mode** | ❌ NO | `AdvancedService` con toggle en settings ↔ modo developer enabled via `advanced:devmode` | **NUEVO v3.4.0** |
+| 34 | **Local Web API** (HTTP endpoint) | ❌ NO | `AdvancedService.localHttpServer()` — simple Express en localhost con API JSON | **NUEVO v3.4.0** |
+| 35 | **Account Control** (remote control accounts in-game) | ❌ NO | `RobloxContext.botting.accountControl()` — WebSocket server para ejecutar Lua via `accounts#make | **NUEVO v3.4.0** |
+| 36 | **Rbx-player Link** (link directo a juego) | ❌ NO | `RobloxContext.auth.generateRbxLink()` — https://www.roblox.com/housingapi | **NUEVO v3.4.0** |
+| 37 | **Outfit Viewer** | ❌ NO | `RobloxContext.games.getOutfits(userId)` — scraping visual | **NUEVO v3.4.0** opcional |
+| 38 | **Universe Viewer** | ❌ NO | `RobloxContext.games.getUniverses(gameId)` — GET /games/ | **NUEVO v3.4.0** opcional |
+| 39 | **AI Captcha Assistance** | ❌ NO | `AdvancedService.captchaSolver` con clave Nopecha API | **NUEVO v3.4.0** |
+
+---
+
+### Feature Mapping vs Matriz de Servicios Archivo
+
+**Services a CREAR (7 nuevos):**
+
+| Archivo | Feature(s) cubierta(s) | Capa | Roblox API? |
+|---------|------------------------|------|-------------|
+| `services/ImportService.ts` | Import Cookies via drag & drop / clipboard | `RobloxContext.auth` | valida cookie vía users.api |
+| `services/BulkImportService.ts` | Bulk user:pass import | `RobloxContext.auth` | auth.api para validate |
+| `services/PlayerFinderService.ts` | Player Finder — buscar usuario por nombre en servidores | `RobloxContext.servers` | presence/users API |
+| `services/BrowserService.ts` | Open Browser con perfil de cuenta | `RobloxContext.auth` | BrowserWindow (no HTTP) |
+| `services/RobloxWatcherService.ts` | Auto Relaunch + Connection Loss Detection + Duplicate Prevention + FPS Unlocker + Close Roblox Beta | `RobloxContext.botting` | Procesos locales (no HTTP) |
+| `services/AccountControlService.ts` | Account Control — WebSocket remoto contro de cuentas IN-GAME | `RobloxContext.botting` | WebSocket (no HTTP) |
+| `services/CaptchaService.ts` | AI Captcha assistance (Nopecha API) | `RobloxContext.auth` | Nopecha API externa |
+
+**Servicio TRANSVERSAL a CREAR (2):**
+
+| # | Archivo | Feature(s) | Capa | Roblox API? |
+|---|---------|-----------|------|-------------|
+| 8 | `core/DeveloperModeService.ts` | Developer Mode toggle + funciones avanzadas | `advanced:*` || No |
+| 9 | `core/LocalAPIService.ts` | Local Web API — Express server en puerto configurable | `advanced:*` | No |
+
+**Services a EXTENDER (modificar existentes):**
+
+| # | Archivo Existente | Feature adicionada | Capa |
+|---|-------------------|-------------------|------|
+| 10 | `core/CryptoService.ts` | Password-based encryption (PBKDF2) - Feature #22 | Cross-cutting |
+| 11 | `core/AccountSettingsService.ts` | joinGroup endpoint | Cross-cutting |
+| 12 | `services/GamesService.ts` | getOutfit(), getUniverse() | `RobloxContext.extraApps` |
+| 13 | `core/Account Manager.ts` | Save PlaceId e JobId bigger accounts | account: detalles funcionales |
+
+---
+
 
 ### Matriz de servicios — estado actual vs target
 
@@ -119,10 +200,11 @@
 ┌─────────────────────────────────────────────────────────────────────┐
 │  IPC Layer (main.ts handlers)                                       │
 │  ─────────────────────────────────────────────────────────────────  │
-│  account:*  → AccountManager                                        │
-│  roblox:*   → RobloxContext (Facade)  ← UNIFIED POINT               │
-│  settings:* → AccountSettingsService                                │
-│  theme:*    → ThemeService                                           │
+│  account:*   → AccountManager                                        │
+│  roblox:*    → RobloxContext (Facade)  ← UNIFIED POINT               │
+│  settings:*  → AccountSettingsService                                │
+│  theme:*     → ThemeService                                           │
+│  advanced:*  → DeveloperModeService + LocalAPIService                │
 └─────────────┬───────────────────────────────────────────────────────┘
               │
               ▼
@@ -176,15 +258,27 @@ export interface IRobloxContext {
     loginWithBrowser(): Promise<{ cookie: string; userId: number; username: string }>;
     login(username: string, password: string): Promise<{ cookie: string; userId: number }>;
     verifyCookie(cookie: string): Promise<{ authenticated: boolean; userId: number }>;
+    importCookies(cookies: string[]): Promise<{ added: number }>;
+    bulkImport(accounts: {username:string, password:string}[]): Promise<{ added: number }>;
+    quickLogin(accountId: string): Promise<{ url: string; code: string }>;
+    openBrowser(accountId: string): Promise<BrowserWindow>;
+    generateRbxLink(placeId: string, jobId: string): Promise<string>;
   };
   // Games subsystem
   games: {
     search(query: string, cookie: string): Promise<GameInfo[]>;
+    getFavorites(): Promise<GameInfo[]>;
+    addFavorite(placeId: string): Promise<void>;
+    removeFavorite(placeId: string): Promise<void>;
+    getOutfits(userId: number): Promise<OutfitData[]>;
+    getUniverses(gameId: string): Promise<UniverseData>;
   };
   // Servers subsystem
   servers: {
-    list(placeId: string, cookie: string, opts?: { sortOrder?: 'Asc'|'Desc'; limit?: number; maxPing?: number }): Promise<RobloxServer[]>;
+    list(placeId: string, cookie: string, opts?: ServerListOptions): Promise<RobloxServer[]>;
     getUsersInServer(placeId: string, jobId: string, cookie: string): Promise<RobloxServerUser[]>;
+    getServerRegion(placeId: string, jobId: string, cookie: string): Promise<ServerRegionData>;
+    searchPlayer(username: string, placeId: string, cookie: string): Promise<RobloxServerUser[]>;
   };
   // Presence subsystem
   presence: {
@@ -196,6 +290,13 @@ export interface IRobloxContext {
     start(accountId: string, placeId: string): Promise<boolean>;
     stop(): boolean;
     getStatus(): { running: boolean; accounts: string[] };
+    joinGroup(groupId: number, accountId: string): Promise<boolean>;
+    autoRelaunch(accountIds: string[], placeId: string, maxAttempts: number): Promise<boolean>;
+    preventDuplicates(enable: boolean): void;
+    initWatcher(accountId: string, maxInactivityMinutes: number, autoExit: boolean): Promise<boolean>;
+    closeBeta(): void;
+    fpsUnlock(fps: 60|120|240): void;
+    accountControl(accountId: string, command: string): Promise<{ result: string }>;
   };
   // Cookie maintenance subsystem
   cookies: {
@@ -215,6 +316,14 @@ export class RobloxContext implements IRobloxContext {
     private bottingService: BottingService,
     private cookieExpiryService: CookieExpiryService,
     private accountManager: AccountManager,  // para refresh cookies
+    // Nuevos servicios v3.4.0
+    private importService: ImportService,
+    private bulkImportService: BulkImportService,
+    private playerFinder: PlayerFinderService,
+    private browserService: BrowserService,
+    private watcher: RobloxWatcherService,
+    private accountControl: AccountControlService,
+    private captchaService: CaptchaService,
   ) {}
 
   auth: { ... }; games: { ... }; servers: { ... };
@@ -233,9 +342,11 @@ class NexoApp {
   // En cada handler: const { GamesService } = await import('./services/GamesService');
 }
 
-// Después (v3.4.0) — Facade compuesto en NexoApp
+// Después (v3.4.0) — Facade compuesto en NexoApp + nuevos servicios
 class NexoApp {
   private roblox: RobloxContext;
+  private devMode: DeveloperModeService;
+  private localApi: LocalAPIService;
 
   constructor() {
     const loginBrowser = new LoginBrowserService();
@@ -245,16 +356,30 @@ class NexoApp {
     const presenceService = new PresenceService(db, crypto);
     const bottingService = new BottingService(accountManager, presenceService);
     const cookieExpiryService = new CookieExpiryService(db, crypto);
+    // Nuevos servicios v3.4.0 (features RAM)
+    const importService = new ImportService();
+    const bulkImportService = new BulkImportService();
+    const playerFinder = new PlayerFinderService();
+    const browserService = new BrowserService();
+    const watcher = new RobloxWatcherService(db, crypto);
+    const accountControl = new AccountControlService(db);
+    const captchaService = new CaptchaService();
+    // Servicios transversales de Developer Mode
+    this.avanzado = new DeveloperModeService(db);
+    this.localApi = new LocalAPIService(this.roblox, this.avanzado);
 
     this.roblox = new RobloxContext(
       loginBrowser, authService, gamesService,
       serversService, presenceService, bottingService,
-      cookieExpiryService, accountManager
+      cookieExpiryService, accountManager,
+      importService, bulkImportService, playerFinder,
+      browserService, watcher, accountControl, captchaService
     );
   }
 
-  // Handlers antes: const { LoginBrowserService } = await import(...);
-  // Después: this.roblox.auth.loginWithBrowser()
+  // Handlers para advanced:* → this.avanzado / this.localApi
+  // Handlers roblox:* → this.roblox
+  // Handlers account:* → accountManager
 }
 ```
 
@@ -283,54 +408,86 @@ class NexoApp {
 
 ### Test Strategy v3.4.0 (TDD plan)
 
+**Total services: 21 (12 existing + 9 nuevos)**
+
 **Tests unitarios RobloxContext** (deben fallar primero — anti-sesgo semántico):
 
-1. `describe('RobloxContext') / it('auth.loginWithBrowser delegates to LoginBrowserService')`
-2. `describe('RobloxContext') / it('auth.verifyCookie delegates to RobloxAuthService')`
-3. `describe('RobloxContext') / it('games.search delegates to GamesService')`
-4. `describe('RobloxContext') / it('servers.list delegates to ServersService with opts')`
-5. `describe('RobloxContext') / it('servers.getUsersInServer delegates to ServersService')`
-6. `describe('RobloxContext') / it('presence.getRecentGames delegates to PresenceService')`
-7. `describe('RobloxContext') / it('botting.start delegates to BottingService')`
-8. `describe('RobloxContext') / it('cookies.refresh validates accountId and delegates to CookieExpiryService')`
-9. `describe('RobloxContext') / it('throws if dependency not provided in constructor')`
+1. `describe('RobloxContext') / it('auth.loginWithBrowser delegas to LoginBrowserService')`
+2. `describe('RobloxContext') / it('auth.verifyCookie delegas to RobloxAuthService')`
+3. `describe('RobloxContext') / it('auth.importCookies delegas to ImportService')`
+4. `describe('RobloxContext') / it('auth.bulkImport delegas to BulkImportService')`
+5. `describe('RobloxContext') / it('auth.quickLogin delegas to RobloxAuthService')`
+6. `describe('RobloxContext') / it('auth.openBrowser delegas to BrowserService')`
+7. `describe('RobloxContext') / it('auth.generateRbxLink delegas to RobloxAuthService')`
+8. `describe('RobloxContext') / it('games.search delegas to GamesService.search')`
+9. `describe('RobloxContext') / it('games.getFavorites delegas to GamesService.favorites')`
+10. `describe('RobloxContext') / it('games.getOutfits delegas to GamesService.outfits')`
+11. `describe('RobloxContext') / it('games.getUniverses delegas a GamesService.universes')`
+12. `describe('RobloxContext') / it('servers.list delegas to ServersService with opts')`
+13. `describe('RobloxContext') / it('servers.getUsersInServer delegas to ServersService')`
+14. `describe('RobloxContext') / it('servers.getServerRegion delegas to ServersService')`
+15. `describe('RobloxContext') / it('servers.searchPlayer delegas to PlayerFinderService')`
+16. `describe('RobloxContext') / it('presence.getRecentGames delegas to PresenceService')`
+17. `describe('RobloxContext') / it('presence.getFriends delegas a AccountSettingsService')`
+18. `describe('RobloxContext') / it('botting.start delegas to BottingService')`
+19. `describe('RobloxContext') / it('botting.joinGroup delegas to BottingService')`
+20. `describe('RobloxContext') / it('botting.autoRelaunch delegas to RobloxWatcherService')`
+21. `describe('RobloxContext') / it('botting.preventDuplicates delegas to RobloxWatcherService')`
+22. `describe('RobloxContext') / it('botting.initWatcher delegas to RobloxWatcherService')`
+23. `describe('RobloxContext') / it('botting.closeBeta delegas to RobloxWatcherService')`
+24. `describe('RobloxContext') / it('botting.fpsUnlock delegas to RobloxWatcherService')`
+25. `describe('RobloxContext') / it('botting.accountControl delegas to AccountControlService')`
+26. `describe('RobloxContext') / it('cookies.refresh delegas to CookieExpiryService')`
+27. `describe('RobloxContext') / it('throws if dependency not provided in constructor')`
 
 **Tests de integración backend** (validación REAL, no mock):
-- `it('verifyCookie returns authenticated=true for valid cookie format')` — usa cookie sintética válida del fixture
-- `it('verifyCookie returns authenticated=false for invalid cookie')` — usa cookie inválida
-- `it('games.search returns array for valid query')` — usa mock HTTP con axios-mock-adapter
-- `it('servers.list returns array for valid placeId')` — axios-mock
+- 10+ tests con axios-mock-adapter para GamesService, ServersService, PresenceService
+- 5 tests con `mockBrowser` para LoginBrowserService + BrowserService
+- 3 tests para QuickLogin con mock HTTP
+- 2 tests para ImportCookie (formato cookie válido vs inválido)
+- 2 tests para BulkImport (batch user:pass)
+
+**Tests de DeveloperModeService:**
+- `describe('DeveloperModeService') / it('toggle dev mode enable/disable')`
+- `describe('DeveloperModeService') / it('blocks dangerous features when disabled')`
+
+**Tests de LocalAPIService:**
+- `describe('LocalAPIService') / it('starts local HTTP server on config port')`
+- `describe('LocalAPIService') / it('returns account list via GET /accounts')`
+- `describe('LocalAPIService') / it('returns 401 if devmode disabled')`
 
 **Anti-sesgo semántico (regla documentada):**
-- Los tests de delegación verifican que el Facade llama al servicio correcto (mock del servicio subyacente, assert spy llamado con args esperados)
-- Los tests de integración verifican comportamiento REAL: con axios-mock-adapter interceptando, NO con mock del servicio completo
+- Los tests de delegación verifican que el Facade llama al servicio correcto (mock del servicio subyacente, assert spy)
+- Los tests de integración verifican comportamiento REAL: con axios-mock-adapter para HTTP, mock electron para BrowserWindow, fixture real para cookies
 - Nunca mockear el servicio end-to-end solo para que el test pase
 
 **Acceptance Criteria v3.4.0:**
-- [ ] `RobloxContext.ts` creado con las 6 sub-APIs (auth/games/servers/presence/botting/cookies)
-- [ ] main.ts: todos los handlers `roblox:*` delegan a `this.roblox.<sub-api>.<method>()`
-- [ ] Cero imports dinámicos en handlers `roblox:*` (lazy imports eliminados)
-- [ ] Tests RobloxContext: 9 unitarios (delegación) + 4 integración (REAL behavior via axios-mock-adapter)
-- [ ] tsc 0, vitest 131+9+4=144+ pasando, lint 0
-- [ ] Build Windows NSIS generado
+- [ ] `RobloxContext.ts` creado con 6 sub-APIs expandidas — 32 métodos total
+- [ ] 7 nuevos servicios creados en `src/main/services/`: ImportService, BulkImportService, PlayerFinderService, BrowserService, RobloxWatcherService, AccountControlService, CaptchaService
+- [ ] 2 nuevos servicios transversales en `src/main/core/`: DeveloperModeService, LocalAPIService
+- [ ] 4 servicios existentes extendidos: CryptoService (PBKDF2), AccountSettingsService (joinGroup), GamesService (outfits/universes), AccountManager (settings)
+- [ ] main.ts: handlers `roblox:*` + `advanced:*` delegados al Facade + servicios transversales
+- [ ] Cero imports dinámicos en handlers
+- [ ] tsc 0, vitest >150 pasando (>27 delegación + 22+ integración), lint 0
+- [ ] Build Windows NSIS generado y funcional
 
-### Non-goals v3.4.0
+**Non-goals v3.4.0:**
+- NO implementar UI para features nuevas (eso va en v3.4.5 UI iteration)
+- NO implementar WebSocket para AccountControl más allá del stub (va en v3.4.2)
 - NO introducir contenedor de IoC ni decoradores (se mantiene poor-man's DI)
 - NO cambiar el patrón IPC (invoke/handle)
-- NO añadir features nuevas — solo reorganización arquitectónica
-- NO refactor de AccountManager (sigue con su lógica de lanzar Roblox)
-- NO eliminar ningún servicio — el Facade los compone, no los reemplaza
-- NO mover AccountSettingsService al Facade (es settings, no API Roblox per se)
+- NO eliminar ningún servicio existente
 
-### Riesgos y mitigaciones
+**Riesgos y mitigaciones:**
 
 | Riesgo | Probabilidad | Mitigación |
 |--------|--------------|------------|
-| Romper cookies existentes al refactor | Media | CryptoService NO se toca. Salt preservada. |
-| Imports circulares (Facade ↔ AccountManager) | Baja | Facade inyecta AccountManager solo como dependencia, nunca al revés |
-| Latencia adicional por capa | Baja | El Facade solo delega, no hace trabajo extra. Benchmark < 1ms overhead |
-| Tests falsos positivos (sesgo semántico) | Media | Tests de integración con axios-mock-adapter, no mocks de servicios completos |
-| Regresión en handlers `roblox:*` existentes | Alta | Audit IPC end-to-end después del refactor. Smoke tests E2E de cada namespace. |
+| Romper cookies existentes al refactor | Media | CryptoService NO se toca para salt hardware-based; PBKDF2 es capa separada opcional |
+| Imports circulares (Facade ↔ AccountManager) | Baja | Facade inyecta servicios, no al revés |
+| Latencia adicional por capa | Baja | Facade solo delega, benchmark < 1ms overhead |
+| Tests falsos positivos (sesgo semántico) | Media | Tests integración con axios-mock-adapter + fixture cookies reales |
+| Regresión en handlers `roblox:*` existentes | Alta | Audit IPC end-to-end después del refactor. Smoke tests E2E |
+| Nuevos servicios no tienen implementación real (solo stub) | Media | Plan iterativo: v3.4.0 deja todos los servicios con interfaz tipada; implementación real fase por fase (ver sección iteración debajo) |
 
 ---
 
