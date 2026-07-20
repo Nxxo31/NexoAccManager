@@ -3,6 +3,17 @@ import { devtools } from 'zustand/middleware';
 
 export type ViewKey = 'accounts' | 'servers' | 'games' | 'settings' | 'friends';
 
+export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'loading';
+
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message?: string;
+  durationMs?: number; // 0 = persistent until dismissed
+  createdAt: number;
+}
+
 export interface ThemeSettings {
   theme: string;
   primaryColor: string;
@@ -29,6 +40,7 @@ interface UIState {
   bottingMode: boolean;
   bottingInterval: number; // minutos entre rejoins
   selectedPlaceId: string | null; // when viewing servers for a specific game from GamesView
+  notifications: AppNotification[];
 
   // Actions
   setActiveView: (view: ViewKey) => void;
@@ -49,6 +61,9 @@ interface UIState {
   setBottingMode: (value: boolean) => void;
   setBottingInterval: (value: number) => void;
   setSelectedPlaceId: (placeId: string | null) => void;
+  addNotification: (n: Omit<AppNotification, 'id' | 'createdAt'>) => string;
+  dismissNotification: (id: string) => void;
+  clearNotifications: () => void;
 }
 
 const defaultThemeSettings: any = {
@@ -97,5 +112,21 @@ export const useUIStore = create<UIState>()(
     setBottingInterval: (value: number) => set({ bottingInterval: value }),
     selectedPlaceId: null,
     setSelectedPlaceId: (placeId: string | null) => set({ selectedPlaceId: placeId }),
+    notifications: [],
+    addNotification: (n) => {
+      const id = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const notification: AppNotification = {
+        ...n,
+        id,
+        createdAt: Date.now(),
+      };
+      set((state) => ({ notifications: [...state.notifications, notification] }));
+      return id;
+    },
+    dismissNotification: (id) =>
+      set((state) => ({
+        notifications: state.notifications.filter((n) => n.id !== id),
+      })),
+    clearNotifications: () => set({ notifications: [] }),
   }))
 );
