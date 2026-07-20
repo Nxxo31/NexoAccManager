@@ -1,12 +1,14 @@
 import { useCallback } from 'react';
 import { useAccountStore } from '@renderer/store/useAccountStore';
 import { useUIStore } from '@renderer/store/useUIStore';
+import { useTranslation } from 'react-i18next';
 
 /**
  * useAccountActions — all account-related handlers connected to real IPC.
  * Extracted from the monolithic App.tsx as part of the v3.0.0 refactor.
  */
 export const useAccountActions = () => {
+  const { t } = useTranslation();
   const {
     accounts,
     setAccounts,
@@ -54,6 +56,11 @@ export const useAccountActions = () => {
   const handleLoginBrowser = useCallback(
     async (group?: string) => {
       if (!api) return;
+      const notificationId = useUIStore.getState().addNotification({
+        type: 'loading',
+        title: t('notifications.loginTitle', 'Iniciando sesión...'),
+        message: t('notifications.loginMessage', 'Abriendo navegador de Roblox...'),
+      });
       try {
         const result = await api.account.loginBrowser(group);
         console.log('[handleLoginBrowser] result:', result);
@@ -62,13 +69,29 @@ export const useAccountActions = () => {
         await fetchAccounts();
         // Cambiar a la vista de cuentas para que el usuario vea el resultado
         useUIStore.getState().setActiveView('accounts');
+        // Notificación de éxito
+        useUIStore.getState().addNotification({
+          type: 'success',
+          title: t('notifications.loginSuccess', 'Sesión iniciada'),
+          message: t('notifications.loginSuccessMsg', 'Cookie guardada de forma segura'),
+          durationMs: 3000,
+        });
+        useUIStore.getState().dismissNotification(notificationId);
       } catch (e) {
         console.error('[handleLoginBrowser] error:', e);
+        // Notificación de error
+        useUIStore.getState().addNotification({
+          type: 'error',
+          title: t('notifications.loginError', 'Error al iniciar sesión'),
+          message: (e as Error).message || 'Error desconocido',
+          durationMs: 5000,
+        });
+        useUIStore.getState().dismissNotification(notificationId);
         setError(e instanceof Error ? e.message : 'Login error');
         throw e; // re-throw para que el modal muestre el error
       }
     },
-    [api, setError, fetchAccounts]
+    [api, setError, fetchAccounts, t]
   );
 
   const handleLogin = useCallback(
