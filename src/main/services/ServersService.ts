@@ -9,7 +9,8 @@ import { AccountManager } from '../core/AccountManager';
  * Las cookies se pasan desde los handlers IPC con la cuenta seleccionada
  */
 export interface RobloxServer {
-  id: string; // jobId
+  jobId: string; // Roblox lo llama "id" pero es el jobId
+  id: string; // alias de jobId para compatibilidad
   name: string | null;
   playerCount: number;
   maxPlayers: number;
@@ -129,6 +130,7 @@ export class ServersService {
 
       const data = response.data?.data || [];
       const servers: RobloxServer[] = data.map((server: any) => ({
+        jobId: server.id,
         id: server.id,
         name: server.name || null,
         playerCount: server.playing || 0,

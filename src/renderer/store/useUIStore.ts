@@ -28,6 +28,7 @@ interface UIState {
   preventDuplicateInstances: boolean;
   bottingMode: boolean;
   bottingInterval: number; // minutos entre rejoins
+  selectedPlaceId: string | null; // when viewing servers for a specific game from GamesView
 
   // Actions
   setActiveView: (view: ViewKey) => void;
@@ -47,6 +48,7 @@ interface UIState {
   setPreventDuplicateInstances: (value: boolean) => void;
   setBottingMode: (value: boolean) => void;
   setBottingInterval: (value: number) => void;
+  setSelectedPlaceId: (placeId: string | null) => void;
 }
 
 const defaultThemeSettings: any = {
@@ -93,5 +95,7 @@ export const useUIStore = create<UIState>()(
     setPreventDuplicateInstances: (value: boolean) => set({ preventDuplicateInstances: value }),
     setBottingMode: (value: boolean) => set({ bottingMode: value }),
     setBottingInterval: (value: number) => set({ bottingInterval: value }),
+    selectedPlaceId: null,
+    setSelectedPlaceId: (placeId: string | null) => set({ selectedPlaceId: placeId }),
   }))
 );

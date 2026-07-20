@@ -655,8 +655,8 @@ class NexoApp {
           ? this.crypto.decrypt(raw.encrypted_cookie)
           : '';
         if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const { GamesService } = await import('./services/GamesService');
-        const service = new GamesService();
+        const { ServersService } = await import('./services/ServersService');
+        const service = new ServersService();
         const servers = await service.getGameServers(placeId.trim(), cookie);
         return ok(servers);
       } catch (e) {
