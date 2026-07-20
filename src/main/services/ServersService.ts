@@ -25,10 +25,13 @@ export interface RobloxServerUser {
   userId: number;
   username: string;
   displayName: string | null;
-  isOnline: boolean;
-  isFriend: boolean;
-  isFollower: boolean;
-  isFollowing: boolean;
+  isOnline?: boolean;
+  isFriend?: boolean;
+  isFollower?: boolean;
+  isFollowing?: boolean;
+  placeId?: string;
+  jobId?: string;
+  lastLocation?: string;
 }
 
 interface CacheEntry<T> {
@@ -155,12 +158,48 @@ export class ServersService {
   // =======================================================
   // OBTENER USUARIOS EN UN SERVIDOR ESPECIFICO
   // =======================================================
-  async getServerUsers(serverId: string, cookie: string): Promise<RobloxServerUser[]> {
-    // Note: There is no direct public API to get users in a server.
-    // We can use the presence API to get users playing a place, but not specific server.
-    // For now, we return empty array and note that this feature may require alternative methods.
-    // However, we can get friends who are in the game via presence.
-    return [];
+  // Roblox no expone API pública para listar usuarios de un servidor específico.
+  // Alternativa: usar Presence API para saber qué amigos están en el place.
+  // Para usuarios no-amigos se requeriría Teatro (accelerated throughput) — fuera de scope.
+  async getServerUsers(serverId: string, cookie: string, placeId?: string): Promise<RobloxServerUser[]> {
+    if (!cookie) return [];
+    try {
+      // 1) validar cookie y obtener userId
+      const authRes = await axios.get('https://users.roblox.com/v1/users/authenticated', {
+        headers: { Cookie: `.ROBLOSECURITY=${cookie}` },
+        timeout: 8000,
+      });
+      const myUserId = authRes.data?.id;
+      if (!myUserId) return [];
+
+      // 2) obtener amigos presence filtrada por placeId
+      const presenceRes = await axios.post(
+        'https://presence.roblox.com/v1/presence/users',
+        { userIds: [myUserId] }, // presence de uno mismo para validar token
+        { headers: { Cookie: `.ROBLOSECURITY=${cookie}` }, timeout: 8000 }
+      );
+      // Presence API solo retorna datos propios cuando se pide sin friends.
+      // La forma real de ver quién está en un place es via /v1/presence friends.
+      const friendsPresenceRes = await axios.get(
+        `https://presence.roblox.com/v1/presence/friends/${myUserId}`,
+        { headers: { Cookie: `.ROBLOSECURITY=${cookie}` }, timeout: 8000 }
+      );
+      const friendsPresences: any[] = friendsPresenceRes.data?.userPresences || [];
+      const filtered = placeId
+        ? friendsPresences.filter((p) => String(p.placeId) === String(placeId))
+        : friendsPresences;
+      return filtered.map((p) => ({
+        userId: p.userId,
+        username: p.userName || `User ${p.userId}`,
+        displayName: p.displayName || p.userName || '',
+        placeId: p.placeId,
+        jobId: p.jobId,
+        lastLocation: p.lastLocation || '',
+      }));
+    } catch (err) {
+      console.error('[getServerUsers] error:', (err as Error).message);
+      return [];
+    }
   }
 
   // =======================================================

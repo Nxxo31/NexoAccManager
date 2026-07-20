@@ -36,6 +36,7 @@ type IpcChannel =
   | 'roblox:launch'
   | 'roblox:games:search'
   | 'roblox:servers:list'
+  | 'roblox:servers:users'
   | 'roblox:servers:join'
   | 'roblox:servers:distribute'
   | 'settings:get'
@@ -111,6 +112,7 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'roblox:launch',
   'roblox:games:search',
   'roblox:servers:list',
+  'roblox:servers:users',
   'roblox:servers:join',
   'roblox:servers:distribute',
   'settings:get',
@@ -217,6 +219,8 @@ contextBridge.exposeInMainWorld('api', {
       invoke('roblox:games:search', placeId, accountId),
     getServers: (placeId: string, accountId: string) =>
       invoke('roblox:servers:list', placeId, accountId),
+    getServerUsers: (placeId: string, accountId: string) =>
+      invoke('roblox:servers:users', placeId, accountId),
     joinServer: (placeId: string, jobId: string, accountId: string) =>
       invoke('roblox:servers:join', placeId, jobId, accountId),
     searchUser: (username: string) => invoke('roblox:search-user', username),
@@ -342,6 +346,7 @@ export interface Api {
     launch: (accountId: string, placeId?: string, jobId?: string) => Promise<boolean>;
     searchGame: (placeId: string, accountId: string) => Promise<any>;
     getServers: (placeId: string, accountId: string) => Promise<any[]>;
+    getServerUsers: (placeId: string, accountId: string) => Promise<any[]>;
     joinServer: (placeId: string, jobId: string, accountId: string) => Promise<boolean>;
     searchUser: (username: string) => Promise<any>;
     joinGroup: (accountId: string, groupId: number) => Promise<boolean>;

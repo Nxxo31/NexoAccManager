@@ -664,6 +664,28 @@ class NexoApp {
       }
     });
 
+    ipcMain.handle('roblox:servers:users', async (_, placeId: unknown, accountId: unknown) => {
+      if (!isValidPlaceId(placeId)) {
+        return err('Payload inválido: placeId debe ser un string numérico no vacío');
+      }
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const raw = this.db.getAccount(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const { ServersService } = await import('./services/ServersService');
+        const service = new ServersService();
+        const users = await service.getServerUsers('', cookie, String(placeId).trim());
+        return ok(users);
+      } catch (e) {
+        return err(`Error obteniendo usuarios del server: ${(e as Error).message}`);
+      }
+    });
+
     ipcMain.handle('roblox:servers:join', async (_, placeId: unknown, jobId: unknown, accountId: unknown) => {
       if (!isValidPlaceId(placeId)) {
         return err('Payload inválido: placeId debe ser un string numérico no vacío');
