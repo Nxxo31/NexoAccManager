@@ -5,7 +5,7 @@
     "errorUnknown": "Error loading accounts"
   },
   "header": {
-    "title": "NexoAccManager",
+    "title": "NX-Manager",
     "navAccounts": "Accounts",
     "navServers": "Servers",
     "navPresence": "Presence",

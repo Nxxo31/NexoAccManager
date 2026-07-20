@@ -79,7 +79,7 @@ export class LoginBrowserService {
           sandbox: true,
           session: loginSession,
         },
-        title: 'Iniciar sesión en Roblox — NexoAccManager',
+        title: 'Iniciar sesión en Roblox — NX-Manager',
         icon: path.join(__dirname, '../../public/icon.png'),
         autoHideMenuBar: true,
       });

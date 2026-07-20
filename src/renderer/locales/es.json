@@ -5,7 +5,7 @@
     "errorUnknown": "Error al cargar cuentas"
   },
   "header": {
-    "title": "NexoAccManager",
+    "title": "NX-Manager",
     "navAccounts": "Cuentas",
     "navServers": "Servidores",
     "navPresence": "Presence",

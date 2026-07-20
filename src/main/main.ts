@@ -162,7 +162,7 @@ class NexoApp {
         sandbox: true,
         preload: path.join(__dirname, '../preload/preload.js'),
       },
-      title: 'NexoAccManager',
+      title: 'NX-Manager',
       icon: path.join(__dirname, '../../public/icon.png'),
     });
 
@@ -1555,7 +1555,7 @@ class NexoApp {
   private createMenu(): void {
     const template: Electron.MenuItemConstructorOptions[] = [
       {
-        label: 'NexoAccManager',
+        label: 'NX-Manager',
         submenu: [
           { role: 'about' },
           { type: 'separator' },
