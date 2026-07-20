@@ -1,6 +1,6 @@
 # NexoAccManager — PROJECT.md
 
-# Última actualización: 2026-07-19 (UI rework finalizado + build + release)
+# Última actualización: 2026-07-19 (UI rework finalizado + build + release + menú lateral)
 
 # Versión actual: 3.2.0 (UI rework completado + NotificationBar + rename NX-Manager)
 
@@ -9,7 +9,7 @@
 | Métrica | Valor |
 |---------|-------|
 | Versión | 3.2.0 |
-| Último commit | db0026d — refactor(settings): eliminar botón redundante 'Abrir panel' dentro de SettingsView |
+| Último commit | 3f31e0b — feat(ui): añadir menú de navegación lateral en Sidebar para cambiar entre vistas (accounts, servers, games, friends, settings) |
 | Branch | feature/ui-rework-slice → main (PR #2 open) |
 | tsc | 0 errores |
 | vitest | 131/131 pasando (12 archivos) |
