@@ -296,6 +296,14 @@ contextBridge.exposeInMainWorld('api', {
     get: () => invoke('settings:language:get'),
     set: (lang: string) => invoke('settings:language:set', lang),
   },
+  // Botting
+  botting: {
+    start: (accountIds: string[], intervalMinutes: number, placeId?: string, jobId?: string) =>
+      invoke('botting:start', accountIds, intervalMinutes, placeId, jobId),
+    stop: () => invoke('botting:stop'),
+    getStatus: () => invoke('botting:getStatus'),
+    setInterval: (intervalMinutes: number) => invoke('botting:setInterval', intervalMinutes),
+  },
   checkAccount: (accountId: string) => invoke('account:check', accountId),
   cookieEvents: {
     onExpiring: (callback: (accountId: string, hoursLeft: number) => void) => {

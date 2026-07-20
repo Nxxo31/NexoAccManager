@@ -332,61 +332,7 @@ class NexoApp {
     });
 
     // Record game play — Phase 3.4
-    ipcMain.handle('presence:recordGamePlay', async (_, payload: unknown) => {
-      if (!payload || typeof payload !== 'object') {
-        return err('Payload inválido: se esperaba un objeto');
-      }
-      const { accountId, placeId, universeId, gameName, icon } = payload as {
-        accountId: string;
-        placeId: string;
-        universeId: number;
-        gameName: string;
-        icon?: string;
-      };
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
-      if (!isNonEmptyString(placeId)) {
-        return err('Payload inválido: placeId debe ser un string no vacío');
-      }
-      if (typeof universeId !== 'number' || isNaN(universeId)) {
-        return err('Payload inválido: universeId debe ser un número válido');
-      }
-      if (!isNonEmptyString(gameName)) {
-        return err('Payload inválido: gameName debe ser un string no vacío');
-      }
-      try {
-        const { v4: uuidv4 } = await import('uuid');
-        const recentGame = {
-          id: uuidv4(),
-          gameId: universeId,
-          name: gameName,
-          icon: icon || undefined,
-          lastPlayed: new Date(),
-          placeId: placeId,
-          placeName: gameName, // Assume place name same as game name for now
-          universeId: universeId
-        };
-        this.accountManager.addRecentGame(accountId.trim(), recentGame);
-        return ok(true);
-      } catch (e) {
-        return err(`Error registrando juego jugado: ${(e as Error).message}`);
-      }
-    });
-
     // Get recent games — Phase 3.4
-    ipcMain.handle('presence:getRecentGames', async (_, accountId: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
-      try {
-        const recentGames = this.accountManager.getRecentGames(accountId.trim());
-        return ok({ recentGames });
-      } catch (e) {
-        return err(`Error obteniendo juegos recientes: ${(e as Error).message}`);
-      }
-    });
-
     // Add favorite game — Phase 3.5
     ipcMain.handle('games:addFavorite', async (_, payload: unknown) => {
       if (!payload || typeof payload !== 'object') {
@@ -582,37 +528,6 @@ class NexoApp {
         return ok(result);
       } catch (e) {
         return err(`Error lanzando Roblox: ${(e as Error).message}`);
-      }
-    });
-
-    ipcMain.handle('roblox:recent-games', async () => {
-      return ok([]);
-    });
-
-    ipcMain.handle('roblox:join-server', async (_, placeId: unknown, accountId: unknown) => {
-      if (!isValidPlaceId(placeId)) {
-        return err('Payload inválido: placeId debe ser un string numérico no vacío');
-      }
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
-      try {
-        const result = await this.accountManager.launchRoblox(accountId.trim(), String(placeId).trim());
-        return ok(result);
-      } catch (e) {
-        return err(`Error uniéndose al servidor: ${(e as Error).message}`);
-      }
-    });
-
-    ipcMain.handle('roblox:multiroblox', async (_, enabled: unknown) => {
-      if (!isBool(enabled)) {
-        return err('Payload inválido: enabled debe ser un booleano');
-      }
-      try {
-        const result = this.accountManager.setMultiRoblox(enabled);
-        return ok(result);
-      } catch (e) {
-        return err(`Error configurando Multi-Roblox: ${(e as Error).message}`);
       }
     });
 
@@ -1445,14 +1360,6 @@ class NexoApp {
     // =================================================================
     // ROBLOX: openProfile - opens user profile in default browser
     // =================================================================
-    ipcMain.handle('roblox:openProfile', async (_, userId: unknown) => {
-      if (typeof userId !== 'string' && typeof userId !== 'number') {
-        return err('userId must be a string or number');
-      }
-      const url = `https://www.roblox.com/users/${userId}/profile`;
-      return ok({ url });
-    });
-
     // =================================================================
     // BOTTING MODE (opt-in, user assumes ToS ban risk)
     // =================================================================
