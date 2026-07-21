@@ -1,21 +1,19 @@
 # NexoAccManager — PROJECT.md
 
-# Última actualización: 2026-07-20 (spec v3.3.0 tests implementados — 137/137 pasando)
+# Última actualización: 2026-07-21 (v3.4.0 Facade Pattern implementado — 164/164 tests pasando)
 
-# Versión actual: 3.2.0 (UI rework + NotificationBar + rename NX-Manager) | v3.3.0 en progreso
+# Versión actual: 3.4.0 (Facade Pattern + 9 servicios nuevos + main.ts refactor)
 
 ## Estado actual
 
 | Métrica | Valor |
 |---------|-------|
-| Versión | 3.2.0 |
-|| Métrica | Valor |
-||---------|-------|
-|| tsc | tsc | ✓| vitest    | 137/137 pasando (14 archivos) |
-|| lint | 0 errores, 199 warnings (preexistentes) |
-| build | ✅ Windows NSIS + Linux AppImage + Linux Snap generados |
-| Release GitHub | v3.2.0 publicado — https://github.com/Nxxo31/NexoAccManager/releases/tag/v3.2.0 |
-|✓ Tests v3.3.0 | AccountsView (4/4), AppLayout (2/2) implementados y pasando |
+| Versión | 3.4.0 |
+| tsc | ✓ 0 errores |
+| vitest | 164/164 pasando (15 archivos — 137 originales + 27 delegación Facade) |
+| lint | 0 errores, 205 warnings (preexistentes `any` en mocks) |
+| build | ✅ Linux AppImage + Linux Snap generados (v3.4.0) |
+| Release GitHub | v3.2.0 publicado — pendiente release v3.4.0 |
 
 ## Investigación de patrones UI (2026-07-20) — Documentado
 
