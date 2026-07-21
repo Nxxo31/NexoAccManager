@@ -613,7 +613,7 @@ class NexoApp {
           ? this.crypto.decrypt(raw.encrypted_cookie)
           : '';
         if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const servers = await this.serversService.getGameServers(placeId.trim(), cookie);
+        const servers = await this.robloxContext.servers.getGameServers(placeId.trim(), cookie);
         return ok(servers);
       } catch (e) {
         return err(`Error listando servers: ${(e as Error).message}`);
@@ -633,7 +633,7 @@ class NexoApp {
           ? this.crypto.decrypt(raw.encrypted_cookie)
           : '';
         if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const users = await this.serversService.getServerUsers('', cookie, String(placeId).trim());
+        const users = await this.robloxContext.servers.getServerUsers(String(placeId).trim(), '', cookie);
         return ok(users);
       } catch (e) {
         return err(`Error obteniendo usuarios del server: ${(e as Error).message}`);
@@ -651,7 +651,7 @@ class NexoApp {
         return err('Payload inválido: accountId debe ser un string no vacío');
       }
       try {
-        const result = await this.gamesService.joinServer(placeId.trim(), jobId as string, this.accountManager, accountId);
+        const result = await this.robloxContext.servers.joinServer(placeId.trim(), jobId as string, accountId);
         return ok(result);
       } catch (e) {
         return err(`Error uniéndose al server: ${(e as Error).message}`);
@@ -674,7 +674,7 @@ class NexoApp {
           : '';
         if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
 
-        const results = await this.gamesService.distributeAccounts(placeId.trim(), accountIds, this.accountManager, cookie);
+        const results = await this.robloxContext.servers.distributeAccounts(placeId.trim(), accountIds, cookie);
         return ok(results);
       } catch (e) {
         return err(`Error distribuyendo cuentas: ${(e as Error).message}`);
