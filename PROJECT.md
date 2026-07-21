@@ -1,21 +1,21 @@
 # NexoAccManager — PROJECT.md
 
-# Última actualización: 2026-07-20 (investigación patrones UI + spec v3.3.0 + protocolo dev anti-sesgo semántico)
+# Última actualización: 2026-07-20 (spec v3.3.0 tests implementados — 137/137 pasando)
 
-# Versión actual: 3.2.0 (UI rework + NotificationBar + rename NX-Manager) | v3.3.0 planificada
+# Versión actual: 3.2.0 (UI rework + NotificationBar + rename NX-Manager) | v3.3.0 en progreso
 
 ## Estado actual
 
 | Métrica | Valor |
 |---------|-------|
 | Versión | 3.2.0 |
-| Último commit | 3f31e0b — feat(ui): añadir menú de navegación lateral en Sidebar para cambiar entre vistas (accounts, servers, games, friends, settings) |
-| Branch | feature/ui-rework-slice → main (PR #2 open) |
-| tsc | 0 errores |
-| vitest | 131/131 pasando (12 archivos) |
-| lint | 0 errores, 0 warnings |
+|| Métrica | Valor |
+||---------|-------|
+|| tsc | tsc | ✓| vitest    | 137/137 pasando (14 archivos) |
+|| lint | 0 errores, 199 warnings (preexistentes) |
 | build | ✅ Windows NSIS + Linux AppImage + Linux Snap generados |
 | Release GitHub | v3.2.0 publicado — https://github.com/Nxxo31/NexoAccManager/releases/tag/v3.2.0 |
+|✓ Tests v3.3.0 | AccountsView (4/4), AppLayout (2/2) implementados y pasando |
 
 ## Investigación de patrones UI (2026-07-20) — Documentado
 
