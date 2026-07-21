@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Server, Search, User, Layers, Share2, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import ServerBrowser from '../server-browser/ServerBrowser';
 import { useAccountStore } from '@renderer/store/useAccountStore';
 import { useUIStore } from '@renderer/store/useUIStore';
 
@@ -182,7 +181,6 @@ export const ServerView: React.FC = () => {
         )}
       </div>
 
-      <ServerBrowser />
     </div>
   );
 };
