@@ -5,7 +5,7 @@
     "errorUnknown": "Error al cargar cuentas"
   },
   "header": {
-    "title": "NexoAccManager",
+    "title": "NX-Manager",
     "navAccounts": "Cuentas",
     "navServers": "Servidores",
     "navPresence": "Presence",
@@ -333,5 +333,56 @@
     "es": "Español",
     "en": "English",
     "pt": "Portugués"
+  },
+  "selectionBar": {
+    "title": "Cuentas seleccionadas",
+    "selected": "cuentas seleccionadas",
+    "promptPlace": "Place ID (vacío = usar guardado de cada cuenta):",
+    "promptJob": "Job ID (vacío = usar guardado de cada cuenta):",
+    "launching": "Lanzando cuentas...",
+    "launchDone": "Lanzamiento completado",
+    "killConfirm": "¿Cerrar las instancias de Roblox de las cuentas seleccionadas?",
+    "killDone": "Instancias cerradas",
+    "killFailed": "Error cerrando instancias",
+    "clear": "Limpiar selección",
+    "launchAll": "Lanzar todas",
+    "killAll": "Cerrar todas",
+    "remove": "Eliminar",
+    "removeConfirm": "¿Quitar estas cuentas de NexoAccManager?",
+    "sendTo": "Llevar a:",
+    "disclaimer": "La selección persiste al cambiar de vista. Las operaciones en lote usan los Place/Job IDs guardados de cada cuenta salvo que especifiques uno.",
+    "servers": "Servers",
+    "games": "Games",
+    "friends": "Friends",
+    "toggle": "Añadir a selección"
+  },
+  "views": {
+    "games": {
+      "multiSearched": "Búsqueda multi-cuenta",
+      "multiMode": "Modo multi-cuenta activado",
+      "multiModeDesc": "Buscando con {{count}} cuentas. Los resultados muestran qué cuentas encontraron cada juego.",
+      "foundBy": "Encontrado por {{n}} cuenta(s)"
+    },
+    "servers": {
+      "placeIdRequired": "Place ID requerido",
+      "placeIdRequiredDesc": "Introduce un Place ID numérico válido",
+      "selectAccountsFirst": "Selecciona cuentas",
+      "selectAccountsFirstDesc": "Marca al menos 2 cuentas en el Sidebar",
+      "distributing": "Distribuyendo cuentas...",
+      "distributed": "Distribución completada",
+      "distributeFailed": "Error distribuyendo",
+      "multiMode": "Distribución multi-cuenta",
+      "multiModeDesc": "{{count}} cuentas seleccionadas. Repártelas entre distintos servidores del mismo juego.",
+      "placeIdPlaceholder": "Place ID (numérico)",
+      "distribute": "Distribuir",
+      "distributeWarn": "El backend usa la cookie del primer accountId para enumerar servidores y luego reparte jobIds entre las demás cuentas. Asegúrate de que todas las cuentas tienen cookies válidas."
+    },
+    "friends": {
+      "bulkFollow": "Siguiendo usuario...",
+      "bulkFollowDone": "Follow masivo completado",
+      "multiMode": "Modo multi-cuenta activado",
+      "multiModeDesc": "{{count}} cuentas seleccionadas. En los resultados puedes seguir con una sola o con todas las cuentas a la vez.",
+      "followAll": "Seguir con todas las cuentas seleccionadas"
+    }
   }
 }

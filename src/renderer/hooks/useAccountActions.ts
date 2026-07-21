@@ -1,12 +1,14 @@
 import { useCallback } from 'react';
 import { useAccountStore } from '@renderer/store/useAccountStore';
 import { useUIStore } from '@renderer/store/useUIStore';
+import { useTranslation } from 'react-i18next';
 
 /**
  * useAccountActions — all account-related handlers connected to real IPC.
  * Extracted from the monolithic App.tsx as part of the v3.0.0 refactor.
  */
 export const useAccountActions = () => {
+  const { t } = useTranslation();
   const {
     accounts,
     setAccounts,
@@ -54,6 +56,11 @@ export const useAccountActions = () => {
   const handleLoginBrowser = useCallback(
     async (group?: string) => {
       if (!api) return;
+      const notificationId = useUIStore.getState().addNotification({
+        type: 'loading',
+        title: t('notifications.loginTitle', 'Iniciando sesión...'),
+        message: t('notifications.loginMessage', 'Abriendo navegador de Roblox...'),
+      });
       try {
         const result = await api.account.loginBrowser(group);
         console.log('[handleLoginBrowser] result:', result);
@@ -62,13 +69,29 @@ export const useAccountActions = () => {
         await fetchAccounts();
         // Cambiar a la vista de cuentas para que el usuario vea el resultado
         useUIStore.getState().setActiveView('accounts');
+        // Notificación de éxito
+        useUIStore.getState().addNotification({
+          type: 'success',
+          title: t('notifications.loginSuccess', 'Sesión iniciada'),
+          message: t('notifications.loginSuccessMsg', 'Cookie guardada de forma segura'),
+          durationMs: 3000,
+        });
+        useUIStore.getState().dismissNotification(notificationId);
       } catch (e) {
         console.error('[handleLoginBrowser] error:', e);
+        // Notificación de error
+        useUIStore.getState().addNotification({
+          type: 'error',
+          title: t('notifications.loginError', 'Error al iniciar sesión'),
+          message: (e as Error).message || 'Error desconocido',
+          durationMs: 5000,
+        });
+        useUIStore.getState().dismissNotification(notificationId);
         setError(e instanceof Error ? e.message : 'Login error');
         throw e; // re-throw para que el modal muestre el error
       }
     },
-    [api, setError, fetchAccounts]
+    [api, setError, fetchAccounts, t]
   );
 
   const handleLogin = useCallback(
@@ -117,16 +140,33 @@ export const useAccountActions = () => {
   const handleDeleteAccount = useCallback(
     async (id: string) => {
       if (!api) return;
+      const notifId = useUIStore.getState().addNotification({
+        type: 'loading',
+        title: t('notifications.deleteTitle', 'Eliminando cuenta...'),
+      });
       try {
         const result = await api.account.remove(id);
         if (result?.success === false) throw new Error(result.error || 'Delete failed');
         removeAccount(id);
         if (selectedAccount?.id === id) setSelectedAccount(null);
+        useUIStore.getState().dismissNotification(notifId);
+        useUIStore.getState().addNotification({
+          type: 'success',
+          title: t('notifications.deleteSuccess', 'Cuenta eliminada'),
+          durationMs: 2500,
+        });
       } catch (e) {
+        useUIStore.getState().dismissNotification(notifId);
+        useUIStore.getState().addNotification({
+          type: 'error',
+          title: t('notifications.deleteError', 'Error al eliminar'),
+          message: (e as Error).message,
+          durationMs: 4000,
+        });
         setError(e instanceof Error ? e.message : 'Delete error');
       }
     },
-    [api, setError, removeAccount, selectedAccount, setSelectedAccount]
+    [api, setError, removeAccount, selectedAccount, setSelectedAccount, t]
   );
 
   const handleSaveAlias = useCallback(
@@ -159,29 +199,70 @@ export const useAccountActions = () => {
 
   // ─── Social/actions ─────────────────────────────────────────
 
-  const handleFollowUser = useCallback(
+  const followUser = useCallback(
     async (userId: number) => {
       if (!api || !selectedAccount) return;
+      const notifId = useUIStore.getState().addNotification({
+        type: 'loading',
+        title: t('notifications.followTitle', 'Siguiendo usuario...'),
+      });
       try {
         await api.account.followUser(selectedAccount.id, userId);
+        useUIStore.getState().dismissNotification(notifId);
+        useUIStore.getState().addNotification({
+          type: 'success',
+          title: t('notifications.followSuccess', 'Usuario seguido'),
+          durationMs: 2500,
+        });
       } catch (e) {
+        useUIStore.getState().dismissNotification(notifId);
+        useUIStore.getState().addNotification({
+          type: 'error',
+          title: t('notifications.followError', 'Error al seguir'),
+          message: (e as Error).message,
+          durationMs: 4000,
+        });
         console.error('follow error:', e);
       }
     },
-    [api, selectedAccount]
+    [api, selectedAccount, t]
   );
 
   const handleLaunchGame = useCallback(
     async (accountId: string, placeId: string, jobId?: string) => {
       if (!api) return;
-      await api.roblox.launch(accountId, placeId, jobId);
+      const notifId = useUIStore.getState().addNotification({
+        type: 'loading',
+        title: t('notifications.launchTitle', 'Lanzando Roblox...'),
+      });
+      try {
+        await api.roblox.launch(accountId, placeId, jobId);
+        useUIStore.getState().dismissNotification(notifId);
+        useUIStore.getState().addNotification({
+          type: 'success',
+          title: t('notifications.launchSuccess', 'Roblox lanzado'),
+          durationMs: 2500,
+        });
+      } catch (e) {
+        useUIStore.getState().dismissNotification(notifId);
+        useUIStore.getState().addNotification({
+          type: 'error',
+          title: t('notifications.launchError', 'Error al lanzar'),
+          message: (e as Error).message,
+          durationMs: 4000,
+        });
+      }
     },
-    [api]
+    [api, t]
   );
 
   const handleJoinServer = useCallback(
     async (placeId: string, jobId: string) => {
       if (!api || !selectedAccount) return;
+      const notifId = useUIStore.getState().addNotification({
+        type: 'loading',
+        title: t('notifications.joinTitle', 'Uniéndose al servidor...'),
+      });
       try {
         let finalJobId = jobId;
         if (!finalJobId && jobIdShuffle) {
@@ -193,12 +274,25 @@ export const useAccountActions = () => {
         }
         if (placeId) {
           await handleLaunchGame(selectedAccount.id, placeId, finalJobId || undefined);
+          useUIStore.getState().dismissNotification(notifId);
+          useUIStore.getState().addNotification({
+            type: 'success',
+            title: t('notifications.joinSuccess', 'Lanzando Roblox'),
+            durationMs: 2500,
+          });
         }
       } catch (e) {
+        useUIStore.getState().dismissNotification(notifId);
+        useUIStore.getState().addNotification({
+          type: 'error',
+          title: t('notifications.joinError', 'Error al unirse'),
+          message: (e as Error).message,
+          durationMs: 4000,
+        });
         setError(e instanceof Error ? e.message : 'Join server error');
       }
     },
-    [api, selectedAccount, jobIdShuffle, handleLaunchGame, setError]
+    [api, selectedAccount, jobIdShuffle, handleLaunchGame, setError, t]
   );
 
   const handleLaunchApp = useCallback(
@@ -206,14 +300,41 @@ export const useAccountActions = () => {
       if (!api) return;
       const id = accountId ?? selectedAccount?.id;
       if (!id) return;
+      const notifId = useUIStore.getState().addNotification({
+        type: 'loading',
+        title: t('notifications.launchTitle', 'Lanzando Roblox...'),
+      });
       try {
         const result = await api.roblox.launch(id);
-        if (result?.success === false) setError(result.error || 'Launch error');
+        if (result?.success === false) {
+          useUIStore.getState().dismissNotification(notifId);
+          useUIStore.getState().addNotification({
+            type: 'error',
+            title: t('notifications.launchError', 'Error al lanzar'),
+            message: result.error || 'Unknown',
+            durationMs: 4000,
+          });
+          setError(result.error || 'Launch error');
+        } else {
+          useUIStore.getState().dismissNotification(notifId);
+          useUIStore.getState().addNotification({
+            type: 'success',
+            title: t('notifications.launchSuccess', 'Roblox lanzado'),
+            durationMs: 2500,
+          });
+        }
       } catch (e) {
+        useUIStore.getState().dismissNotification(notifId);
+        useUIStore.getState().addNotification({
+          type: 'error',
+          title: t('notifications.launchError', 'Error al lanzar'),
+          message: (e as Error).message,
+          durationMs: 4000,
+        });
         setError(e instanceof Error ? e.message : 'Launch error');
       }
     },
-    [api, selectedAccount, setError]
+    [api, selectedAccount, setError, t]
   );
 
   const handleCopyPlaceId = useCallback((placeId: string) => {
@@ -293,22 +414,60 @@ export const useAccountActions = () => {
 
   const handleDeleteAll = useCallback(async () => {
     if (!api) return;
+    const notifId = useUIStore.getState().addNotification({
+      type: 'loading',
+      title: t('notifications.deleteAllTitle', 'Eliminando todas las cuentas...'),
+    });
     try {
       const result = await api.advanced.deleteAllAccounts();
-      if (result?.success !== false) await fetchAccounts();
+      if (result?.success !== false) {
+        await fetchAccounts();
+        useUIStore.getState().dismissNotification(notifId);
+        useUIStore.getState().addNotification({
+          type: 'success',
+          title: t('notifications.deleteAllSuccess', 'Todas las cuentas eliminadas'),
+          durationMs: 2500,
+        });
+      } else {
+        throw new Error(result.error || 'Delete all failed');
+      }
     } catch (e) {
+      useUIStore.getState().dismissNotification(notifId);
+      useUIStore.getState().addNotification({
+        type: 'error',
+        title: t('notifications.deleteAllError', 'Error'),
+        message: (e as Error).message,
+        durationMs: 4000,
+      });
       console.error('delete all error:', e);
     }
-  }, [api, fetchAccounts]);
+  }, [api, fetchAccounts, t]);
 
   const handleClearCache = useCallback(async () => {
     if (!api) return;
+    const notifId = useUIStore.getState().addNotification({
+      type: 'loading',
+      title: t('notifications.clearCacheTitle', 'Limpiando caché...'),
+    });
     try {
       await api.advanced.clearCache();
+      useUIStore.getState().dismissNotification(notifId);
+      useUIStore.getState().addNotification({
+        type: 'success',
+        title: t('notifications.clearCacheSuccess', 'Caché limpiada'),
+        durationMs: 2500,
+      });
     } catch (e) {
+      useUIStore.getState().dismissNotification(notifId);
+      useUIStore.getState().addNotification({
+        type: 'error',
+        title: t('notifications.clearCacheError', 'Error'),
+        message: (e as Error).message,
+        durationMs: 4000,
+      });
       console.error('clear cache error:', e);
     }
-  }, [api]);
+  }, [api, t]);
 
   return {
     // State
@@ -329,7 +488,7 @@ export const useAccountActions = () => {
     handleDeleteAccount,
     handleSaveAlias,
     handleSaveDescription,
-    handleFollowUser,
+    followUser,
     handleLaunchGame,
     handleJoinServer,
     handleLaunchApp,

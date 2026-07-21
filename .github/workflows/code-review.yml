@@ -1,0 +1,183 @@
+name: Code Review
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # Job 1: Type-check (TS compiler)
+  # ─────────────────────────────────────────────────────────────
+  typecheck:
+    name: Type-check (tsc)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci || npm install --legacy-peer-deps
+      - run: npx tsc --noEmit
+      - name: Annotate PR
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await core.setFailed('Type-check falló — `npx tsc --noEmit` encontró errores. Arreglar antes de merge.');
+
+  # ─────────────────────────────────────────────────────────────
+  # Job 2: Lint
+  # ─────────────────────────────────────────────────────────────
+  lint:
+    name: Lint (eslint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci || npm install --legacy-peer-deps
+      - run: npm run lint
+      - name: Annotate PR
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await core.setFailed('Lint falló — `npm run lint` encontró errores. Arreglar antes de merge.');
+
+  # ─────────────────────────────────────────────────────────────
+  # Job 3: Tests unitarios
+  # ─────────────────────────────────────────────────────────────
+  tests:
+    name: Tests (vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci || npm install --legacy-peer-deps
+      - run: npx vitest run
+      - name: Publish test summary
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            try {
+              const summary = `## 🧪 Tests: ${process.env.OUTCOME || 'unknown'}\n\n_Resultado del job \`tests\`. Revisa el log para detalles._`;
+              await github.rest.checks.create({
+                ...context.repo,
+                name: 'Tests summary',
+                head_sha: context.payload.pull_request.head.sha,
+                status: 'completed',
+                conclusion: process.env.OUTCOME === 'success' ? 'success' : 'failure',
+                output: { title: 'Vitest run', summary }
+              });
+            } catch (e) { core.warning(`No se pudo publicar summary: ${e.message}`); }
+
+  # ─────────────────────────────────────────────────────────────
+  # Job 4: Coverage report (comentario en el PR)
+  # ─────────────────────────────────────────────────────────────
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    needs: tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci || npm install --legacy-peer-deps
+      - run: npm run test:coverage
+        continue-on-error: true
+      - name: Read coverage summary
+        id: cov
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            TOTAL=$(cat coverage/coverage-summary.json | jq -r '.totals.pct // "n/a"')
+            LINES=$(cat coverage/coverage-summary.json | jq -r '.totals.lines.pct // "n/a"')
+            BRANCHES=$(cat coverage/coverage-summary.json | jq -r '.totals.branches.pct // "n/a"')
+            FUNCTIONS=$(cat coverage/coverage-summary.json | jq -r '.totals.functions.pct // "n/a"')
+            echo "total=$TOTAL" >> $GITHUB_OUTPUT
+            echo "lines=$LINES" >> $GITHUB_OUTPUT
+            echo "branches=$BRANCHES" >> $GITHUB_OUTPUT
+            echo "functions=$FUNCTIONS" >> $GITHUB_OUTPUT
+          else
+            echo "total=n/a" >> $GITHUB_OUTPUT
+            echo "lines=n/a" >> $GITHUB_OUTPUT
+            echo "branches=n/a" >> $GITHUB_OUTPUT
+            echo "functions=n/a" >> $GITHUB_OUTPUT
+          fi
+      - name: Comment coverage on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const c = {
+              total: '${{ steps.cov.outputs.total }}',
+              lines: '${{ steps.cov.outputs.lines }}',
+              branches: '${{ steps.cov.outputs.branches }}',
+              functions: '${{ steps.cov.outputs.functions }}'
+            };
+            const body = [
+              '## 📊 Coverage report',
+              '',
+              '| Métrica | Valor |',
+              '|---|---|',
+              `| Total | ${c.total}% |`,
+              `| Líneas | ${c.lines}% |`,
+              `| Branches | ${c.branches}% |`,
+              `| Funciones | ${c.functions}% |`,
+              '',
+              '_.update automático por `code-review.yml` cada push al PR._'
+            ].join('\n');
+            const { data: comments } = await github.rest.issues.listComments({
+              ...context.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body && c.body.includes('📊 Coverage report'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                ...context.repo,
+                comment_id: existing.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: context.issue.number,
+                body
+              });
+            }
+
+  # ─────────────────────────────────────────────────────────────
+  # Job 5: Build (sanity check — sin firma NSIS en PR)
+  # ─────────────────────────────────────────────────────────────
+  build:
+    name: Build sanity check
+    runs-on: ubuntu-latest
+    needs: [typecheck, lint, tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci || npm install --legacy-peer-deps
+      - run: npx vite build
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.sha }}
+          path: dist/
+          retention-days: 7

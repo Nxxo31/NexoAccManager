@@ -12,11 +12,123 @@ import { useTranslation } from 'react-i18next';
 import { useUIStore } from '@renderer/store/useUIStore';
 
 interface SettingsViewProps {
-  onOpenModal: () => void;
+  onOpenModal?: () => void;
   onKillAll?: () => void;
 }
 
-export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenModal, onKillAll }) => {
+// Preset accent colors. User can also pick arbitrary hex via native color input.
+const ACCENT_PRESETS: { name: string; value: string }[] = [
+  { name: 'Nexo Purple', value: '#6347FF' },
+  { name: 'Roblox Red', value: '#DE350D' },
+  { name: 'Emerald', value: '#10B981' },
+  { name: 'Amber', value: '#F59E0B' },
+  { name: 'Cyan', value: '#06B6D4' },
+  { name: 'Pink', value: '#EC4899' },
+];
+
+const AccentColorPicker: React.FC<{ api: any; t: any }> = ({ api, t }) => {
+  const [accent, setAccent] = React.useState<string>(() => {
+    if (typeof window === 'undefined') return '#6347FF';
+    return (window as any).__nxAccentColor || '#6347FF';
+  });
+
+  const applyAccent = React.useCallback(async (hex: string) => {
+    setAccent(hex);
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.setProperty('--accent', hex);
+      document.documentElement.style.setProperty('--primary', hex);
+      // Derived shades (naive but good enough without a full color lib)
+      document.documentElement.style.setProperty('--primary-dark', shade(hex, -20));
+      document.documentElement.style.setProperty('--primary-light', shade(hex, 20));
+      (window as any).__nxAccentColor = hex;
+    }
+    try {
+      if (api?.settings?.set) await api.settings.set('accentColor', hex);
+      if (api?.theme?.set) await api.theme.set({ accent: hex });
+    } catch (e) {
+      console.error('Error persisting accent color:', e);
+    }
+  }, [api]);
+
+  React.useEffect(() => {
+    // Load persisted accent on mount
+    (async () => {
+      try {
+        if (api?.settings?.get) {
+          const r = await api.settings.get('accentColor');
+          if (r?.success && r.data) applyAccent(r.data);
+          else if (typeof r === 'string') applyAccent(r);
+        }
+      } catch { /* ignore */ }
+    })();
+  }, [api, applyAccent]);
+
+  return (
+    <div className="p-3 rounded-lg bg-bg-card border border-border space-y-3">
+      <div>
+        <p className="text-sm font-medium">{t('views.settings.accentColor', 'Color de acento')}</p>
+        <p className="text-xs text-muted-foreground">{t('views.settings.accentColorDesc', 'Personaliza el color primario de la interfaz')}</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {ACCENT_PRESETS.map((preset) => (
+          <button
+            key={preset.value}
+            onClick={() => applyAccent(preset.value)}
+            aria-label={preset.name}
+            title={preset.name}
+            className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 ${accent.toLowerCase() === preset.value.toLowerCase() ? 'border-foreground' : 'border-transparent'}`}
+            style={{ backgroundColor: preset.value }}
+          />
+        ))}
+        <label
+          className="relative w-7 h-7 rounded-full border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors"
+          aria-label={t('views.settings.customColor', 'Color personalizado')}
+          title={t('views.settings.customColor', 'Color personalizado')}
+        >
+          <input
+            type="color"
+            value={accent}
+            onChange={(e) => applyAccent(e.target.value)}
+            className="absolute inset-0 opacity-0 cursor-pointer"
+          />
+          <span className="text-xs text-muted-foreground">+</span>
+        </label>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">{t('views.settings.current', 'Actual')}:</span>
+        <code className="text-xs px-1.5 py-0.5 rounded bg-bg-surface border border-border">{accent}</code>
+        <button
+          onClick={() => applyAccent('#6347FF')}
+          className="text-xs text-primary hover:underline ml-auto"
+          aria-label={t('views.settings.reset', 'Restablecer')}
+        >
+          {t('views.settings.reset', 'Restablecer')}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Mix hex with white (positive) or black (negative) by `amt` percent.
+function shade(hex: string, amt: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const num = parseInt(m[1], 16);
+  let r = (num >> 16) & 0xff, g = (num >> 8) & 0xff, b = num & 0xff;
+  const f = amt / 100;
+  if (f >= 0) {
+    r = Math.round(r + (255 - r) * f);
+    g = Math.round(g + (255 - g) * f);
+    b = Math.round(b + (255 - b) * f);
+  } else {
+    r = Math.round(r * (1 + f));
+    g = Math.round(g * (1 + f));
+    b = Math.round(b * (1 + f));
+  }
+  return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+export const SettingsView: React.FC<SettingsViewProps> = ({ onKillAll }) => {
   const { t } = useTranslation();
   const {
     savePasswords, setSavePasswords,
@@ -117,6 +229,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenModal, onKillA
         <h2 className="text-xl font-bold">{t('views.settings.title', 'Ajustes')}</h2>
       </div>
       <p className="text-muted-foreground">{t('views.settings.description', 'Configuracion avanzada de la aplicacion')}</p>
+
+      {/* Appearance — custom accent color */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          {t('views.settings.appearance', 'Apariencia')}
+        </h3>
+        <AccentColorPicker api={api} t={t} />
+      </div>
 
       {/* Security Settings */}
       <div className="space-y-3">
@@ -226,13 +346,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onOpenModal, onKillA
         </div>
       )}
 
-      {/* Open Settings Panel */}
-      <button
-        onClick={onOpenModal}
-        className="px-4 py-2 text-sm rounded bg-primary text-white hover:bg-primary-dark transition-colors"
-      >
-        {t('views.settings.openPanel', 'Abrir panel de ajustes')}
-      </button>
     </div>
   );
 };

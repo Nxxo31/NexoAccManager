@@ -23,6 +23,8 @@ const ServerBrowser: React.FC = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [sortBy, setSortBy] = React.useState<'ping' | 'players' | 'fps'>('ping');
+  const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc'>('asc');
+  const [maxPing, setMaxPing] = React.useState<number>(0); // 0 = sin filtro
   const [selectedServerId, setSelectedServerId] = React.useState<string | undefined>();
 
   const accounts = useAccountStore((s) => s.accounts);
@@ -75,14 +77,23 @@ const ServerBrowser: React.FC = () => {
     if (searchTerm) {
       result = result.filter((s) => s.jobId.includes(searchTerm));
     }
+    if (maxPing > 0) {
+      result = result.filter((s) => s.ping <= maxPing);
+    }
     return [...result].sort((a, b) => {
-      switch (sortBy) {
-        case 'ping': return a.ping - b.ping;
-        case 'players': return b.playerCount - a.playerCount;
-        case 'fps': return b.fps - a.fps;
+      const diff = sortBy === 'ping' ? a.ping - b.ping
+        : sortBy === 'players' ? b.playerCount - a.playerCount
+        : b.fps - a.fps;
+      // Para players/fps el "mejor" es el mayor; si el usuario pide asc, respetamos su elección literal.
+      if (sortBy === 'ping') {
+        return sortOrder === 'asc' ? diff : -diff;
       }
+      // players/fps: asc = menor primero, desc = mayor primero
+      return sortOrder === 'asc'
+        ? (sortBy === 'players' ? a.playerCount - b.playerCount : a.fps - b.fps)
+        : (sortBy === 'players' ? b.playerCount - a.playerCount : b.fps - a.fps);
     });
-  }, [servers, searchTerm, sortBy]);
+  }, [servers, searchTerm, sortBy, sortOrder, maxPing]);
 
   const getPingColor = (ping: number): string => {
     if (ping < 80) return 'text-green-500';
@@ -136,7 +147,7 @@ const ServerBrowser: React.FC = () => {
 
         {/* Filters */}
         {servers.length > 0 && (
-          <div className="flex items-center gap-4 mt-4">
+          <div className="flex items-center gap-4 mt-4 flex-wrap">
             <input
               type="text"
               placeholder="Filtrar por Job ID..."
@@ -153,6 +164,38 @@ const ServerBrowser: React.FC = () => {
               <option value="players">Ordenar: Jugadores</option>
               <option value="fps">Ordenar: FPS</option>
             </select>
+            <button
+              onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+              className="nexo-input px-2.5 h-8 flex items-center gap-1 text-xs font-medium"
+              aria-label={sortOrder === 'asc' ? 'Ascendente (menor primero)' : 'Descendente (mayor primero)'}
+              title={sortOrder === 'asc' ? 'Ascendente (menor primero)' : 'Descendente (mayor primero)'}
+            >
+              {sortOrder === 'asc' ? '↑ Asc' : '↓ Desc'}
+            </button>
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs text-muted-foreground whitespace-nowrap">Ping máx:</label>
+              <input
+                type="number"
+                min={0}
+                placeholder="0 = sin filtro"
+                value={maxPing || ''}
+                onChange={(e) => setMaxPing(Math.max(0, Number(e.target.value)))}
+                className="nexo-input w-28 h-8 text-xs"
+              />
+              <span className="text-xs text-muted-foreground">ms</span>
+            </div>
+            {maxPing > 0 && (
+              <button
+                onClick={() => setMaxPing(0)}
+                className="text-xs text-primary hover:underline"
+                aria-label="Quitar filtro de ping"
+              >
+                ✕
+              </button>
+            )}
+            <span className="text-xs text-muted-foreground ml-auto">
+              {filtered.length}/{servers.length} mostrados
+            </span>
           </div>
         )}
       </div>

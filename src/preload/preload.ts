@@ -36,6 +36,7 @@ type IpcChannel =
   | 'roblox:launch'
   | 'roblox:games:search'
   | 'roblox:servers:list'
+  | 'roblox:servers:users'
   | 'roblox:servers:join'
   | 'roblox:servers:distribute'
   | 'settings:get'
@@ -56,33 +57,38 @@ type IpcChannel =
   | 'presence:recent-games'
   | 'presence:robux-balance'
   // Theme / Appearance
-  | "settings:theme:get"
-  | "settings:theme:set"
-  | "settings:language:get"
-  | "settings:language:set"
-  | "theme:get-css"
+  | 'settings:theme:get'
+  | 'settings:theme:set'
+  | 'settings:language:get'
+  | 'settings:language:set'
+  | 'theme:get-css'
   // Advanced
-  | "advanced:clearCache"
-  | "advanced:exportData"
-  | "advanced:deleteAllAccounts"
-  | "shell:open-external"
+  | 'advanced:clearCache'
+  | 'advanced:exportData'
+  | 'advanced:deleteAllAccounts'
+  | 'shell:open-external'
   // Cookie events
-  | "cookie:expiring"
-  | "cookie:expired"
+  | 'cookie:expiring'
+  | 'cookie:expired'
   // Phase 4 settings
-  | "settings:autoRelaunch:get"
-  | "settings:autoRelaunch:set"
-  | "settings:connectionWatcher:get"
-  | "settings:connectionWatcher:set"
-  | "settings:preventDuplicateInstances:get"
-  | "settings:preventDuplicateInstances:set"
+  | 'settings:autoRelaunch:get'
+  | 'settings:autoRelaunch:set'
+  | 'settings:connectionWatcher:get'
+  | 'settings:connectionWatcher:set'
+  | 'settings:preventDuplicateInstances:get'
+  | 'settings:preventDuplicateInstances:set'
+  | 'account:bulk-import'
   | 'roblox:search-user'
   | 'roblox:join-group'
   | 'roblox:quick-login'
   | 'roblox:kill-all'
   | 'settings:webapi:get'
   | 'settings:webapi:set'
-;
+  // Botting
+  | 'botting:start'
+  | 'botting:stop'
+  | 'botting:getStatus'
+  | 'botting:setInterval';
 const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'account:add',
   'account:login',
@@ -106,6 +112,7 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'roblox:launch',
   'roblox:games:search',
   'roblox:servers:list',
+  'roblox:servers:users',
   'roblox:servers:join',
   'roblox:servers:distribute',
   'settings:get',
@@ -124,8 +131,13 @@ const ALLOWED_CHANNELS: ReadonlySet<string> = new Set<IpcChannel>([
   'presence:start-polling',
   'presence:stop-polling',
   'presence:recent-games',
-  'presence:robux-balance',
-  // Theme / Appearance
+      'presence:robux-balance',
+      // Botting
+      'botting:start',
+      'botting:stop',
+      'botting:getStatus',
+      'botting:setInterval',
+      // Theme / Appearance
   'settings:theme:get',
   'settings:theme:set',
   'settings:language:get',
@@ -207,6 +219,8 @@ contextBridge.exposeInMainWorld('api', {
       invoke('roblox:games:search', placeId, accountId),
     getServers: (placeId: string, accountId: string) =>
       invoke('roblox:servers:list', placeId, accountId),
+    getServerUsers: (placeId: string, accountId: string) =>
+      invoke('roblox:servers:users', placeId, accountId),
     joinServer: (placeId: string, jobId: string, accountId: string) =>
       invoke('roblox:servers:join', placeId, jobId, accountId),
     searchUser: (username: string) => invoke('roblox:search-user', username),
@@ -282,6 +296,14 @@ contextBridge.exposeInMainWorld('api', {
     get: () => invoke('settings:language:get'),
     set: (lang: string) => invoke('settings:language:set', lang),
   },
+  // Botting
+  botting: {
+    start: (accountIds: string[], intervalMinutes: number, placeId?: string, jobId?: string) =>
+      invoke('botting:start', accountIds, intervalMinutes, placeId, jobId),
+    stop: () => invoke('botting:stop'),
+    getStatus: () => invoke('botting:getStatus'),
+    setInterval: (intervalMinutes: number) => invoke('botting:setInterval', intervalMinutes),
+  },
   checkAccount: (accountId: string) => invoke('account:check', accountId),
   cookieEvents: {
     onExpiring: (callback: (accountId: string, hoursLeft: number) => void) => {
@@ -332,6 +354,7 @@ export interface Api {
     launch: (accountId: string, placeId?: string, jobId?: string) => Promise<boolean>;
     searchGame: (placeId: string, accountId: string) => Promise<any>;
     getServers: (placeId: string, accountId: string) => Promise<any[]>;
+    getServerUsers: (placeId: string, accountId: string) => Promise<any[]>;
     joinServer: (placeId: string, jobId: string, accountId: string) => Promise<boolean>;
     searchUser: (username: string) => Promise<any>;
     joinGroup: (accountId: string, groupId: number) => Promise<boolean>;
@@ -383,6 +406,13 @@ export interface Api {
   language: {
     get: () => Promise<string>;
     set: (lang: string) => Promise<boolean>;
+  };
+  botting: {
+    start: (accountIds: string[], intervalMinutes: number, placeId?: string, jobId?: string) =>
+      Promise<boolean>;
+    stop: () => Promise<void>;
+    getStatus: () => Promise<{ running: boolean; intervalMinutes: number; accountIds: string[]; placeId: string | null; jobId: string | null }>;
+    setInterval: (intervalMinutes: number) => Promise<void>;
   };
   checkAccount: (accountId: string) => Promise<any>;
   cookieEvents: {

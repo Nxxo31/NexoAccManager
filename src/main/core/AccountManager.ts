@@ -127,7 +127,7 @@ export class AccountManager {
   /**
    * Valida una cookie y obtiene informaciÃ³n de autenticaciÃ³n
    */
-  private async verifyAndGetAuthInfo(cookie: string): Promise<{ authenticated: boolean; userId: number }> {
+  async verifyAndGetAuthInfo(cookie: string): Promise<{ authenticated: boolean; userId: number }> {
     const headers = { Cookie: `.ROBLOSECURITY=${cookie.trim()}` };
     try {
       // Verificar autenticaciÃ³n
@@ -309,7 +309,7 @@ export class AccountManager {
   /**
    * Verifica que la cookie sea vÃ¡lida haciendo una peticiÃ³n a Roblox
    */
-  private async verifyCookie(cookie: string): Promise<boolean> {
+  async verifyCookie(cookie: string): Promise<boolean> {
     const headers = { Cookie: `.ROBLOSECURITY=${cookie.trim()}` };
     try {
       const response = await axios.get('https://users.roblox.com/v1/users/authenticated', {
@@ -328,7 +328,7 @@ export class AccountManager {
   /**
    * Obtiene el auth ticket de Roblox para usar en el protocolo roblox-player://
    */
-  private async getAuthTicket(cookie: string): Promise<string> {
+  async getAuthTicket(cookie: string): Promise<string> {
     // Paso 1: Obtener X-CSRF-Token
     const csrfToken = await this.getCsrfToken(cookie);
 

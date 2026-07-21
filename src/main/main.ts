@@ -13,6 +13,19 @@ import { GamesService } from './services/GamesService';
 import { CookieExpiryService } from './services/CookieExpiryService';
 import { ThemeService, ThemeSettings, ThemeId } from './core/ThemeService';
 import { MultiRobloxService } from './core/MultiRobloxService';
+import { RobloxContext } from './services/RobloxContext';
+import { LoginBrowserService } from './services/LoginBrowserService';
+import { RobloxAuthService } from './services/RobloxAuthService';
+import { ServersService } from './services/ServersService';
+import { ImportService } from './services/ImportService';
+import { BulkImportService } from './services/BulkImportService';
+import { CaptchaService } from './services/CaptchaService';
+import { PlayerFinderService } from './services/PlayerFinderService';
+import { BrowserService } from './services/BrowserService';
+import { RobloxWatcherService } from './services/RobloxWatcherService';
+import { DeveloperModeService } from './core/DeveloperModeService';
+import { LocalAPIService } from './core/LocalAPIService';
+import { v4 as uuidv4 } from 'uuid';
 // =============================================================================
 // TYPE GUARDS PARA VALIDACIÓN DE PAYLOADS IPC (Defense in Depth)
 // Nunca confiar en los datos que llegan del renderer
@@ -72,15 +85,27 @@ const MAX_ACCOUNTS = 50;
 class NexoApp {
   private mainWindow: BrowserWindow | null = null;
   private accountManager: AccountManager;
-    private db: DatabaseManager;
-    private crypto: CryptoService;
-    private accountSettingsService: AccountSettingsService;
-    private presenceService: PresenceService;
-    private bottingService: BottingService;
-    private cookieExpiryService: CookieExpiryService;
-    private themeService: ThemeService;
-    private gamesService: GamesService;
-    private multiRobloxService: MultiRobloxService;
+  private db: DatabaseManager;
+  private crypto: CryptoService;
+  private accountSettingsService: AccountSettingsService;
+  private presenceService: PresenceService;
+  private bottingService: BottingService;
+  private cookieExpiryService: CookieExpiryService;
+  private themeService: ThemeService;
+  private gamesService: GamesService;
+  private multiRobloxService: MultiRobloxService;
+  private robloxContext: RobloxContext;
+  private loginBrowserService: LoginBrowserService;
+  private authService: RobloxAuthService;
+  private serversService: ServersService;
+  private importService: ImportService;
+  private bulkImportService: BulkImportService;
+  private captchaService: CaptchaService;
+  private playerFinderService: PlayerFinderService;
+  private browserService: BrowserService;
+  private robloxWatcherService: RobloxWatcherService;
+  private developerModeService: DeveloperModeService;
+  private localAPIService: LocalAPIService;
 
   constructor() {
     this.db = new DatabaseManager();
@@ -93,6 +118,37 @@ class NexoApp {
     this.cookieExpiryService = new CookieExpiryService(this.db, this.crypto);
     this.themeService = new ThemeService(this.db);
     this.gamesService = new GamesService();
+    this.loginBrowserService = new LoginBrowserService();
+    this.authService = new RobloxAuthService();
+    this.serversService = new ServersService();
+    // Servicios nuevos v3.4.0
+    this.importService = new ImportService();
+    this.bulkImportService = new BulkImportService();
+    this.captchaService = new CaptchaService();
+    this.playerFinderService = new PlayerFinderService();
+    this.browserService = new BrowserService();
+    this.robloxWatcherService = new RobloxWatcherService();
+    this.developerModeService = new DeveloperModeService();
+    this.localAPIService = new LocalAPIService();
+    // FACADE - RobloxContext orquesta todos los servicios
+    this.robloxContext = new RobloxContext(
+      this.db,
+      this.crypto,
+      this.accountManager,
+      this.presenceService,
+      this.bottingService,
+      this.cookieExpiryService,
+      this.gamesService,
+      this.serversService,
+      this.importService,
+      this.bulkImportService,
+      this.captchaService,
+      this.playerFinderService,
+      this.browserService,
+      this.robloxWatcherService,
+      this.developerModeService,
+      this.localAPIService
+    );
   }
 
   cleanup(): void {
@@ -162,7 +218,7 @@ class NexoApp {
         sandbox: true,
         preload: path.join(__dirname, '../preload/preload.js'),
       },
-      title: 'NexoAccManager',
+      title: 'NX-Manager',
       icon: path.join(__dirname, '../../public/icon.png'),
     });
 
@@ -221,9 +277,7 @@ class NexoApp {
         return err(`Límite máximo de ${MAX_ACCOUNTS} cuentas alcanzado. Elimina algunas cuentas antes de agregar nuevas.`);
       }
       try {
-        const { LoginBrowserService } = await import('./services/LoginBrowserService');
-        const loginService = new LoginBrowserService();
-        const loginResult = await loginService.loginWithBrowser();
+        const loginResult = await this.loginBrowserService.loginWithBrowser();
 
         const groupName = isNonEmptyString(group) ? group.trim() : 'Default';
         const result = await this.accountManager.addAccountFromCookie(loginResult.cookie, groupName);
@@ -253,10 +307,8 @@ class NexoApp {
         return err(`Límite máximo de ${MAX_ACCOUNTS} cuentas alcanzado. Elimina algunas cuentas antes de agregar nuevas.`);
       }
       try {
-        const { RobloxAuthService } = await import('./services/RobloxAuthService');
-        const authService = new RobloxAuthService();
-        const loginResult = await authService.login(username.trim(), password);
-        
+        const loginResult = await this.authService.login(username.trim(), password);
+
         const groupName = isNonEmptyString(group) ? group.trim() : 'Default';
         const result = await this.accountManager.addAccountFromCookie(loginResult.cookie, groupName);
         return ok(result);
@@ -302,9 +354,7 @@ class NexoApp {
         return err('Payload inválido: password debe ser un string no vacío');
       }
       try {
-        const { CryptoService } = await import('./core/CryptoService');
-        const crypto = new CryptoService();
-        const encrypted = crypto.encrypt(password);
+        const encrypted = this.crypto.encrypt(password);
         this.accountManager.setAccountField(accountId.trim(), 'password', encrypted);
         return ok(true);
       } catch (e) {
@@ -322,9 +372,7 @@ class NexoApp {
         if (!account) return err('Cuenta no encontrada');
         const encrypted = account.fields?.['password'];
         if (!encrypted) return ok(null);
-        const { CryptoService } = await import('./core/CryptoService');
-        const crypto = new CryptoService();
-        const decrypted = crypto.decrypt(encrypted);
+        const decrypted = this.crypto.decrypt(encrypted);
         return ok(decrypted);
       } catch (e) {
         return err(`Error obteniendo contraseña: ${(e as Error).message}`);
@@ -332,61 +380,7 @@ class NexoApp {
     });
 
     // Record game play — Phase 3.4
-    ipcMain.handle('presence:recordGamePlay', async (_, payload: unknown) => {
-      if (!payload || typeof payload !== 'object') {
-        return err('Payload inválido: se esperaba un objeto');
-      }
-      const { accountId, placeId, universeId, gameName, icon } = payload as {
-        accountId: string;
-        placeId: string;
-        universeId: number;
-        gameName: string;
-        icon?: string;
-      };
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
-      if (!isNonEmptyString(placeId)) {
-        return err('Payload inválido: placeId debe ser un string no vacío');
-      }
-      if (typeof universeId !== 'number' || isNaN(universeId)) {
-        return err('Payload inválido: universeId debe ser un número válido');
-      }
-      if (!isNonEmptyString(gameName)) {
-        return err('Payload inválido: gameName debe ser un string no vacío');
-      }
-      try {
-        const { v4: uuidv4 } = await import('uuid');
-        const recentGame = {
-          id: uuidv4(),
-          gameId: universeId,
-          name: gameName,
-          icon: icon || undefined,
-          lastPlayed: new Date(),
-          placeId: placeId,
-          placeName: gameName, // Assume place name same as game name for now
-          universeId: universeId
-        };
-        this.accountManager.addRecentGame(accountId.trim(), recentGame);
-        return ok(true);
-      } catch (e) {
-        return err(`Error registrando juego jugado: ${(e as Error).message}`);
-      }
-    });
-
     // Get recent games — Phase 3.4
-    ipcMain.handle('presence:getRecentGames', async (_, accountId: unknown) => {
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
-      try {
-        const recentGames = this.accountManager.getRecentGames(accountId.trim());
-        return ok({ recentGames });
-      } catch (e) {
-        return err(`Error obteniendo juegos recientes: ${(e as Error).message}`);
-      }
-    });
-
     // Add favorite game — Phase 3.5
     ipcMain.handle('games:addFavorite', async (_, payload: unknown) => {
       if (!payload || typeof payload !== 'object') {
@@ -408,7 +402,6 @@ class NexoApp {
         return err('Payload inválido: name debe ser un string no vacío');
       }
       try {
-        const { v4: uuidv4 } = await import('uuid');
         const favoriteGame = {
           id: uuidv4(),
           gameId: gameId,
@@ -526,8 +519,6 @@ class NexoApp {
       }
       const results: Array<{ success: boolean; message: string; accountId?: string }> = [];
       try {
-        const { RobloxAuthService } = await import('./services/RobloxAuthService');
-        const authService = new RobloxAuthService();
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
           try {
@@ -537,7 +528,7 @@ class NexoApp {
               if (!username || !password) {
                 throw new Error(`Línea ${i + 1}: formato inválido, se esperaba usuario:contraseña`);
               }
-              const loginResult = await authService.login(username, password);
+              const loginResult = await this.authService.login(username, password);
               const result = await this.accountManager.addAccountFromCookie(loginResult.cookie, 'Default');
               accountId = result.id;
               results.push({ success: true, message: `Línea ${i + 1}: cuenta agregada`, accountId });
@@ -585,37 +576,6 @@ class NexoApp {
       }
     });
 
-    ipcMain.handle('roblox:recent-games', async () => {
-      return ok([]);
-    });
-
-    ipcMain.handle('roblox:join-server', async (_, placeId: unknown, accountId: unknown) => {
-      if (!isValidPlaceId(placeId)) {
-        return err('Payload inválido: placeId debe ser un string numérico no vacío');
-      }
-      if (!isNonEmptyString(accountId)) {
-        return err('Payload inválido: accountId debe ser un string no vacío');
-      }
-      try {
-        const result = await this.accountManager.launchRoblox(accountId.trim(), String(placeId).trim());
-        return ok(result);
-      } catch (e) {
-        return err(`Error uniéndose al servidor: ${(e as Error).message}`);
-      }
-    });
-
-    ipcMain.handle('roblox:multiroblox', async (_, enabled: unknown) => {
-      if (!isBool(enabled)) {
-        return err('Payload inválido: enabled debe ser un booleano');
-      }
-      try {
-        const result = this.accountManager.setMultiRoblox(enabled);
-        return ok(result);
-      } catch (e) {
-        return err(`Error configurando Multi-Roblox: ${(e as Error).message}`);
-      }
-    });
-
     // =================================================================
     // ROBLOX: GAMES (Sprint E3 — Server Browser)
     // =================================================================
@@ -633,9 +593,7 @@ class NexoApp {
           ? this.crypto.decrypt(raw.encrypted_cookie)
           : '';
         if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const { GamesService } = await import('./services/GamesService');
-        const service = new GamesService();
-        const game = await service.searchGame(placeId.trim(), cookie);
+        const game = await this.robloxContext.games.searchGame(placeId.trim(), cookie);
         return ok(game);
       } catch (e) {
         return err(`Error buscando juego: ${(e as Error).message}`);
@@ -655,12 +613,30 @@ class NexoApp {
           ? this.crypto.decrypt(raw.encrypted_cookie)
           : '';
         if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const { GamesService } = await import('./services/GamesService');
-        const service = new GamesService();
-        const servers = await service.getGameServers(placeId.trim(), cookie);
+        const servers = await this.robloxContext.servers.getGameServers(placeId.trim(), cookie);
         return ok(servers);
       } catch (e) {
         return err(`Error listando servers: ${(e as Error).message}`);
+      }
+    });
+
+    ipcMain.handle('roblox:servers:users', async (_, placeId: unknown, accountId: unknown) => {
+      if (!isValidPlaceId(placeId)) {
+        return err('Payload inválido: placeId debe ser un string numérico no vacío');
+      }
+      if (!isNonEmptyString(accountId)) {
+        return err('Payload inválido: accountId debe ser un string no vacío');
+      }
+      try {
+        const raw = this.db.getAccount(accountId.trim()) || {};
+        const cookie = raw.encrypted_cookie
+          ? this.crypto.decrypt(raw.encrypted_cookie)
+          : '';
+        if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
+        const users = await this.robloxContext.servers.getServerUsers(String(placeId).trim(), '', cookie);
+        return ok(users);
+      } catch (e) {
+        return err(`Error obteniendo usuarios del server: ${(e as Error).message}`);
       }
     });
 
@@ -675,9 +651,7 @@ class NexoApp {
         return err('Payload inválido: accountId debe ser un string no vacío');
       }
       try {
-        const { GamesService } = await import('./services/GamesService');
-        const service = new GamesService();
-        const result = await service.joinServer(placeId.trim(), jobId as string, this.accountManager, accountId);
+        const result = await this.robloxContext.servers.joinServer(placeId.trim(), jobId as string, accountId);
         return ok(result);
       } catch (e) {
         return err(`Error uniéndose al server: ${(e as Error).message}`);
@@ -700,9 +674,7 @@ class NexoApp {
           : '';
         if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
 
-        const { GamesService } = await import('./services/GamesService');
-        const service = new GamesService();
-        const results = await service.distributeAccounts(placeId.trim(), accountIds, this.accountManager, cookie);
+        const results = await this.robloxContext.servers.distributeAccounts(placeId.trim(), accountIds, cookie);
         return ok(results);
       } catch (e) {
         return err(`Error distribuyendo cuentas: ${(e as Error).message}`);
@@ -1079,7 +1051,7 @@ class NexoApp {
       try {
         const ids = accountIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
         if (ids.length === 0) return err('Ningún accountId válido');
-        const presence = await this.presenceService.getPresence(ids);
+        const presence = await this.robloxContext.presence.getPresence(ids);
         return ok(presence);
       } catch (e) {
         return err(`Error: ${(e as Error).message}`);
@@ -1097,7 +1069,7 @@ class NexoApp {
         const ids = accountIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
         if (ids.length === 0) return err('Ningún accountId válido');
         const interval = typeof intervalMs === 'number' && intervalMs > 0 ? intervalMs : undefined;
-        this.presenceService.startPolling(ids, interval as number);
+        await this.robloxContext.presence.startPolling(ids, interval as number);
         return ok(true);
       } catch (e) {
         return err(`Error: ${(e as Error).message}`);
@@ -1106,7 +1078,7 @@ class NexoApp {
 
     ipcMain.handle('presence:stop-polling', async () => {
       try {
-        this.presenceService.stopPolling();
+        await this.robloxContext.presence.stopPolling();
         return ok(true);
       } catch (e) {
         return err(`Error: ${(e as Error).message}`);
@@ -1116,7 +1088,7 @@ class NexoApp {
     ipcMain.handle('presence:recent-games', async (_, accountId: unknown) => {
       if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
-        const games = await this.presenceService.getRecentGames(accountId.trim());
+        const games = await this.robloxContext.presence.getRecentGames(accountId.trim());
         return ok(games);
       } catch (e) {
         return err(`Error: ${(e as Error).message}`);
@@ -1126,7 +1098,7 @@ class NexoApp {
     ipcMain.handle('presence:robux-balance', async (_, accountId: unknown) => {
       if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
-        const balance = await this.presenceService.getRobuxBalance(accountId.trim());
+        const balance = await this.robloxContext.presence.getRobuxBalance(accountId.trim());
         return ok(balance);
       } catch (e) {
         return err(`Error: ${(e as Error).message}`);
@@ -1423,14 +1395,6 @@ class NexoApp {
     // =================================================================
     // ROBLOX: openProfile - opens user profile in default browser
     // =================================================================
-    ipcMain.handle('roblox:openProfile', async (_, userId: unknown) => {
-      if (typeof userId !== 'string' && typeof userId !== 'number') {
-        return err('userId must be a string or number');
-      }
-      const url = `https://www.roblox.com/users/${userId}/profile`;
-      return ok({ url });
-    });
-
     // =================================================================
     // BOTTING MODE (opt-in, user assumes ToS ban risk)
     // =================================================================
@@ -1447,7 +1411,7 @@ class NexoApp {
       }
       const safePlaceId = typeof placeId === 'string' ? placeId : undefined;
       const safeJobId = typeof jobId === 'string' ? jobId : undefined;
-      this.bottingService.start(
+      await this.robloxContext.botting.start(
         accountIds as string[],
         intervalMinutes as number,
         safePlaceId,
@@ -1457,19 +1421,19 @@ class NexoApp {
     });
 
     ipcMain.handle('botting:stop', async () => {
-      this.bottingService.stop();
+      await this.robloxContext.botting.stop();
       return ok({ stopped: true });
     });
 
     ipcMain.handle('botting:getStatus', async () => {
-      return ok(this.bottingService.getStatus());
+      return ok(this.robloxContext.botting.getStatus());
     });
 
     ipcMain.handle('botting:setInterval', async (_, intervalMinutes: unknown) => {
       if (typeof intervalMinutes !== 'number' || isNaN(intervalMinutes) || intervalMinutes <= 0) {
         return err('Payload inválido: intervalMinutes debe ser número > 0');
       }
-      this.bottingService.setInterval(intervalMinutes as number);
+      await this.robloxContext.botting.setInterval(intervalMinutes as number);
       return ok({ updated: true });
     });
 
@@ -1555,7 +1519,7 @@ class NexoApp {
   private createMenu(): void {
     const template: Electron.MenuItemConstructorOptions[] = [
       {
-        label: 'NexoAccManager',
+        label: 'NX-Manager',
         submenu: [
           { role: 'about' },
           { type: 'separator' },

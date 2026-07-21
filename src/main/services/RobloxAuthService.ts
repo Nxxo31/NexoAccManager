@@ -178,7 +178,7 @@ export class RobloxAuthService {
   /**
    * Verifica que una cookie sea válida consultando users.roblox.com
    */
-  private async verifyCookie(cookie: string): Promise<boolean> {
+  public async verifyCookie(cookie: string): Promise<boolean> {
     try {
       const response = await axios.get('https://users.roblox.com/v1/users/authenticated', {
         headers: { Cookie: `.ROBLOSECURITY=${cookie}` },
