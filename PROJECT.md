@@ -438,36 +438,36 @@ class NexoApp {
 26. `describe('RobloxContext') / it('cookies.refresh delegas to CookieExpiryService')`
 27. `describe('RobloxContext') / it('throws if dependency not provided in constructor')`
 
-**Tests de integración backend** (validación REAL, no mock):
-- 10+ tests con axios-mock-adapter para GamesService, ServersService, PresenceService
-- 5 tests con `mockBrowser` para LoginBrowserService + BrowserService
-- 3 tests para QuickLogin con mock HTTP
-- 2 tests para ImportCookie (formato cookie válido vs inválido)
-- 2 tests para BulkImport (batch user:pass)
+**Tests de integración backend** — ELIMINADOS por decisión de Sebastian (2026-07-21):
+- Se eliminan los tests de integración con axios-mock-adapter y mockBrowser del plan
+- El análisis de irregularidades se hace vía LSP (live_diagnostics, outline, find_references, call_hierarchy) en vez de tests de integración
+- Los 164 tests de vitest actuales (137 base + 27 delegación Facade) se mantienen
+- No se agregan tests nuevos sallo que LSP detecte errores reales que requieran validación
 
-**Tests de DeveloperModeService:**
+**Tests de DeveloperModeService:** (pendientes — opcional)
 - `describe('DeveloperModeService') / it('toggle dev mode enable/disable')`
 - `describe('DeveloperModeService') / it('blocks dangerous features when disabled')`
 
-**Tests de LocalAPIService:**
+**Tests de LocalAPIService:** (pendientes — opcional)
 - `describe('LocalAPIService') / it('starts local HTTP server on config port')`
 - `describe('LocalAPIService') / it('returns account list via GET /accounts')`
 - `describe('LocalAPIService') / it('returns 401 if devmode disabled')`
 
 **Anti-sesgo semántico (regla documentada):**
 - Los tests de delegación verifican que el Facade llama al servicio correcto (mock del servicio subyacente, assert spy)
-- Los tests de integración verifican comportamiento REAL: con axios-mock-adapter para HTTP, mock electron para BrowserWindow, fixture real para cookies
+- El análisis de irregularidades sintácticas/semánticas se hace vía LSP, no via tests de integración
 - Nunca mockear el servicio end-to-end solo para que el test pase
 
 **Acceptance Criteria v3.4.0:**
-- [ ] `RobloxContext.ts` creado con 6 sub-APIs expandidas — 32 métodos total
-- [ ] 7 nuevos servicios creados en `src/main/services/`: ImportService, BulkImportService, PlayerFinderService, BrowserService, RobloxWatcherService, AccountControlService, CaptchaService
-- [ ] 2 nuevos servicios transversales en `src/main/core/`: DeveloperModeService, LocalAPIService
-- [ ] 4 servicios existentes extendidos: CryptoService (PBKDF2), AccountSettingsService (joinGroup), GamesService (outfits/universes), AccountManager (settings)
-- [ ] main.ts: handlers `roblox:*` + `advanced:*` delegados al Facade + servicios transversales
-- [ ] Cero imports dinámicos en handlers
-- [ ] tsc 0, vitest >150 pasando (>27 delegación + 22+ integración), lint 0
-- [ ] Build Windows NSIS generado y funcional
+- [x] `RobloxContext.ts` creado con 6 sub-APIs expandidas — 32 métodos total
+- [x] 7 nuevos servicios creados en `src/main/services/`: ImportService, BulkImportService, PlayerFinderService, BrowserService, RobloxWatcherService, AccountControlService (stub), CaptchaService
+- [x] 2 nuevos servicios transversales en `src/main/core/`: DeveloperModeService, LocalAPIService
+- [ ] 4 servicios existentes extendidos: CryptoService (PBKDF2), AccountSettingsService (joinGroup), GamesService (outfits/universes), AccountManager (settings) — pendiente
+- [ ] main.ts: handlers `roblox:*` + `advanced:*` delegados al Facade + servicios transversales — parcial (Fachada instanciada, handlers pendientes de migrar)
+- [ ] Cero imports dinámicos en handlers — pendiente de auditoría
+- [x] tsc 0, vitest 164/164 pasando (137 originales + 27 delegación Facade)
+- [ ] Build Windows NSIS generado y funcional — pendiente
+- [x] Auditoría LSP de irregularidades sintácticas y semánticas — en progreso
 
 **Non-goals v3.4.0:**
 - NO implementar UI para features nuevas (eso va en v3.4.5 UI iteration)
