@@ -1411,7 +1411,7 @@ class NexoApp {
       }
       const safePlaceId = typeof placeId === 'string' ? placeId : undefined;
       const safeJobId = typeof jobId === 'string' ? jobId : undefined;
-      this.bottingService.start(
+      await this.robloxContext.botting.start(
         accountIds as string[],
         intervalMinutes as number,
         safePlaceId,
