@@ -24,6 +24,14 @@ import { BottingService } from './BottingService';
 import { CookieExpiryService } from './CookieExpiryService';
 import { GamesService, GameServer } from './GamesService';
 import { ServersService, RobloxServerUser } from './ServersService';
+import { ImportService } from './ImportService';
+import { BulkImportService } from './BulkImportService';
+import { CaptchaService } from './CaptchaService';
+import { PlayerFinderService } from './PlayerFinderService';
+import { BrowserService } from './BrowserService';
+import { RobloxWatcherService } from './RobloxWatcherService';
+import { DeveloperModeService } from '../core/DeveloperModeService';
+import { LocalAPIService } from '../core/LocalAPIService';
 
 export interface OutfitData {
   id: number;
@@ -74,12 +82,22 @@ export class RobloxContext {
   private readonly cookieExpiryService: CookieExpiryService;
   private readonly gamesService: GamesService;
   private readonly serversService: ServersService;
+  private readonly importService: ImportService;
+  private readonly bulkImportService: BulkImportService;
+  private readonly captchaService: CaptchaService;
+  private readonly playerFinderService: PlayerFinderService;
+  private readonly browserService: BrowserService;
+  private readonly robloxWatcherService: RobloxWatcherService;
+  private readonly developerModeService: DeveloperModeService;
+  private readonly localAPIService: LocalAPIService;
 
   // Sub-APIs como propiedades inicializadas con arrow functions para capturar `this`
   public auth: {
     verifyCookie: (cookie: string) => Promise<{ authenticated: boolean; userId: number }>;
     quickLogin: (accountId: string) => Promise<{ url: string; code: string }>;
     getUsernameFromId: (userId: number) => Promise<string>;
+    bulkImport: (accounts: { username: string; password: string }[]) => Promise<{ added: number; failed: number }>;
+    solveCaptcha: (imageBase64: string, apiKey?: string) => Promise<string>;
   };
 
   public games: {
@@ -95,6 +113,7 @@ export class RobloxContext {
     joinServer: (placeId: string, jobId: string, accountId: string) => Promise<boolean>;
     distributeAccounts: (placeId: string, accountIds: string[], cookie: string) => Promise<Record<string, boolean>>;
     getServerRegion: (placeId: string) => Promise<{ region: string; ping: number }>;
+    searchPlayer: (username: string, placeId: string, cookie: string) => Promise<RobloxServerUser[]>;
   };
 
   public presence: {
@@ -110,6 +129,10 @@ export class RobloxContext {
     stop: () => void;
     getStatus: () => BottingStatus;
     setInterval: (intervalMinutes: number) => void;
+    openBrowserSession: (accountId: string, cookie: string) => Promise<void>;
+    autoRelaunch: (accountIds: string[], placeId: string, maxAttempts: number) => Promise<boolean>;
+    closeBeta: () => void;
+    fpsUnlock: (fps: 60 | 120 | 240) => void;
   };
 
   public cookies: {
@@ -118,6 +141,8 @@ export class RobloxContext {
     startMonitoring: () => void;
     stopMonitoring: () => void;
     checkExpiry: (accountId: string) => Promise<{ isExpired: boolean; expiresInHours: number; isValid: boolean }>;
+    importCookies: (cookies: string[]) => Promise<{ added: number }>;
+    importFromClipboard: (text: string) => Promise<{ added: number }>;
   };
 
   constructor(
@@ -128,7 +153,15 @@ export class RobloxContext {
     bottingService: BottingService,
     cookieExpiryService: CookieExpiryService,
     gamesService: GamesService,
-    serversService: ServersService
+    serversService: ServersService,
+    importService: ImportService,
+    bulkImportService: BulkImportService,
+    captchaService: CaptchaService,
+    playerFinderService: PlayerFinderService,
+    browserService: BrowserService,
+    robloxWatcherService: RobloxWatcherService,
+    developerModeService: DeveloperModeService,
+    localAPIService: LocalAPIService
   ) {
     this.db = db;
     this.crypto = crypto;
@@ -138,12 +171,22 @@ export class RobloxContext {
     this.cookieExpiryService = cookieExpiryService;
     this.gamesService = gamesService;
     this.serversService = serversService;
+    this.importService = importService;
+    this.bulkImportService = bulkImportService;
+    this.captchaService = captchaService;
+    this.playerFinderService = playerFinderService;
+    this.browserService = browserService;
+    this.robloxWatcherService = robloxWatcherService;
+    this.developerModeService = developerModeService;
+    this.localAPIService = localAPIService;
 
     // Inicializamos las sub-APIs con arrow functions que capturan `this`
     this.auth = {
       verifyCookie: (cookie) => this.verifyCookieAuth(cookie),
       quickLogin: (accountId) => this.quickLoginAuth(accountId),
       getUsernameFromId: (userId) => this.getUsernameFromIdAuth(userId),
+      bulkImport: (accounts) => this.bulkImportService.bulkImport(accounts),
+      solveCaptcha: (img, key) => this.captchaService.solveCaptcha(img, key),
     };
 
     this.games = {
@@ -159,6 +202,7 @@ export class RobloxContext {
       joinServer: (placeId, jobId, accountId) => this.joinServerImpl(placeId, jobId, accountId),
       distributeAccounts: (placeId, accountIds, cookie) => this.gamesService.distributeAccounts(placeId, accountIds, this.accountManager, cookie),
       getServerRegion: (placeId) => this.getServerRegionImpl(placeId),
+      searchPlayer: (username, placeId, cookie) => this.playerFinderService.searchPlayer(username, placeId, cookie),
     };
 
     this.presence = {
@@ -183,6 +227,10 @@ export class RobloxContext {
         };
       },
       setInterval: (intervalMinutes) => this.bottingService.setInterval(intervalMinutes),
+      openBrowserSession: (accountId, cookie) => this.browserService.openBrowserSession(accountId, cookie),
+      autoRelaunch: (ids, placeId, max) => this.robloxWatcherService.autoRelaunch(ids, placeId, max),
+      closeBeta: () => this.robloxWatcherService.closeBeta(),
+      fpsUnlock: (fps) => this.robloxWatcherService.fpsUnlock(fps),
     };
 
     this.cookies = {
@@ -191,6 +239,8 @@ export class RobloxContext {
       startMonitoring: () => this.cookieExpiryService.start(),
       stopMonitoring: () => this.cookieExpiryService.stop(),
       checkExpiry: (accountId) => this.checkCookieExpiry(accountId),
+      importCookies: (cookies) => this.importService.importCookies(cookies),
+      importFromClipboard: (text) => this.importService.importFromClipboard(text),
     };
   }
 

@@ -68,7 +68,15 @@ beforeEach(() => {
     mockBotting,
     mockCookieExpiry,
     mockGames,
-    mockServers
+    mockServers,
+    { importCookies: vi.fn(), importFromClipboard: vi.fn() } as any,
+    { bulkImport: vi.fn() } as any,
+    { solveCaptcha: vi.fn(), setApiKey: vi.fn() } as any,
+    { searchPlayer: vi.fn() } as any,
+    { openBrowserSession: vi.fn() } as any,
+    { autoRelaunch: vi.fn(), closeBeta: vi.fn(), fpsUnlock: vi.fn(), initWatcher: vi.fn(), preventDuplicates: vi.fn() } as any,
+    { isEnabled: vi.fn(), toggle: vi.fn(), setEnabled: vi.fn() } as any,
+    { start: vi.fn(), stop: vi.fn() } as any
   );
 });
 

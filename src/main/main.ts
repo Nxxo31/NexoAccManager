@@ -17,6 +17,14 @@ import { RobloxContext } from './services/RobloxContext';
 import { LoginBrowserService } from './services/LoginBrowserService';
 import { RobloxAuthService } from './services/RobloxAuthService';
 import { ServersService } from './services/ServersService';
+import { ImportService } from './services/ImportService';
+import { BulkImportService } from './services/BulkImportService';
+import { CaptchaService } from './services/CaptchaService';
+import { PlayerFinderService } from './services/PlayerFinderService';
+import { BrowserService } from './services/BrowserService';
+import { RobloxWatcherService } from './services/RobloxWatcherService';
+import { DeveloperModeService } from './core/DeveloperModeService';
+import { LocalAPIService } from './core/LocalAPIService';
 import { v4 as uuidv4 } from 'uuid';
 // =============================================================================
 // TYPE GUARDS PARA VALIDACIÓN DE PAYLOADS IPC (Defense in Depth)
@@ -90,6 +98,14 @@ class NexoApp {
   private loginBrowserService: LoginBrowserService;
   private authService: RobloxAuthService;
   private serversService: ServersService;
+  private importService: ImportService;
+  private bulkImportService: BulkImportService;
+  private captchaService: CaptchaService;
+  private playerFinderService: PlayerFinderService;
+  private browserService: BrowserService;
+  private robloxWatcherService: RobloxWatcherService;
+  private developerModeService: DeveloperModeService;
+  private localAPIService: LocalAPIService;
 
   constructor() {
     this.db = new DatabaseManager();
@@ -105,6 +121,15 @@ class NexoApp {
     this.loginBrowserService = new LoginBrowserService();
     this.authService = new RobloxAuthService();
     this.serversService = new ServersService();
+    // Servicios nuevos v3.4.0
+    this.importService = new ImportService();
+    this.bulkImportService = new BulkImportService();
+    this.captchaService = new CaptchaService();
+    this.playerFinderService = new PlayerFinderService();
+    this.browserService = new BrowserService();
+    this.robloxWatcherService = new RobloxWatcherService();
+    this.developerModeService = new DeveloperModeService();
+    this.localAPIService = new LocalAPIService();
     // FACADE - RobloxContext orquesta todos los servicios
     this.robloxContext = new RobloxContext(
       this.db,
@@ -114,7 +139,15 @@ class NexoApp {
       this.bottingService,
       this.cookieExpiryService,
       this.gamesService,
-      this.serversService
+      this.serversService,
+      this.importService,
+      this.bulkImportService,
+      this.captchaService,
+      this.playerFinderService,
+      this.browserService,
+      this.robloxWatcherService,
+      this.developerModeService,
+      this.localAPIService
     );
   }
 
