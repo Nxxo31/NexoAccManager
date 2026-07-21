@@ -463,11 +463,11 @@ class NexoApp {
 - [x] 7 nuevos servicios creados en `src/main/services/`: ImportService, BulkImportService, PlayerFinderService, BrowserService, RobloxWatcherService, AccountControlService (stub), CaptchaService
 - [x] 2 nuevos servicios transversales en `src/main/core/`: DeveloperModeService, LocalAPIService
 - [ ] 4 servicios existentes extendidos: CryptoService (PBKDF2), AccountSettingsService (joinGroup), GamesService (outfits/universes), AccountManager (settings) — pendiente
-- [ ] main.ts: handlers `roblox:*` + `advanced:*` delegados al Facade + servicios transversales — parcial (Fachada instanciada, handlers pendientes de migrar)
-- [ ] Cero imports dinámicos en handlers — pendiente de auditoría
+- [x] main.ts: handlers `roblox:*` + `presence:*` + `botting:*` delegados al Facade — 14 handlers migrados
+- [x] Cero imports dinámicos en handlers (verificado)
 - [x] tsc 0, vitest 164/164 pasando (137 originales + 27 delegación Facade)
 - [ ] Build Windows NSIS generado y funcional — pendiente
-- [x] Auditoría LSP de irregularidades sintácticas y semánticas — en progreso
+- [x] Auditoría LSP de irregularidades sintácticas y semánticas — completada (0 errores, 0 warnings, solo hints de unused vars)
 
 **Non-goals v3.4.0:**
 - NO implementar UI para features nuevas (eso va en v3.4.5 UI iteration)
