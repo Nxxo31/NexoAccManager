@@ -1051,7 +1051,7 @@ class NexoApp {
       try {
         const ids = accountIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
         if (ids.length === 0) return err('Ningún accountId válido');
-        const presence = await this.robloxContext.presence.getPresence(ids);
+        const presence = await this.presenceService.getPresence(ids);
         return ok(presence);
       } catch (e) {
         return err(`Error: ${(e as Error).message}`);
@@ -1069,7 +1069,7 @@ class NexoApp {
         const ids = accountIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
         if (ids.length === 0) return err('Ningún accountId válido');
         const interval = typeof intervalMs === 'number' && intervalMs > 0 ? intervalMs : undefined;
-        await this.robloxContext.presence.startPolling(ids, interval as number);
+        this.presenceService.startPolling(ids, interval as number);
         return ok(true);
       } catch (e) {
         return err(`Error: ${(e as Error).message}`);
@@ -1078,7 +1078,7 @@ class NexoApp {
 
     ipcMain.handle('presence:stop-polling', async () => {
       try {
-        await this.robloxContext.presence.stopPolling();
+        this.presenceService.stopPolling();
         return ok(true);
       } catch (e) {
         return err(`Error: ${(e as Error).message}`);
@@ -1088,7 +1088,7 @@ class NexoApp {
     ipcMain.handle('presence:recent-games', async (_, accountId: unknown) => {
       if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
-        const games = await this.robloxContext.presence.getRecentGames(accountId.trim());
+        const games = await this.presenceService.getRecentGames(accountId.trim());
         return ok(games);
       } catch (e) {
         return err(`Error: ${(e as Error).message}`);
@@ -1098,7 +1098,7 @@ class NexoApp {
     ipcMain.handle('presence:robux-balance', async (_, accountId: unknown) => {
       if (!isNonEmptyString(accountId)) return err('accountId inválido');
       try {
-        const balance = await this.robloxContext.presence.getRobuxBalance(accountId.trim());
+        const balance = await this.presenceService.getRobuxBalance(accountId.trim());
         return ok(balance);
       } catch (e) {
         return err(`Error: ${(e as Error).message}`);
@@ -1421,19 +1421,19 @@ class NexoApp {
     });
 
     ipcMain.handle('botting:stop', async () => {
-      await this.robloxContext.botting.stop();
+      this.bottingService.stop();
       return ok({ stopped: true });
     });
 
     ipcMain.handle('botting:getStatus', async () => {
-      return ok(this.robloxContext.botting.getStatus());
+      return ok(this.bottingService.getStatus());
     });
 
     ipcMain.handle('botting:setInterval', async (_, intervalMinutes: unknown) => {
       if (typeof intervalMinutes !== 'number' || isNaN(intervalMinutes) || intervalMinutes <= 0) {
         return err('Payload inválido: intervalMinutes debe ser número > 0');
       }
-      await this.robloxContext.botting.setInterval(intervalMinutes as number);
+      this.bottingService.setInterval(intervalMinutes as number);
       return ok({ updated: true });
     });
 
