@@ -53,7 +53,7 @@ describe('AppLayout', () => {
 
   it('renders sidebar, topbar, and content area', () => {
     render(
-      <AppLayout theme={{}} setTheme={vi.fn()} onOpenSettings={vi.fn()}>
+      <AppLayout theme={{}} setTheme={vi.fn()} onOpenSettings={vi.fn()} activeView="accounts">
         <div data-testid="child-content">Test Content</div>
       </AppLayout>
     );
@@ -71,7 +71,7 @@ describe('AppLayout', () => {
     mockUIStore.activeView = 'accounts';
 
     render(
-      <AppLayout theme={{}} setTheme={vi.fn()} onOpenSettings={vi.fn()}>
+      <AppLayout theme={{}} setTheme={vi.fn()} onOpenSettings={vi.fn()} activeView="accounts">
         <div data-testid="view-accounts">AccountsView Content</div>
       </AppLayout>
     );

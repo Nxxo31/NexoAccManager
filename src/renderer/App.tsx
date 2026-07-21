@@ -157,6 +157,7 @@ export default function App() {
           theme={themeSettings}
           setTheme={useUIStore.getState().setThemeSettings}
           onOpenSettings={() => useUIStore.getState().setActiveView('settings')}
+          activeView={activeView}
         >
           {activeView === 'accounts' && (
             <AccountsView
