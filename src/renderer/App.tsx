@@ -5,8 +5,7 @@ import { AppLayout } from './components/layout/AppLayout';
 import { AccountGrid } from './components/accounts/AccountGrid';
 import { AccountsView } from './components/views/AccountsView';
 import { AccountDetailPanel } from './components/accounts/AccountDetailPanel';
-import ServerBrowser from './components/server-browser/ServerBrowser';
-import SettingsPanel from './components/settings/SettingsPanel';
+
 import AccountControlPanel from './components/AccountControlPanel/AccountControlPanel';
 import { EditAliasModal } from './components/accounts/EditAliasModal';
 import { EditDescriptionModal } from './components/accounts/EditDescriptionModal';

@@ -8,9 +8,10 @@
 
 | Métrica | Valor |
 |---------|-------|
-| Versión | 3.4.0 |
+| Versión | 3.5.0 |
 | tsc | ✓ 0 errores |
-| vitest | 164/164 pasando (15 archivos — 137 originales + 27 delegación Facade) |
+| vitest | ELIMINADOS — tests de mocks no validaban nada |
+| Build | AppImage generado, NSIS pendiente |
 | lint | 0 errores, 205 warnings (preexistentes `any` en mocks) |
 | build | ✅ Linux AppImage + Linux Snap generados (v3.4.0) |
 | Release GitHub | v3.2.0 publicado — pendiente release v3.4.0 |

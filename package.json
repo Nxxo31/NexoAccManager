@@ -15,7 +15,6 @@
     "electron:dev": "vite-plugin-electron dev",
     "electron:build": "npm run build && electron-builder",
     "electron:preview": "electron-builder --dir",
-    "test": "vitest",
     "test:unit": "vitest run",
     "lint": "eslint . --ext .ts,.tsx --ignore-pattern '*.config.*' --ignore-pattern 'playwright-*.js' --ignore-pattern 'public/**' --ignore-pattern 'dist/**'",
     "test:e2e:browser": "BROWSER_ONLY=1 playwright test tests/e2e-browser --config playwright.browser.config.ts",
