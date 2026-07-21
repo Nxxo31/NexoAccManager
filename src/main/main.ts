@@ -593,7 +593,7 @@ class NexoApp {
           ? this.crypto.decrypt(raw.encrypted_cookie)
           : '';
         if (!cookie) return err('No se pudo descifrar la cookie de la cuenta');
-        const game = await this.gamesService.searchGame(placeId.trim(), cookie);
+        const game = await this.robloxContext.games.searchGame(placeId.trim(), cookie);
         return ok(game);
       } catch (e) {
         return err(`Error buscando juego: ${(e as Error).message}`);
