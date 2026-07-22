@@ -16,6 +16,13 @@ import { killAllRoblox, launchRobloxDirect, startBotting, stopBotting, getBottin
 import type { Account } from '../../domain/entities/Account';
 import { createAccount } from '../../domain/entities/Account';
 
+// NEW IMPORTS FOR THE 14 HANDLERS
+import { getOutfits, getUniverses, detectVIPServers, shuffleJobId } from '../external/RobloxGamesService';
+import { launchMulti, killInstance, getRunningInstances } from '../external/MultiRobloxService';
+import { solveCaptcha } from '../external/CaptchaService';
+import { start as startLocalApi, stop as stopLocalApi } from '../external/LocalApiService';
+import { getTheme, setTheme, type ThemeId } from '../external/ThemeService';
+
 type IpcResult<T = unknown> = { success: true; data: T } | { success: false; error: string };
 
 function ok<T>(data: T): IpcResult<T> { return { success: true, data }; }
@@ -354,4 +361,20 @@ export function registerHandlers(): void {
       return ok(null);
     } catch (e) { return err(String(e)); }
   });
+
+  // NEW HANDLERS FOR THE 14 IPC
+  ipcMain.handle('theme:get', async () => { try { return ok(getTheme()); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('theme:set', async (_e, name: string) => { try { setTheme(name as ThemeId); return ok(name); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('roblox:multi-launch', async (_e, { accountId, placeId, jobId, cookie }) => { try { const pid = await launchMulti(accountId, placeId, jobId, cookie); return ok(pid); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('roblox:kill-instance', async (_e, accountId: string) => { try { await killInstance(accountId); return ok(null); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('roblox:running-instances', async () => { try { return ok(getRunningInstances()); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('roblox:shuffle-jobid', async (_e, { placeId, cookie }) => { try { const jobId = await shuffleJobId(placeId, cookie); return ok(jobId); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('roblox:vip-servers', async (_e, { placeId, cookie }) => { try { const servers = await detectVIPServers(placeId, cookie); return ok(servers); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('roblox:outfits', async (_e, { userId, cookie }) => { try { const outfits = await getOutfits(userId, cookie); return ok(outfits); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('roblox:universes', async (_e, { gameId, cookie }) => { try { const universes = await getUniverses(gameId, cookie); return ok(universes); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('captcha:solve', async (_e, image: string) => { try { const solution = await solveCaptcha(image); return ok(solution); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('advanced:devmode', async (_e, enable: boolean) => { try { /* TODO: save to settings DB */ return ok(enable); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('advanced:local-api:start', async (_e, port: number) => { try { await startLocalApi(port); return ok(null); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('advanced:local-api:stop', async () => { try { await stopLocalApi(); return ok(null); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('cookie:refresh-real', async (_e, cookie: string) => { try { const refreshed = await refreshCookie(cookie); return ok(refreshed); } catch (e) { return errMsg(e); } });
 }

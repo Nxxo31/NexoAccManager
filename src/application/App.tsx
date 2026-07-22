@@ -9,6 +9,7 @@ import { TopBar } from './layout/TopBar';
 import { ContentArea } from './layout/ContentArea';
 import { NotificationBar } from './components/NotificationBar';
 import { applyTheme, type ThemeId } from '../infrastructure/external/ThemeService';
+import './i18n';
 
 export function App(): JSX.Element {
   const activeView = useUIStore((s) => s.activeView);

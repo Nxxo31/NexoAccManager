@@ -1,4 +1,5 @@
 // Infrastructure: ThemeService — CSS variables + theme system
+// Works in both main and renderer processes
 
 export type ThemeId = 'dark' | 'light' | 'midnight';
 
@@ -27,19 +28,19 @@ const THEMES: Record<ThemeId, ThemeColors> = {
     border: '#2a2a4e',
     primary: '#3b82f6',
     primaryHover: '#2563eb',
-    },
-    midnight: {
-        bg: '#0a0a1a',
-        bgCard: '#12122e',
-        bgSurface: '#1a1a3e',
-        bgElevated: '#2a2a4e',
-        textPrimary: '#e0e0ff',
-        textSecondary: '#a0a0c0',
-        textTertiary: '#a0a0c0',
-        border: '#2a2a4a',
-        primary: '#4a4aff',
-        primaryHover: '#6a6aff',
-    },
+  },
+  midnight: {
+    bg: '#0a0a1a',
+    bgCard: '#12122e',
+    bgSurface: '#1a1a3e',
+    bgElevated: '#2a2a4e',
+    textPrimary: '#e0e0ff',
+    textSecondary: '#a0a0c0',
+    textTertiary: '#a0a0c0',
+    border: '#2a2a4a',
+    primary: '#4a4aff',
+    primaryHover: '#6a6aff',
+  },
   light: {
     bg: '#f8fafc',
     bgCard: '#ffffff',
@@ -71,9 +72,71 @@ export function generateThemeCSS(theme: ThemeId): string {
 }
 
 export function applyTheme(theme: ThemeId): void {
-  const css = generateThemeCSS(theme);
-  const root = document.documentElement;
-  root.style.cssText += `;${css}`;
+  // Only apply in renderer process
+  if (typeof document !== 'undefined') {
+    const css = generateThemeCSS(theme);
+    const root = document.documentElement;
+    root.style.cssText += `;${css}`;
+  }
 }
 
-export { THEMES };
+export function getTheme(): ThemeId {
+  if (typeof document !== 'undefined') {
+    // Renderer: use localStorage
+    const stored = localStorage.getItem('theme');
+    if (stored === 'dark' || stored === 'light' || stored === 'midnight') {
+      return stored as ThemeId;
+    }
+    return 'dark'; // default
+  } else {
+    // Main process: use a JSON file in userData
+    const { app } = require('electron');
+    const path = require('path');
+    const fs = require('fs');
+    const userDataPath = app.getPath('userData');
+    const configPath = path.join(userDataPath, 'config.json');
+    let config: { theme?: ThemeId } = {};
+    if (fs.existsSync(configPath)) {
+      try {
+        const raw = fs.readFileSync(configPath, 'utf-8');
+        config = JSON.parse(raw);
+      } catch (e) {
+        console.error('Failed to read config file', e);
+        config = {};
+      }
+    }
+    const theme = config.theme as ThemeId;
+    return theme ?? 'dark';
+  }
+}
+
+export function setTheme(theme: ThemeId): void {
+  if (typeof document !== 'undefined') {
+    // Renderer: store in localStorage and apply
+    localStorage.setItem('theme', theme);
+    applyTheme(theme);
+  } else {
+    // Main process: update the JSON file
+    const { app } = require('electron');
+    const path = require('path');
+    const fs = require('fs');
+    const userDataPath = app.getPath('userData');
+    const configPath = path.join(userDataPath, 'config.json');
+    let config: { theme?: ThemeId } = {};
+    if (fs.existsSync(configPath)) {
+      try {
+        const raw = fs.readFileSync(configPath, 'utf-8');
+        config = JSON.parse(raw);
+      } catch (e) {
+        console.error('Failed to read config file', e);
+        config = {};
+      }
+    }
+    config.theme = theme;
+    try {
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    } catch (e) {
+      console.error('Failed to write config file', e);
+    }
+  }
+}

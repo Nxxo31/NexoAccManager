@@ -2,7 +2,7 @@
 
 import { useUIStore } from '../store/uiStore';
 import { PAGES } from '../../config/constants';
-import { t } from '../../config/i18n';
+import { useTranslation } from 'react-i18next';
 
 const NAV_ITEMS = [
   { key: PAGES.ACCOUNTS, icon: '👥', labelKey: 'nav.accounts' },
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
 export function Sidebar({ accountCount }: { accountCount: number }): JSX.Element {
   const activeView = useUIStore((s) => s.activeView);
   const setView = useUIStore((s) => s.setView);
+  const { t } = useTranslation();
 
   return (
     <div style={{
