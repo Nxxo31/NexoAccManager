@@ -1,66 +1,168 @@
-// Application View: AccountsView — main hub with grid + login button
+// Application View: AccountsView — hub with grid + JoinBar + detail
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { Reorder } from 'framer-motion';
+import { Globe, Shuffle, Skull, Plus, Users } from 'lucide-react';
+import { useAccountStore } from '../store/accountStore';
+import { useUIStore } from '../store/uiStore';
 import { useAccounts } from '../hooks/useAccounts';
+import { AccountCard } from '../components/accounts/AccountCard';
+import { AccountDetailPanel } from '../components/AccountDetailPanel';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { MAX_ACCOUNTS } from '../../config/constants';
+import type { Account } from '../../domain/entities/Account';
 
-export function AccountsView(): JSX.Element {
-  const { accounts, loading, loginBrowser, removeAccount, select, selectedId } = useAccounts();
-  const [showLogin, setShowLogin] = useState(false);
-  const [cookieInput, setCookieInput] = useState('');
+interface AccountsViewProps {
+  searchQuery: string;
+}
 
-  if (accounts.length === 0 && !loading) {
+export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
+  const accounts = useAccountStore((s) => s.accounts);
+  const selectedId = useAccountStore((s) => s.selectedId);
+  const select = useAccountStore((s) => s.select);
+  const update = useAccountStore((s) => s.update);
+  const setAccounts = useAccountStore((s) => s.setAccounts);
+  const notify = useUIStore((s) => s.notify);
+  const { removeAccount, loginBrowser } = useAccounts();
+  const [placeId, setPlaceId] = useState('');
+  const [jobId, setJobId] = useState('');
+  const [shuffle, setShuffle] = useState(false);
+
+  const selected = useMemo(() => accounts.find((a) => a.id === selectedId) ?? null, [accounts, selectedId]);
+
+  const filtered = useMemo(() => {
+    if (!searchQuery.trim()) return accounts;
+    const q = searchQuery.toLowerCase();
+    return accounts.filter((a) =>
+      a.username.toLowerCase().includes(q) ||
+      a.group.toLowerCase().includes(q) ||
+      (a.description ?? '').toLowerCase().includes(q),
+    );
+  }, [accounts, searchQuery]);
+
+  const groups = useMemo(() => {
+    const map = new Map<string, Account[]>();
+    for (const acc of filtered) {
+      const g = acc.group || 'Default';
+      if (!map.has(g)) map.set(g, []);
+      map.get(g)!.push(acc);
+    }
+    return Array.from(map.entries());
+  }, [filtered]);
+
+  const agingDays = useCallback((acc: Account) => {
+    const last = new Date(acc.lastUsed);
+    return Math.floor((Date.now() - last.getTime()) / 86400000);
+  }, []);
+
+  const handleLaunch = async () => {
+    if (!selected) return;
+    const result = await window.api.roblox.launch(selected.id, placeId || undefined, jobId || undefined);
+    if (result.success) notify('success', `${selected.username} lanzado`);
+    else notify('error', result.error);
+  };
+
+  const handleKillAll = async () => {
+    const result = await window.api.roblox.killAll();
+    if (result.success) notify('success', 'Procesos cerrados');
+    else notify('error', result.error);
+  };
+
+  const handleShuffle = async () => {
+    if (!placeId || !selected) return;
+    // shuffleJobId not available in preload API — generate random job ID
+    const randomJobId = Math.random().toString(36).substring(2, 18);
+    setJobId(randomJobId);
+    notify('info', 'Job ID aleatorio generado');
+  };
+
+  const handleToggleFavorite = async (acc: Account) => {
+    const newVal = !acc.isFavorite;
+    update(acc.id, { isFavorite: newVal });
+    await window.api.account.setFavorite(acc.id, newVal);
+  };
+
+  const handleRefreshCookie = async () => {
+    if (!selected) return;
+    const result = await window.api.cookie.refresh(selected.id);
+    if (result.success) notify('success', 'Cookie actualizada');
+    else notify('error', result.error);
+  };
+
+  const handleLogoutAll = async () => {
+    if (!selected) return;
+    notify('info', 'Cerrando sesiones remotas...');
+    // Note: logoutAllSessions needs a cookie string, but we don't expose raw cookie in renderer
+    // This should go through a backend handler that decrypts the cookie server-side
+    notify('warning', 'Función no disponible desde el renderer directamente');
+  };
+
+  if (accounts.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16 }}>
-        <div style={{ fontSize: 64, opacity: 0.3 }}>👥</div>
-        <p style={{ color: '#888', fontSize: 16 }}>No hay cuentas agregadas</p>
-        <button onClick={() => setShowLogin(true)} style={{ padding: '10px 24px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 14 }}>
-          Iniciar sesión
-        </button>
-        {showLogin && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: 400 }}>
-            <textarea placeholder="Pegar cookie .ROBLOSECURITY..." value={cookieInput} onChange={(e) => setCookieInput(e.target.value)} style={{ padding: 8, fontSize: 13, height: 80, background: '#1a1a2e', color: '#eee', border: '1px solid #333', borderRadius: 4 }} />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => useAccounts().addAccount(cookieInput)} style={{ flex: 1, padding: 8, background: '#22c55e', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>Agregar cookie</button>
-              <button onClick={async () => { await loginBrowser(); }} style={{ flex: 1, padding: 8, background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>Login browser</button>
-            </div>
-          </div>
-        )}
+      <div className="flex flex-col items-center justify-center h-full gap-4">
+        <Users className="text-5xl opacity-20" size={48} />
+        <p className="text-sm text-[#666]">No hay cuentas agregadas</p>
+        <Button variant="primary" onClick={() => loginBrowser()}><Plus size={14} /> Iniciar sesión</Button>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: 16, overflow: 'auto', height: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, color: '#eee' }}>Cuentas ({accounts.length}/50)</h2>
-        <button onClick={() => setShowLogin(!showLogin)} style={{ padding: '6px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>
-          + Agregar
-        </button>
-      </div>
-      {showLogin && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <input placeholder="Cookie .ROBLOSECURITY" value={cookieInput} onChange={(e) => setCookieInput(e.target.value)} style={{ flex: 1, padding: 8, background: '#1a1a2e', color: '#eee', border: '1px solid #333', borderRadius: 4, fontSize: 13 }} />
-          <button onClick={async () => { await useAccounts().addAccount(cookieInput); setCookieInput(''); setShowLogin(false); }} style={{ padding: '8px 16px', background: '#22c55e', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>Agregar</button>
-          <button onClick={loginBrowser} style={{ padding: '8px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>Browser</button>
-        </div>
-      )}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
-        {accounts.map((acc) => (
-          <div key={acc.id} onClick={() => select(acc.id)} style={{
-            padding: 12, background: selectedId === acc.id ? '#2a3a5e' : '#1a1a2e',
-            border: selectedId === acc.id ? '2px solid #3b82f6' : '1px solid #2a2a4e',
-            borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12,
-          }}>
-            {acc.avatarUrl && <img src={acc.avatarUrl} alt={acc.username} style={{ width: 40, height: 40, borderRadius: '50%' }} />}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 600, color: '#eee', fontSize: 14, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{acc.username}</div>
-              <div style={{ fontSize: 12, color: '#666' }}>{acc.group}</div>
+    <div className="relative flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+        {groups.map(([groupName, accs]) => (
+          <div key={groupName}>
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <span className="text-xs font-medium text-[#666] uppercase tracking-wide">{groupName}</span>
+              <span className="text-xs text-[#444]">({accs.length})</span>
             </div>
-            {acc.isFavorite && <span style={{ fontSize: 14 }}>⭐</span>}
-            <button onClick={(e) => { e.stopPropagation(); removeAccount(acc.id); }} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: 16 }}>✕</button>
+            <Reorder.Group
+              axis="y"
+              values={accs}
+              onReorder={(newOrder: Account[]) => {
+                const others = accounts.filter((a) => a.group !== groupName);
+                setAccounts([...newOrder, ...others]);
+              }}
+              className="space-y-2"
+            >
+              {accs.map((acc) => (
+                <Reorder.Item key={acc.id} value={acc}>
+                  <AccountCard
+                    account={acc}
+                    selected={acc.id === selectedId}
+                    onClick={() => select(acc.id)}
+                    onRemove={() => removeAccount(acc.id)}
+                    onToggleFavorite={() => handleToggleFavorite(acc)}
+                    agingDays={agingDays(acc)}
+                  />
+                </Reorder.Item>
+              ))}
+            </Reorder.Group>
           </div>
         ))}
       </div>
+
+      {/* JoinBar */}
+      <div className="flex items-center gap-2 p-3 border-t border-[#2a2a4e] bg-[#0d0d1a]">
+        <Globe size={14} className="text-[#666] flex-shrink-0" />
+        <Input value={placeId} onChange={(e) => setPlaceId(e.target.value)} placeholder="Place ID" className="h-8 w-32 text-xs" />
+        <Input value={jobId} onChange={(e) => setJobId(e.target.value)} placeholder="Job ID (opcional)" className="h-8 flex-1 text-xs" />
+        <Button variant="ghost" size="sm" onClick={() => setShuffle(!shuffle)} aria-pressed={shuffle}>
+          <Shuffle size={14} className={shuffle ? 'text-[#3b82f6]' : ''} />
+        </Button>
+        <Button variant="primary" size="sm" onClick={handleLaunch} disabled={!selected}>Jugar</Button>
+        <Button variant="danger" size="sm" onClick={handleKillAll}><Skull size={14} /></Button>
+      </div>
+
+      {/* Detail Panel */}
+      <AccountDetailPanel
+        account={selected}
+        onClose={() => select(null)}
+        onLaunch={handleLaunch}
+        onRefreshCookie={handleRefreshCookie}
+        onLogoutAll={handleLogoutAll}
+      />
     </div>
   );
 }

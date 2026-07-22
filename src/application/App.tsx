@@ -1,32 +1,47 @@
-// Application: App shell — Master-Detail layout with Sidebar, TopBar, ContentArea
+// Application: App shell — Master-Detail layout
 
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useUIStore } from './store/uiStore';
+import { useAccountStore } from './store/accountStore';
 import { useAccounts } from './hooks/useAccounts';
 import { Sidebar } from './layout/Sidebar';
 import { TopBar } from './layout/TopBar';
-import { ContentArea } from './layout/ContentArea';
+import { ContentArea, type ViewContext } from './layout/ContentArea';
 import { NotificationBar } from './components/NotificationBar';
-import { applyTheme, type ThemeId } from '../infrastructure/external/ThemeService';
+import { AddAccountModal } from './components/AddAccountModal';
 import './i18n';
+
+type Theme = 'dark' | 'light';
 
 export function App(): JSX.Element {
   const activeView = useUIStore((s) => s.activeView);
-  const { loadAccounts, accounts } = useAccounts();
-  const [theme, setTheme] = useState<ThemeId>('dark');
+  const accounts = useAccountStore((s) => s.accounts);
+  const { loadAccounts, loginBrowser } = useAccounts();
+  const [theme, setTheme] = useState<Theme>('dark');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
-    applyTheme(theme);
+    // Toggle dark/light class on root
+    document.documentElement.className = theme;
   }, [theme]);
 
   useEffect(() => { loadAccounts(); }, [loadAccounts]);
 
+  const context: ViewContext = { searchQuery, accounts };
+
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', fontFamily: 'system-ui, -apple-system, sans-serif', background: 'var(--bg)' }}>
+    <div className="flex h-screen w-screen overflow-hidden bg-[#0d0d1a] text-[#eee] font-sans">
       <Sidebar accountCount={accounts.length} />
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
-        <TopBar theme={theme} onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} />
+      <div className="flex flex-col flex-1 min-w-0">
+        <TopBar
+          theme={theme}
+          onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          onAddAccount={() => setShowAddModal(true)}
+          searchQuery={searchQuery}
+          onSearch={setSearchQuery}
+        />
         <NotificationBar />
         <AnimatePresence mode="wait">
           <motion.div
@@ -34,13 +49,14 @@ export function App(): JSX.Element {
             initial={{ opacity: 0, x: 10 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -10 }}
-            transition={{ duration: 0.2, ease: 'easeInOut' }}
-            style={{ flex: 1, overflow: 'hidden' }}
+            transition={{ duration: 0.15, ease: 'easeInOut' }}
+            className="flex-1 overflow-hidden"
           >
-            <ContentArea activeView={activeView} />
+            <ContentArea activeView={activeView} context={context} />
           </motion.div>
         </AnimatePresence>
       </div>
+      <AddAccountModal open={showAddModal} onClose={() => setShowAddModal(false)} onLoginBrowser={loginBrowser} />
     </div>
   );
 }

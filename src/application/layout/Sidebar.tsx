@@ -1,55 +1,56 @@
-// Application Layout: Sidebar — navigation + counter using i18n + CSS vars
+// Application Layout: Sidebar — Tailwind + lucide-react + collapsible
 
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Users, Globe, Gamepad2, Mail, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
-import { PAGES } from '../../config/constants';
-import { useTranslation } from 'react-i18next';
+import { PAGES, type PageKey, MAX_ACCOUNTS } from '../../config/constants';
+import { cn } from '../../lib/utils';
 
-const NAV_ITEMS = [
-  { key: PAGES.ACCOUNTS, icon: '👥', labelKey: 'nav.accounts' },
-  { key: PAGES.SERVERS, icon: '🌐', labelKey: 'nav.servers' },
-  { key: PAGES.GAMES, icon: '🎮', labelKey: 'nav.games' },
-  { key: PAGES.FRIENDS, icon: '📧', labelKey: 'nav.friends' },
-  { key: PAGES.SETTINGS, icon: '⚙️', labelKey: 'nav.settings' },
+const NAV: { key: PageKey; icon: typeof Users; label: string }[] = [
+  { key: PAGES.ACCOUNTS, icon: Users, label: 'Cuentas' },
+  { key: PAGES.SERVERS, icon: Globe, label: 'Servidores' },
+  { key: PAGES.GAMES, icon: Gamepad2, label: 'Juegos' },
+  { key: PAGES.FRIENDS, icon: Mail, label: 'Amigos' },
+  { key: PAGES.SETTINGS, icon: Settings, label: 'Ajustes' },
 ];
 
 export function Sidebar({ accountCount }: { accountCount: number }): JSX.Element {
   const activeView = useUIStore((s) => s.activeView);
   const setView = useUIStore((s) => s.setView);
-  const { t } = useTranslation();
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div style={{
-      width: 200, background: 'var(--bg-card)', color: 'var(--text-primary)',
-      display: 'flex', flexDirection: 'column', flexShrink: 0,
-    }}>
-      <div style={{
-        padding: '20px 16px', fontWeight: 700, fontSize: 16,
-        borderBottom: '1px solid var(--border)',
-      }}>
-        NexoAccManager
+    <div className={cn('flex flex-col bg-[#0d0d1a] border-r border-[#2a2a4e] transition-all duration-150 flex-shrink-0', collapsed ? 'w-16' : 'w-52')}>
+      {/* Logo */}
+      <div className="flex items-center h-12 border-b border-[#2a2a4e] px-3">
+        {!collapsed && <span className="text-sm font-bold text-[#eee] tracking-tight">NX-Manager</span>}
+        <button onClick={() => setCollapsed(!collapsed)} className={cn('p-1 text-[#666] hover:text-[#eee] transition-colors', collapsed ? 'mx-auto' : 'ml-auto')}>
+          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        </button>
       </div>
-      <nav style={{ flex: 1, padding: '8px 0' }}>
-        {NAV_ITEMS.map((item) => (
-          <button
-            key={item.key}
-            onClick={() => setView(item.key)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-              padding: '10px 16px', background: activeView === item.key ? 'var(--bg-elevated)' : 'transparent',
-              border: 'none', color: activeView === item.key ? 'var(--text-primary)' : 'var(--text-secondary)',
-              cursor: 'pointer', textAlign: 'left' as const, fontSize: 14,
-            }}
-          >
-            <span style={{ fontSize: 18 }}>{item.icon}</span>
-            <span>{t(item.labelKey)}</span>
-          </button>
-        ))}
+      {/* Nav */}
+      <nav className="flex-1 py-2">
+        {NAV.map(({ key, icon: Icon, label }) => {
+          const active = activeView === key;
+          return (
+            <button key={key} onClick={() => setView(key)} title={collapsed ? label : undefined}
+              className={cn('flex items-center gap-3 w-full h-10 px-3 transition-colors duration-150 text-sm',
+                active ? 'bg-[#1a1a2e] text-[#eee] border-l-2 border-[#3b82f6]' : 'text-[#aaa] hover:bg-[#1a1a2e]/50 hover:text-[#eee] border-l-2 border-transparent',
+                collapsed && 'justify-center')}>
+              <Icon size={18} className="flex-shrink-0" />
+              {!collapsed && <span>{label}</span>}
+            </button>
+          );
+        })}
       </nav>
-      <div style={{
-        padding: '12px 16px', borderTop: '1px solid var(--border)',
-        fontSize: 12, color: 'var(--text-tertiary)',
-      }}>
-        {t('accounts.count', { count: accountCount })}
+      {/* Counter */}
+      <div className="border-t border-[#2a2a4e] px-3 py-2">
+        {!collapsed ? (
+          <span className="text-xs text-[#666]">{accountCount} / {MAX_ACCOUNTS} cuentas</span>
+        ) : (
+          <span className="text-xs text-[#666] text-center block">{accountCount}</span>
+        )}
       </div>
     </div>
   );
