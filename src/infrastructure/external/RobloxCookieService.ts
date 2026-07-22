@@ -1,5 +1,6 @@
 // Infrastructure: RobloxCookieService — cookie expiry + refresh
 
+import { BrowserWindow } from 'electron';
 import { apiGet } from './RobloxHttp';
 
 export async function getCookieExpiry(cookie: string): Promise<Date | null> {
@@ -11,11 +12,60 @@ export async function getCookieExpiry(cookie: string): Promise<Date | null> {
 }
 
 export async function refreshCookie(cookie: string): Promise<string> {
-  // Roblox doesn't have a public refresh API — the cookie is valid until expiry.
-  // This returns the same cookie if still valid, or throws if expired.
   const expiry = await getCookieExpiry(cookie);
-  if (expiry && expiry > new Date()) {
-    return cookie; // still valid
+  if (!expiry) throw new Error('No se pudo verificar la cookie');
+
+  const now = new Date();
+  const hoursUntilExpiry = (expiry.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+  if (hoursUntilExpiry > 24) {
+    return cookie; // still valid, no need to refresh
   }
-  throw new Error('Cookie expirada — necesita re-login');
+
+  // Cookie expires in <24h — open silent BrowserWindow to refresh session
+  const win = new BrowserWindow({
+    width: 1,
+    height: 1,
+    show: false,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+
+  try {
+    // Set the cookie in the window's session
+    const cookieUrl = 'https://www.roblox.com';
+    await win.webContents.session.cookies.set({
+      url: cookieUrl,
+      name: '.ROBLOSECURITY',
+      value: cookie,
+      domain: '.roblox.com',
+      path: '/',
+      secure: true,
+      httpOnly: true,
+    });
+
+    // Navigate to trigger session refresh
+    await win.webContents.loadURL('https://www.roblox.com/home');
+
+    // Wait 3s for session to refresh
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Read the refreshed cookie
+    const cookies = await win.webContents.session.cookies.get({ name: '.ROBLOSECURITY' });
+    if (cookies.length > 0 && cookies[0].value) {
+      return cookies[0].value;
+    }
+
+    // If no refreshed cookie, return original
+    return cookie;
+  } catch {
+    // If refresh fails, return original cookie if still valid
+    if (expiry > now) return cookie;
+    throw new Error('Cookie expirada — necesita re-login');
+  } finally {
+    win.destroy();
+  }
 }
