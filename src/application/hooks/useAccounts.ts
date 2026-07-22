@@ -6,14 +6,17 @@ import { useAccountStore } from '../store/accountStore';
 import { useUIStore } from '../store/uiStore';
 import { MAX_ACCOUNTS } from '../../config/constants';
 
+const api = typeof window !== 'undefined' ? window.api : undefined;
+
 export function useAccounts() {
   const { accounts, selectedId, setAccounts, select, remove, add, update, loading, setLoading } = useAccountStore();
   const notify = useUIStore((s) => s.notify);
 
   const loadAccounts = useCallback(async () => {
+    if (!api) return;
     setLoading(true);
     try {
-      const result = await window.api.account.list();
+      const result = await api.account.list();
       if (result.success) setAccounts(result.data as never[]);
       else notify('error', result.error);
     } catch (e) {
@@ -23,7 +26,8 @@ export function useAccounts() {
   }, [setAccounts, setLoading, notify]);
 
   const addAccount = useCallback(async (cookie: string, group?: string) => {
-    const result = await window.api.account.add(cookie, group);
+    if (!api) return { success: false, error: 'Electron API no disponible (modo browser)' };
+    const result = await api.account.add(cookie, group);
     if (result.success) {
       notify('success', 'Cuenta agregada');
       await loadAccounts();
@@ -34,7 +38,8 @@ export function useAccounts() {
   }, [notify, loadAccounts]);
 
   const removeAccount = useCallback(async (id: string) => {
-    const result = await window.api.account.remove(id);
+    if (!api) return;
+    const result = await api.account.remove(id);
     if (result.success) {
       remove(id);
       notify('success', 'Cuenta eliminada');
@@ -44,9 +49,9 @@ export function useAccounts() {
   }, [remove, notify]);
 
   const loginBrowser = useCallback(async () => {
-    const result = await window.api.account.loginBrowser();
+    if (!api) return { success: false, error: 'Electron API no disponible' };
+    const result = await api.account.loginBrowser();
     if (result.success) {
-      // Add the account with the obtained cookie
       await addAccount((result.data as { cookie: string }).cookie);
     } else {
       notify('error', result.error);
