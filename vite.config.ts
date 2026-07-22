@@ -10,7 +10,7 @@ const electronPlugin = browserOnly
   : [
       electron([
         {
-          entry: path.resolve(__dirname, 'src/main_v4.ts'),
+          entry: path.resolve(__dirname, 'src/main.ts'),
           onstart: (options) => {
             if (options.startup) options.startup();
           },
@@ -25,7 +25,7 @@ const electronPlugin = browserOnly
           },
         },
         {
-          entry: path.resolve(__dirname, 'src/preload_v4/index.ts'),
+          entry: path.resolve(__dirname, 'src/preload/index.ts'),
           onstart: (options) => {
             if (options.reload) options.reload();
           },
