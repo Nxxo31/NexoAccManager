@@ -674,3 +674,25 @@ Fix intermittent 'Cookie inválido o expirada' error during login by ensuring th
 - Should not break existing functionality for correctly formatted cookies.
 
 
+
+
+## v3.5.0 — Clean Architecture Refactor (Step 1: Main and AccountSettingsService)
+
+### Cambios en este paso
+- **main.ts**: 1576 → 269 líneas (−83%)
+  - Dividido en 8 módulos de handlers bajo src/main/handlers/
+  - Cada handler registra sus IPC handlers por namespace (account, settings, roblox, presence, botting, games, advanced, misc)
+  - main.ts ahora solo contiene la clase NexoApp, createWindow, createMenu, cleanup y el arranque de la app
+- **AccountSettingsService.ts**: 984 → 409 líneas (−58%)
+  - Extraídos helpers comunes (CSRF token, cookie header, POST headers) a funciones privadas
+  - Eliminada duplicación de try/catch y manejo de errores
+  - Mantiene la misma API pública
+- **Shared helpers**: src/main/handlers/shared.ts con tipos IpcResult, ok/err y validadores
+- **Resultado**: tsc 0 errores, build exitoso
+
+### Próximos pasos
+- Dividir FriendsHubView.tsx (693 líneas) en componentes enfocados
+- Dividir useAccountActions.ts (503 líneas) en hooks especializados
+- Dividir PresenceService.ts (540 líneas) en servicios más pequeños
+- Dividir AccountManager.ts (612 líneas) en responsabilidades separadas
+- Continuar reducir el tamaño total del código hacia los 10K líneas
