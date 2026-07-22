@@ -19,7 +19,7 @@ function createWindow(): BrowserWindow {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      preload: path.join(__dirname, '../preload_v4/index.js'),
+      preload: path.join(__dirname, '../preload/index.js'),
     },
   });
 

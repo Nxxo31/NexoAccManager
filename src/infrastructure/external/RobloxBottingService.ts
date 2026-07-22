@@ -2,6 +2,7 @@
 
 import { exec, execSync } from 'node:child_process';
 import { promisify } from 'node:util';
+import { apiPost } from './RobloxHttp';
 const execAsync = promisify(exec);
 
 export async function killAllRoblox(): Promise<void> {
@@ -52,7 +53,6 @@ export async function setFPSUnlock(fps: 60 | 120 | 240): Promise<void> {
 }
 
 export async function joinGroup(groupId: number, cookie: string): Promise<void> {
-  const { apiPost } = await import('./RobloxHttp');
   await apiPost(`https://groups.roblox.com/v1/groups/${groupId}/join`, cookie);
 }
 

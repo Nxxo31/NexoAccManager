@@ -1,14 +1,15 @@
-// Application Layout: Sidebar — navigation + counter
+// Application Layout: Sidebar — navigation + counter using i18n + CSS vars
 
 import { useUIStore } from '../store/uiStore';
 import { PAGES } from '../../config/constants';
+import { t } from '../../config/i18n';
 
 const NAV_ITEMS = [
-  { key: PAGES.ACCOUNTS, label: 'Cuentas', icon: '👥' },
-  { key: PAGES.SERVERS, label: 'Servidores', icon: '🌐' },
-  { key: PAGES.GAMES, label: 'Juegos', icon: '🎮' },
-  { key: PAGES.FRIENDS, label: 'Amigos', icon: '📧' },
-  { key: PAGES.SETTINGS, label: 'Ajustes', icon: '⚙️' },
+  { key: PAGES.ACCOUNTS, icon: '👥', labelKey: 'nav.accounts' },
+  { key: PAGES.SERVERS, icon: '🌐', labelKey: 'nav.servers' },
+  { key: PAGES.GAMES, icon: '🎮', labelKey: 'nav.games' },
+  { key: PAGES.FRIENDS, icon: '📧', labelKey: 'nav.friends' },
+  { key: PAGES.SETTINGS, icon: '⚙️', labelKey: 'nav.settings' },
 ];
 
 export function Sidebar({ accountCount }: { accountCount: number }): JSX.Element {
@@ -16,8 +17,14 @@ export function Sidebar({ accountCount }: { accountCount: number }): JSX.Element
   const setView = useUIStore((s) => s.setView);
 
   return (
-    <div style={{ width: 200, background: '#1a1a2e', color: '#eee', display: 'flex', flexDirection: 'column', padding: 0, flexShrink: 0 }}>
-      <div style={{ padding: '20px 16px', fontWeight: 700, fontSize: 16, borderBottom: '1px solid #2a2a4e' }}>
+    <div style={{
+      width: 200, background: 'var(--bg-card)', color: 'var(--text-primary)',
+      display: 'flex', flexDirection: 'column', flexShrink: 0,
+    }}>
+      <div style={{
+        padding: '20px 16px', fontWeight: 700, fontSize: 16,
+        borderBottom: '1px solid var(--border)',
+      }}>
         NexoAccManager
       </div>
       <nav style={{ flex: 1, padding: '8px 0' }}>
@@ -27,18 +34,21 @@ export function Sidebar({ accountCount }: { accountCount: number }): JSX.Element
             onClick={() => setView(item.key)}
             style={{
               display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-              padding: '10px 16px', background: activeView === item.key ? '#2a2a4e' : 'transparent',
-              border: 'none', color: activeView === item.key ? '#fff' : '#aaa', cursor: 'pointer',
-              textAlign: 'left', fontSize: 14,
+              padding: '10px 16px', background: activeView === item.key ? 'var(--bg-elevated)' : 'transparent',
+              border: 'none', color: activeView === item.key ? 'var(--text-primary)' : 'var(--text-secondary)',
+              cursor: 'pointer', textAlign: 'left' as const, fontSize: 14,
             }}
           >
             <span style={{ fontSize: 18 }}>{item.icon}</span>
-            <span>{item.label}</span>
+            <span>{t(item.labelKey)}</span>
           </button>
         ))}
       </nav>
-      <div style={{ padding: '12px 16px', borderTop: '1px solid #2a2a4e', fontSize: 12, color: '#666' }}>
-        {accountCount} / 50 cuentas
+      <div style={{
+        padding: '12px 16px', borderTop: '1px solid var(--border)',
+        fontSize: 12, color: 'var(--text-tertiary)',
+      }}>
+        {t('accounts.count', { count: accountCount })}
       </div>
     </div>
   );
