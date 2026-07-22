@@ -1,6 +1,6 @@
 // Infrastructure: ThemeService — CSS variables + theme system
 
-export type ThemeId = 'dark' | 'light';
+export type ThemeId = 'dark' | 'light' | 'midnight';
 
 interface ThemeColors {
   bg: string;
@@ -27,7 +27,19 @@ const THEMES: Record<ThemeId, ThemeColors> = {
     border: '#2a2a4e',
     primary: '#3b82f6',
     primaryHover: '#2563eb',
-  },
+    },
+    midnight: {
+        bg: '#0a0a1a',
+        bgCard: '#12122e',
+        bgSurface: '#1a1a3e',
+        bgElevated: '#2a2a4e',
+        textPrimary: '#e0e0ff',
+        textSecondary: '#a0a0c0',
+        textTertiary: '#a0a0c0',
+        border: '#2a2a4a',
+        primary: '#4a4aff',
+        primaryHover: '#6a6aff',
+    },
   light: {
     bg: '#f8fafc',
     bgCard: '#ffffff',
