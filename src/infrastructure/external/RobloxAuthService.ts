@@ -46,19 +46,89 @@ export async function loginBrowser(): Promise<{ cookie: string; userId: number; 
 }
 
 export async function loginUserPass(username: string, password: string): Promise<{ cookie: string; userId: number; username: string }> {
-  // Login via Roblox auth API
-  try {
-    const res = await apiPost<{ userData?: { userId: number; username: string } }>(
-      'https://auth.roblox.com/v2/login',
-      '',
-      { ctype: 'Username', cvalue: username, password }
-    );
-    // After login, we need the cookie from the response — this requires a browser session
-    // For now, we report not implemented for user:pass without browser
-    throw new Error('Login user:pass requiere ventana de navegador (no implementado sin browser)');
-  } catch (err) {
-    throw err;
-  }
+  return new Promise((resolve, reject) => {
+    const win = new BrowserWindow({
+      width: 800, height: 600,
+      webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+      title: 'Iniciar sesión en Roblox',
+    });
+
+    let resolved = false;
+    let credentialsSubmitted = false;
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        win.close();
+        reject(new Error('Timeout'));
+      }
+    }, 120_000);
+
+    // Poll for cookie and submit credentials every 2s
+    const pollInterval = setInterval(async () => {
+      if (resolved) return;
+      try {
+        // Try to submit credentials if we haven't already
+        if (!credentialsSubmitted) {
+          try {
+            await win.webContents.executeJavaScript(`
+              const usernameInput = document.querySelector('input[name="username"]');
+              const passwordInput = document.querySelector('input[name="password"]');
+              const loginButton = document.querySelector('button[type="submit"]');
+              if (usernameInput && passwordInput && loginButton) {
+                usernameInput.value = ${JSON.stringify(username)};
+                passwordInput.value = ${JSON.stringify(password)};
+                loginButton.click();
+                credentialsSubmitted = true;
+              }
+            `);
+          } catch (e) {
+            // Ignore errors in execution, we'll try again next interval
+          }
+        }
+
+        // Check for cookie
+        const cookies = await session.defaultSession.cookies.get({ domain: '.roblox.com' });
+        for (const c of cookies) {
+          if (c.name === '.ROBLOSECURITY') {
+            const cookie = c.value.trim();
+            if (!cookie) continue;
+            const info = await verifyCookie(cookie);
+            if (info.valid) {
+              resolved = true;
+              clearTimeout(timeout);
+              clearInterval(pollInterval);
+              win.close();
+              resolve({ cookie, userId: info.userId, username: info.username });
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        // If window is destroyed, break out
+        if (win === null) {
+          resolved = true;
+          clearTimeout(timeout);
+          clearInterval(pollInterval);
+          reject(new Error('Window destroyed'));
+          return;
+        }
+        // Otherwise, keep polling
+      }
+    }, 2000);
+
+    win.loadURL('https://www.roblox.com/login');
+
+    // Handle window closed by user
+    win.on('closed', () => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        clearInterval(pollInterval);
+        win.close();
+        reject(new Error('Window closed by user'));
+      }
+    });
+  });
 }
 
 export async function verifyCookie(cookie: string): Promise<{ valid: boolean; userId: number; username: string }> {
