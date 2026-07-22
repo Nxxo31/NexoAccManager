@@ -13,7 +13,10 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@renderer/*": ["./src/renderer/*"]
+      "@domain/*": ["./src/domain/*"],
+      "@infrastructure/*": ["./src/infrastructure/*"],
+      "@application/*": ["./src/application/*"],
+      "@config/*": ["./src/config/*"]
     },
     "resolveJsonModule": true,
     "skipLibCheck": true,

@@ -2,7 +2,7 @@
   "name": "nx-manager",
   "version": "4.0.0",
   "description": "Open-source multi-account manager for gaming platforms — 100% local, no servers, no cloud",
-  "main": "dist/main/main_v4.js",
+  "main": "dist/main/main.js",
   "author": {
     "name": "NexoAccManager Contributors",
     "email": "nexoaccmanager@users.noreply.github.com"
