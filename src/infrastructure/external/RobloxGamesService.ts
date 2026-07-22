@@ -1,9 +1,10 @@
 // Infrastructure: RobloxGamesService — implementa games del RobloxApiPort
 // Search, thumbnails, servers, server users, region, player search
 
-import { apiGet } from './RobloxHttp';
+import { apiGet, apiPost } from './RobloxHttp';
 import { LRUCache } from '../database/LRUCache';
 import type { ServerInfo, ServerUser } from '../../domain/entities/ServerInfo';
+import type { OutfitData, UniverseData } from '../../domain/entities/GameData';
 
 const thumbnailCache = new LRUCache<number, string>(200, 300_000); // 5min
 const serverCache = new LRUCache<string, ServerInfo[]>(50, 60_000); // 1min
@@ -90,10 +91,55 @@ export async function getServerRegion(placeId: string): Promise<{ region: string
 }
 
 export async function searchPlayer(query: string, cookie: string): Promise<{ userId: number; username: string; displayName: string }[]> {
-  const data = await apiGet<{ data: { id: number; name: string; displayName: string }[] }>(
+  const data = await apiPost<{ data: { id: number; name: string; displayName: string }[] }>(
     `https://users.roblox.com/v1/usernames/users`,
+    cookie,
+    { usernames: [query], excludeBannedUsers: true }
+  );
+  return (data.data || []).map(u => ({ userId: u.id, username: u.name, displayName: u.displayName }));
+}
+
+export async function getOutfits(userId: number, cookie: string): Promise<OutfitData[]> {
+  const data = await apiGet<{ data: { id: number; name: string; price: number; isFree: boolean; creator: { name: string }; thumbnails: { imageUrl: string }[] }[] }>(
+    `https://avatar.roblox.com/v1/users/${userId}/outfits?page=1`,
     cookie
   );
-  // This endpoint needs a POST — use apiPost instead
-  return (data.data || []).map(u => ({ userId: u.id, username: u.name, displayName: u.displayName }));
+  return (data.data || []).map(o => ({
+    assetId: o.id,
+    name: o.name,
+    price: o.price,
+    isFree: o.isFree,
+    creatorName: o.creator.name,
+    thumbnailUrl: o.thumbnails?.[0]?.imageUrl ?? ''
+  }));
+}
+
+export async function getUniverses(gameId: number, cookie: string): Promise<UniverseData[]> {
+  const data = await apiGet<{ data: { id: number; name: string; description: string; creator: { name: string; hasVerifiedBadge: boolean }; visits: number; playing: number; rootPlace: { id: number } }[] }>(
+    `https://games.roblox.com/v1/games?universeIds=${gameId}`,
+    cookie
+  );
+  return (data.data || []).map(u => ({
+    id: u.id,
+    name: u.name,
+    description: u.description,
+    creatorName: u.creator.name,
+    creatorHasVerifiedBadge: u.creator.hasVerifiedBadge,
+    visits: u.visits,
+    playing: u.playing,
+    rootPlaceId: u.rootPlace.id
+  }));
+}
+
+export async function detectVIPServers(placeId: string, cookie: string): Promise<ServerInfo[]> {
+  return getGameServers(placeId, cookie, 'Private');
+}
+
+export async function shuffleJobId(placeId: string, cookie: string): Promise<string> {
+  const servers = await getGameServers(placeId, cookie, 'Public');
+  if (servers.length === 0) {
+    throw new Error('No public servers found for placeId: ' + placeId);
+  }
+  const randomIndex = Math.floor(Math.random() * servers.length);
+  return servers[randomIndex].jobId;
 }
