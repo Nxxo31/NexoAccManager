@@ -39,6 +39,9 @@ const api = {
   // Roblox
   roblox: {
     launch: (accountId: string, placeId?: string, jobId?: string) => ipcRenderer.invoke('roblox:launch', { accountId, placeId, jobId }),
+    multiLaunch: (accountId: string, placeId: string, jobId: string, cookie: string) => ipcRenderer.invoke('roblox:multi-launch', { accountId, placeId, jobId, cookie }),
+    killInstance: (accountId: string) => ipcRenderer.invoke('roblox:kill-instance', accountId),
+    runningInstances: () => ipcRenderer.invoke('roblox:running-instances'),
     gamesSearch: (query: string, cookie: string) => ipcRenderer.invoke('roblox:games:search', { query, cookie }),
     serversList: (placeId: string, cookie: string, serverType?: 'Public' | 'Private') => ipcRenderer.invoke('roblox:servers:list', { placeId, cookie, serverType }),
     serversUsers: (serverId: string, cookie: string) => ipcRenderer.invoke('roblox:servers:users', { serverId, cookie }),
@@ -46,6 +49,10 @@ const api = {
     killAll: () => ipcRenderer.invoke('roblox:kill-all'),
     joinGroup: (groupId: number, cookie: string) => ipcRenderer.invoke('roblox:join-group', { groupId, cookie }),
     serverRegion: (placeId: string) => ipcRenderer.invoke('roblox:server-region', { placeId }),
+    shuffleJobId: (placeId: string, cookie: string) => ipcRenderer.invoke('roblox:shuffle-jobid', { placeId, cookie }),
+    vipServers: (placeId: string, cookie: string) => ipcRenderer.invoke('roblox:vip-servers', { placeId, cookie }),
+    outfits: (userId: number, cookie: string) => ipcRenderer.invoke('roblox:outfits', { userId, cookie }),
+    universes: (gameId: number, cookie: string) => ipcRenderer.invoke('roblox:universes', { gameId, cookie }),
   },
 
   // Presence
@@ -91,17 +98,32 @@ const api = {
     getStatus: () => ipcRenderer.invoke('botting:getStatus'),
   },
 
+  // Theme
+  theme: {
+    get: () => ipcRenderer.invoke('theme:get'),
+    set: (name: string) => ipcRenderer.invoke('theme:set', name),
+  },
+
+  // Captcha
+  captcha: {
+    solve: (image: string) => ipcRenderer.invoke('captcha:solve', image),
+  },
+
   // Advanced
   advanced: {
     exportData: () => ipcRenderer.invoke('advanced:exportData'),
     deleteAllAccounts: () => ipcRenderer.invoke('advanced:deleteAllAccounts'),
     clearCache: () => ipcRenderer.invoke('advanced:clearCache'),
+    devMode: (enable: boolean) => ipcRenderer.invoke('advanced:devmode', enable),
+    localApiStart: (port: number) => ipcRenderer.invoke('advanced:local-api:start', port),
+    localApiStop: () => ipcRenderer.invoke('advanced:local-api:stop'),
   },
 
   // Cookie
   cookie: {
     expiry: (accountId: string) => ipcRenderer.invoke('cookie:expiry', { accountId }),
     refresh: (accountId: string) => ipcRenderer.invoke('cookie:refresh', { accountId }),
+    refreshReal: (cookie: string) => ipcRenderer.invoke('cookie:refresh-real', cookie),
   },
 
   // Shell
