@@ -1,36 +1,34 @@
-// Application Layout: TopBar — search + add + theme toggle with Tailwind
+// Application Layout: TopBar — search + add + theme toggle with Mantine v7
 
 import { Search, Plus, Moon, Sun } from 'lucide-react';
-import { Input } from '../components/ui/input';
-import { Button } from '../components/ui/button';
-import { useUIStore } from '../store/uiStore';
+import { Group, TextInput, Button, ActionIcon, useMantineColorScheme } from '@mantine/core';
 
 interface TopBarProps {
-  theme: 'dark' | 'light';
-  onToggleTheme: () => void;
   onAddAccount: () => void;
   searchQuery: string;
   onSearch: (q: string) => void;
 }
 
-export function TopBar({ theme, onToggleTheme, onAddAccount, searchQuery, onSearch }: TopBarProps): JSX.Element {
+export function TopBar({ onAddAccount, searchQuery, onSearch }: TopBarProps): JSX.Element {
+  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+
   return (
-    <div className="flex items-center h-12 border-b px-4 gap-3 flex-shrink-0"
-      style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
-      {/* Search */}
-      <div className="relative flex-1 max-w-xs">
-        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }} />
-        <Input value={searchQuery} onChange={(e) => onSearch(e.target.value)} placeholder="Buscar cuentas..." className="pl-8 h-8 text-xs" />
-      </div>
-      <div className="flex-1" />
-      {/* Add */}
-      <Button variant="primary" size="sm" onClick={onAddAccount}>
-        <Plus size={14} /> Agregar
+    <Group h={48} px="md" gap="sm" align="center" style={{ flexShrink: 0 }}>
+      <TextInput
+        leftSection={<Search size={14} />}
+        placeholder="Buscar cuentas..."
+        value={searchQuery}
+        onChange={(e) => onSearch(e.target.value)}
+        size="sm"
+        style={{ maxWidth: 300, flex: 1 }}
+      />
+      <div style={{ flex: 1 }} />
+      <Button variant="filled" color="primary" size="sm" leftSection={<Plus size={14} />} onClick={onAddAccount}>
+        Agregar
       </Button>
-      {/* Theme toggle */}
-      <Button variant="ghost" size="icon" onClick={onToggleTheme} aria-label="Cambiar tema">
-        {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-      </Button>
-    </div>
+      <ActionIcon variant="subtle" color={colorScheme === 'dark' ? 'yellow' : 'gray'} onClick={toggleColorScheme} aria-label="Cambiar tema">
+        {colorScheme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+      </ActionIcon>
+    </Group>
   );
 }

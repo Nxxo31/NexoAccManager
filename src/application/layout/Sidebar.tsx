@@ -1,11 +1,10 @@
-// Application Layout: Sidebar — Tailwind + lucide-react + collapsible
+// Application Layout: Sidebar — Mantine v7
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Globe, Gamepad2, Mail, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
 import { PAGES, type PageKey, MAX_ACCOUNTS } from '../../config/constants';
-import { cn } from '../../lib/utils';
+import { Box, Text, ActionIcon, Group, NavLink, useMantineTheme } from '@mantine/core';
 
 const NAV: { key: PageKey; icon: typeof Users; label: string }[] = [
   { key: PAGES.ACCOUNTS, icon: Users, label: 'Cuentas' },
@@ -19,45 +18,49 @@ export function Sidebar({ accountCount }: { accountCount: number }): JSX.Element
   const activeView = useUIStore((s) => s.activeView);
   const setView = useUIStore((s) => s.setView);
   const [collapsed, setCollapsed] = useState(false);
+  const theme = useMantineTheme();
 
   return (
-    <div className={cn('flex flex-col border-r transition-all duration-150 flex-shrink-0', collapsed ? 'w-16' : 'w-52')}
-      style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
+    <Box
+      style={{
+        width: collapsed ? 64 : 208,
+        height: '100%',
+        flexShrink: 0,
+        backgroundColor: theme.colors.dark[0],
+        borderRight: `1px solid ${theme.colors.gray[3]}`,
+        display: 'flex',
+        flexDirection: 'column',
+        transition: 'width 150ms ease',
+      }}
+    >
       {/* Logo */}
-      <div className="flex items-center h-12 border-b px-3" style={{ borderColor: 'var(--border)' }}>
-        {!collapsed && <span className="text-sm font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>NX-Manager</span>}
-        <button onClick={() => setCollapsed(!collapsed)} className={cn('p-1 transition-colors', collapsed ? 'mx-auto' : 'ml-auto')}
-          style={{ color: 'var(--text-tertiary)' }}>
+      <Group h={48} px="sm" justify="space-between" style={{ borderBottom: `1px solid ${theme.colors.gray[3]}` }}>
+        {!collapsed && <Text size="sm" fw={600} c="white">NX-Manager</Text>}
+        <ActionIcon onClick={() => setCollapsed(!collapsed)} variant="subtle" color="gray" size="sm">
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-        </button>
-      </div>
+        </ActionIcon>
+      </Group>
+
       {/* Nav */}
-      <nav className="flex-1 py-2">
-        {NAV.map(({ key, icon: Icon, label }) => {
-          const active = activeView === key;
-          return (
-            <button key={key} onClick={() => setView(key)} title={collapsed ? label : undefined}
-              className={cn('flex items-center gap-3 w-full h-10 px-3 transition-colors duration-150 text-sm border-l-2',
-                collapsed && 'justify-center')}
-              style={{
-                background: active ? 'var(--bg-card)' : 'transparent',
-                color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
-                borderColor: active ? 'var(--primary)' : 'transparent',
-              }}>
-              <Icon size={18} className="flex-shrink-0" />
-              {!collapsed && <span>{label}</span>}
-            </button>
-          );
-        })}
-      </nav>
+      <Box style={{ flex: 1, padding: '8px 0' }}>
+        {NAV.map(({ key, icon: Icon, label }) => (
+          <NavLink
+            key={key}
+            active={activeView === key}
+            onClick={() => setView(key)}
+            label={collapsed ? '' : label}
+            leftSection={<Icon size={18} />}
+            style={{ height: 40, margin: '0 6px', borderRadius: 6 }}
+          />
+        ))}
+      </Box>
+
       {/* Counter */}
-      <div className="border-t px-3 py-2" style={{ borderColor: 'var(--border)' }}>
-        {!collapsed ? (
-          <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{accountCount} / {MAX_ACCOUNTS} cuentas</span>
-        ) : (
-          <span className="text-xs text-center block" style={{ color: 'var(--text-tertiary)' }}>{accountCount}</span>
-        )}
-      </div>
-    </div>
+      <Box px="sm" py="xs" style={{ borderTop: `1px solid ${theme.colors.gray[3]}` }}>
+        <Text size="xs" c="dimmed" ta={collapsed ? 'center' : 'left'}>
+          {collapsed ? accountCount : `${accountCount} / ${MAX_ACCOUNTS} cuentas`}
+        </Text>
+      </Box>
+    </Box>
   );
 }

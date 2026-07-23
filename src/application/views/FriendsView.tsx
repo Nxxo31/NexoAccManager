@@ -1,8 +1,10 @@
-// Application View: FriendsView — friend list, requests, followers
+// Application View: FriendsView — friend list, requests, follow/unfollow — Mantine v7
 
 import { useState, useEffect } from 'react';
 import { useAccountStore } from '../store/accountStore';
-import { useUIStore } from '../store/uiStore';
+import { notifications } from '@mantine/notifications';
+import { Group, Stack, Text, Badge, Button, Select, SegmentedControl, Card, ScrollArea, ActionIcon, Avatar, Skeleton } from '@mantine/core';
+import { UserPlus, UserMinus, Check, X } from 'lucide-react';
 
 interface Friend {
   userId: number;
@@ -20,9 +22,8 @@ interface FriendRequest {
 
 export function FriendsView(): JSX.Element {
   const accounts = useAccountStore((s) => s.accounts);
-  const notify = useUIStore((s) => s.notify);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'friends' | 'requests'>('friends');
+  const [activeTab, setActiveTab] = useState<string>('friends');
   const [friends, setFriends] = useState<Friend[]>([]);
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [loading, setLoading] = useState(false);
@@ -37,23 +38,15 @@ export function FriendsView(): JSX.Element {
     try {
       if (activeTab === 'friends') {
         const result = await window.api.byAccount.friendsList(selectedAccountId);
-        if (result.success) {
-          const data = result.data as Friend[];
-          setFriends(Array.isArray(data) ? data : []);
-        } else {
-          notify('error', result.error ?? 'Error');
-        }
+        if (result.success) setFriends(Array.isArray(result.data) ? result.data : []);
+        else notifications.show({ message: result.error ?? 'Error', color: 'red' });
       } else {
         const result = await window.api.byAccount.friendsRequests(selectedAccountId);
-        if (result.success) {
-          const data = result.data as FriendRequest[];
-          setRequests(Array.isArray(data) ? data : []);
-        } else {
-          notify('error', result.error ?? 'Error');
-        }
+        if (result.success) setRequests(Array.isArray(result.data) ? result.data : []);
+        else notifications.show({ message: result.error ?? 'Error', color: 'red' });
       }
     } catch {
-      notify('error', 'Error al cargar datos');
+      notifications.show({ message: 'Error al cargar datos', color: 'red' });
     }
     setLoading(false);
   };
@@ -61,10 +54,10 @@ export function FriendsView(): JSX.Element {
   const handleRespond = async (requestId: number, accept: boolean) => {
     const result = await window.api.byAccount.friendsRespond(requestId, accept, selectedAccountId);
     if (result.success) {
-      notify('success', accept ? 'Solicitud aceptada' : 'Solicitud rechazada');
+      notifications.show({ message: accept ? 'Solicitud aceptada' : 'Solicitud rechazada', color: 'green' });
       setRequests(requests.filter((r) => r.id !== requestId));
     } else {
-      notify('error', result.error ?? 'Error');
+      notifications.show({ message: result.error ?? 'Error', color: 'red' });
     }
   };
 
@@ -72,151 +65,117 @@ export function FriendsView(): JSX.Element {
     const fn = isFollowing ? window.api.byAccount.unfollow : window.api.byAccount.follow;
     const result = await fn(userId, selectedAccountId);
     if (result.success) {
-      setFriends(friends.map((f) => f.userId === userId
-        ? { ...f, isOnline: !isFollowing ? f.isOnline : f.isOnline }
-        : f));
-      notify('success', isFollowing ? 'Dejaste de seguir' : 'Ahora sigues a este usuario');
+      notifications.show({ message: isFollowing ? 'Dejaste de seguir' : 'Ahora sigues a este usuario', color: 'green' });
     } else {
-      notify('error', result.error ?? 'Error');
+      notifications.show({ message: result.error ?? 'Error', color: 'red' });
     }
   };
 
   if (accounts.length === 0) {
     return (
-      <div className="p-4 h-full flex items-center justify-center">
-        <p style={{ color: 'var(--text-tertiary)' }}>Agrega una cuenta primero para ver amigos.</p>
-      </div>
+      <Stack align="center" justify="center" h="100%">
+        <Text c="dimmed">Agrega una cuenta primero para ver amigos.</Text>
+      </Stack>
     );
   }
 
+  const accountData = accounts.map((acc) => ({ value: acc.id, label: acc.username }));
+
   return (
-    <div className="p-4 h-full overflow-auto">
-      <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Amigos</h2>
+    <Stack gap="md" p="md" h="100%">
+      <Text size="lg" fw={600}>Amigos</Text>
 
-      {/* Account selector */}
-      <div className="flex gap-2 mb-4">
-        <select
-          value={selectedAccountId}
-          onChange={(e) => setSelectedAccountId(e.target.value)}
-          className="flex-1 px-3 py-2 rounded text-sm border"
-          style={{
-            background: 'var(--bg-card)',
-            color: 'var(--text-primary)',
-            borderColor: 'var(--border)',
-          }}
-        >
-          <option value="">Seleccionar cuenta...</option>
-          {accounts.map((acc) => (
-            <option key={acc.id} value={acc.id}>{acc.username}</option>
-          ))}
-        </select>
-      </div>
+      <Select
+        placeholder="Seleccionar cuenta..."
+        value={selectedAccountId}
+        onChange={(val) => setSelectedAccountId(val ?? '')}
+        data={accountData}
+        size="sm"
+        searchable
+      />
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-4">
-        {(['friends', 'requests'] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setActiveTab(t)}
-            className="px-3 py-1.5 text-sm rounded transition-colors"
-            style={{
-              background: activeTab === t ? 'var(--primary)' : 'var(--bg-card)',
-              color: activeTab === t ? '#fff' : 'var(--text-secondary)',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            {t === 'friends' ? 'Amigos' : 'Solicitudes'}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        value={activeTab}
+        onChange={(val) => setActiveTab(val)}
+        data={[
+          { value: 'friends', label: 'Amigos' },
+          { value: 'requests', label: 'Solicitudes' },
+        ]}
+        size="sm"
+      />
 
-      {loading && <p style={{ color: 'var(--text-tertiary)' }}>Cargando...</p>}
+      <ScrollArea style={{ flex: 1 }}>
+        {loading && (
+          <Stack gap="sm">
+            <Skeleton height={60} radius="md" />
+            <Skeleton height={60} radius="md" />
+            <Skeleton height={60} radius="md" />
+          </Stack>
+        )}
 
-      {!loading && !selectedAccountId && (
-        <p style={{ color: 'var(--text-tertiary)' }}>Selecciona una cuenta para ver su información.</p>
-      )}
+        {!loading && !selectedAccountId && (
+          <Text c="dimmed" ta="center" pt="xl">Selecciona una cuenta para ver su informacion.</Text>
+        )}
 
-      {/* Friends list */}
-      {!loading && selectedAccountId && activeTab === 'friends' && (
-        <div className="flex flex-col gap-2">
-          {friends.length === 0 ? (
-            <p style={{ color: 'var(--text-tertiary)' }}>Sin amigos para mostrar.</p>
-          ) : (
-            friends.map((f) => (
-              <div
-                key={f.userId}
-                className="flex items-center justify-between p-3 rounded-lg border"
-                style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ background: f.isOnline ? '#22c55e' : 'var(--text-tertiary)' }}
-                  />
-                  <div>
-                    <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                      {f.displayName}
-                    </div>
-                    <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                      @{f.username}
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleFollowToggle(f.userId, true)}
-                  className="text-xs px-2 py-1 rounded transition-colors"
-                  style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
-                >
-                  Dejar de seguir
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-      )}
+        {/* Friends list */}
+        {!loading && selectedAccountId && activeTab === 'friends' && (
+          <Stack gap="sm">
+            {friends.length === 0 ? (
+              <Text c="dimmed" ta="center" pt="xl">Sin amigos para mostrar.</Text>
+            ) : (
+              friends.map((f) => (
+                <Card key={f.userId} withBorder padding="sm" radius="md">
+                  <Group justify="space-between" align="center">
+                    <Group gap="sm" align="center">
+                      <Avatar size="sm" radius="xl" style={{ backgroundColor: f.isOnline ? 'var(--mantine-color-green-2)' : 'var(--mantine-color-gray-3)' }}>
+                        {f.username.charAt(0).toUpperCase()}
+                      </Avatar>
+                      <Stack gap={2}>
+                        <Text size="sm" fw={500}>{f.displayName}</Text>
+                        <Text size="xs" c="dimmed">@{f.username}</Text>
+                      </Stack>
+                      <Badge size="xs" variant="light" color={f.isOnline ? 'green' : 'gray'}>
+                        {f.isOnline ? 'Online' : 'Offline'}
+                      </Badge>
+                    </Group>
+                    <ActionIcon variant="subtle" color="gray" onClick={() => handleFollowToggle(f.userId, true)}>
+                      <UserMinus size={16} />
+                    </ActionIcon>
+                  </Group>
+                </Card>
+              ))
+            )}
+          </Stack>
+        )}
 
-      {/* Requests list */}
-      {!loading && selectedAccountId && activeTab === 'requests' && (
-        <div className="flex flex-col gap-2">
-          {requests.length === 0 ? (
-            <p style={{ color: 'var(--text-tertiary)' }}>Sin solicitudes pendientes.</p>
-          ) : (
-            requests.map((r) => (
-              <div
-                key={r.id}
-                className="flex items-center justify-between p-3 rounded-lg border"
-                style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
-              >
-                <div>
-                  <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                    {r.displayName}
-                  </div>
-                  <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    @{r.username}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleRespond(r.id, true)}
-                    className="text-xs px-3 py-1 rounded"
-                    style={{ background: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer' }}
-                  >
-                    Aceptar
-                  </button>
-                  <button
-                    onClick={() => handleRespond(r.id, false)}
-                    className="text-xs px-3 py-1 rounded"
-                    style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
-                  >
-                    Rechazar
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-    </div>
+        {/* Requests list */}
+        {!loading && selectedAccountId && activeTab === 'requests' && (
+          <Stack gap="sm">
+            {requests.length === 0 ? (
+              <Text c="dimmed" ta="center" pt="xl">Sin solicitudes pendientes.</Text>
+            ) : (
+              requests.map((r) => (
+                <Card key={r.id} withBorder padding="sm" radius="md">
+                  <Group justify="space-between" align="center">
+                    <Stack gap={2}>
+                      <Text size="sm" fw={500}>{r.displayName}</Text>
+                      <Text size="xs" c="dimmed">@{r.username}</Text>
+                    </Stack>
+                    <Group gap="xs">
+                      <Button size="xs" variant="filled" color="green" leftSection={<Check size={14} />} onClick={() => handleRespond(r.id, true)}>
+                        Aceptar
+                      </Button>
+                      <Button size="xs" variant="light" color="red" leftSection={<X size={14} />} onClick={() => handleRespond(r.id, false)}>
+                        Rechazar
+                      </Button>
+                    </Group>
+                  </Group>
+                </Card>
+              ))
+            )}
+          </Stack>
+        )}
+      </ScrollArea>
+    </Stack>
   );
 }

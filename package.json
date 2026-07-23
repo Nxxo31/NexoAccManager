@@ -23,6 +23,11 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@mantine/core": "^7.17.8",
+    "@mantine/form": "^7.17.8",
+    "@mantine/hooks": "^7.17.8",
+    "@mantine/modals": "^7.17.8",
+    "@mantine/notifications": "^7.17.8",
     "axios": "^1.6.0",
     "better-sqlite3": "^9.4.0",
     "electron-store": "^11.0.2",

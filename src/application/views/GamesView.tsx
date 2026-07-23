@@ -1,8 +1,10 @@
-// Application View: GamesView — search games + favorites
+// Application View: GamesView — search games + favorites — Mantine v7
 
 import { useState, useEffect } from 'react';
 import { useAccountStore } from '../store/accountStore';
-import { useUIStore } from '../store/uiStore';
+import { notifications } from '@mantine/notifications';
+import { Group, Stack, Text, Button, Select, TextInput, Card, Badge, ScrollArea, ActionIcon, Skeleton } from '@mantine/core';
+import { Star, Search, Plus } from 'lucide-react';
 
 interface GameResult {
   id: number;
@@ -20,7 +22,6 @@ interface FavoriteGame {
 
 export function GamesView(): JSX.Element {
   const accounts = useAccountStore((s) => s.accounts);
-  const notify = useUIStore((s) => s.notify);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<GameResult[]>([]);
@@ -36,16 +37,10 @@ export function GamesView(): JSX.Element {
     setLoading(true);
     try {
       const result = await window.api.byAccount.gamesSearch(query, selectedAccountId);
-      if (result.success) {
-        const data = result.data as GameResult[];
-        setResults(Array.isArray(data) ? data : []);
-      } else {
-        notify('error', result.error ?? 'Error');
-        setResults([]);
-      }
+      if (result.success) setResults(Array.isArray(result.data) ? result.data : []);
+      else notifications.show({ message: result.error ?? 'Error', color: 'red' });
     } catch {
-      notify('error', 'Error al buscar juegos');
-      setResults([]);
+      notifications.show({ message: 'Error al buscar juegos', color: 'red' });
     }
     setLoading(false);
   };
@@ -54,143 +49,93 @@ export function GamesView(): JSX.Element {
     if (!selectedAccountId) return;
     try {
       const result = await window.api.games.getFavorites(selectedAccountId);
-      if (result.success) {
-        const data = result.data as FavoriteGame[];
-        setFavorites(Array.isArray(data) ? data : []);
-      }
-    } catch {
-      // Silent fail for favorites
-    }
+      if (result.success) setFavorites(Array.isArray(result.data) ? result.data : []);
+    } catch { /* silent */ }
   };
 
   const addFavorite = async (game: GameResult) => {
     const result = await window.api.games.addFavorite(selectedAccountId, {
-      id: String(game.id),
-      gameId: game.id,
-      name: game.name,
-      icon: game.thumbnail ?? '',
+      id: String(game.id), gameId: game.id, name: game.name, icon: game.thumbnail ?? '',
     });
-    if (result.success) {
-      notify('success', 'Añadido a favoritos');
-      loadFavorites();
-    } else {
-      notify('error', result.error ?? 'Error');
-    }
+    if (result.success) { notifications.show({ message: 'Anadido a favoritos', color: 'green' }); loadFavorites(); }
+    else notifications.show({ message: result.error ?? 'Error', color: 'red' });
   };
 
   const removeFavorite = async (gameId: number) => {
     const result = await window.api.games.removeFavorite(selectedAccountId, gameId);
-    if (result.success) {
-      notify('success', 'Eliminado de favoritos');
-      setFavorites(favorites.filter((f) => f.gameId !== gameId));
-    } else {
-      notify('error', result.error ?? 'Error');
-    }
+    if (result.success) { notifications.show({ message: 'Eliminado de favoritos', color: 'green' }); setFavorites(favorites.filter((f) => f.gameId !== gameId)); }
+    else notifications.show({ message: result.error ?? 'Error', color: 'red' });
   };
 
   if (accounts.length === 0) {
-    return (
-      <div className="p-4 h-full flex items-center justify-center">
-        <p style={{ color: 'var(--text-tertiary)' }}>Agrega una cuenta primero.</p>
-      </div>
-    );
+    return (<Stack align="center" justify="center" h="100%"><Text c="dimmed">Agrega una cuenta primero.</Text></Stack>);
   }
 
   return (
-    <div className="p-4 h-full overflow-auto">
-      <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Juegos</h2>
+    <Stack gap="md" p="md" h="100%">
+      <Text size="lg" fw={600}>Juegos</Text>
 
-      {/* Account selector */}
-      <div className="flex gap-2 mb-3">
-        <select
-          value={selectedAccountId}
-          onChange={(e) => setSelectedAccountId(e.target.value)}
-          className="flex-1 px-3 py-2 rounded text-sm border"
-          style={{ background: 'var(--bg-card)', color: 'var(--text-primary)', borderColor: 'var(--border)' }}
-        >
-          <option value="">Seleccionar cuenta...</option>
-          {accounts.map((acc) => (
-            <option key={acc.id} value={acc.id}>{acc.username}</option>
-          ))}
-        </select>
-      </div>
+      <Select
+        placeholder="Seleccionar cuenta..."
+        value={selectedAccountId}
+        onChange={(val) => setSelectedAccountId(val ?? '')}
+        data={accounts.map((acc) => ({ value: acc.id, label: acc.username }))}
+        size="sm"
+        searchable
+      />
 
-      {/* Search bar */}
-      <div className="flex gap-2 mb-4">
-        <input
+      <Group gap="sm">
+        <TextInput
           placeholder="Buscar juego..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && search()}
-          className="flex-1 px-3 py-2 rounded text-sm border"
-          style={{ background: 'var(--bg-card)', color: 'var(--text-primary)', borderColor: 'var(--border)' }}
+          onKeyDown={(e) => { if (e.key === 'Enter') search(); }}
+          leftSection={<Search size={14} />}
+          size="sm"
+          style={{ flex: 1 }}
         />
-        <button
-          onClick={search}
-          className="px-4 py-2 rounded text-sm"
-          style={{ background: 'var(--primary)', color: '#fff', border: 'none', cursor: 'pointer' }}
-        >
-          Buscar
-        </button>
-      </div>
+        <Button variant="filled" color="primary" size="sm" onClick={search}>Buscar</Button>
+      </Group>
 
-      {loading && <p style={{ color: 'var(--text-tertiary)' }}>Buscando...</p>}
+      <ScrollArea style={{ flex: 1 }}>
+        {loading && (<Stack gap="sm"><Skeleton height={80} radius="md" /><Skeleton height={80} radius="md" /><Skeleton height={80} radius="md" /></Stack>)}
 
-      {/* Favorites section */}
-      {selectedAccountId && favorites.length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Favoritos</h3>
-          <div className="flex flex-wrap gap-2">
-            {favorites.map((f) => (
-              <div
-                key={f.id}
-                className="flex items-center gap-2 px-2 py-1 rounded-lg border text-xs"
-                style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
-              >
-                <span style={{ color: 'var(--text-primary)' }}>{f.name}</span>
-                <button
-                  onClick={() => removeFavorite(f.gameId)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 14 }}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+        {selectedAccountId && favorites.length > 0 && (
+          <Stack gap="xs" mb="md">
+            <Text size="sm" fw={500} c="dimmed">Favoritos</Text>
+            <Group gap="xs" wrap="wrap">
+              {favorites.map((f) => (
+                <Badge key={f.id} variant="light" color="yellow" rightSection={
+                  <button onClick={() => removeFavorite(f.gameId)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'inherit' }}>x</button>
+                }>{f.name}</Badge>
+              ))}
+            </Group>
+          </Stack>
+        )}
 
-      {/* Search results */}
-      {results.length > 0 && (
-        <div>
-          <h3 className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Resultados</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {results.length > 0 && (
+          <Stack gap="xs">
+            <Text size="sm" fw={500} c="dimmed">Resultados</Text>
             {results.map((g) => (
-              <div
-                key={g.id}
-                className="p-3 rounded-lg border"
-                style={{ background: 'var(--bg-card)', borderColor: 'var(--border)' }}
-              >
-                <div className="font-medium text-sm mb-1" style={{ color: 'var(--text-primary)' }}>{g.name}</div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>ID: {g.id}</span>
-                  <button
-                    onClick={() => addFavorite(g)}
-                    className="text-xs px-2 py-1 rounded transition-colors"
-                    style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: 'none', cursor: 'pointer' }}
-                  >
-                    + Favorito
-                  </button>
-                </div>
-              </div>
+              <Card key={g.id} withBorder padding="sm" radius="md">
+                <Group justify="space-between" align="center">
+                  <Stack gap={2}>
+                    <Text size="sm" fw={500}>{g.name}</Text>
+                    <Text size="xs" c="dimmed">ID: {g.id}</Text>
+                  </Stack>
+                  <ActionIcon variant="subtle" color="gray" onClick={() => addFavorite(g)}>
+                    <Star size={16} />
+                  </ActionIcon>
+                </Group>
+              </Card>
             ))}
-          </div>
-        </div>
-      )}
+          </Stack>
+        )}
 
-      {!loading && selectedAccountId && !query && results.length === 0 && favorites.length === 0 && (
-        <p style={{ color: 'var(--text-tertiary)' }}>Busca un juego por nombre para empezar.</p>
-      )}
-    </div>
+        {!loading && selectedAccountId && !query && results.length === 0 && favorites.length === 0 && (
+          <Text c="dimmed" ta="center" pt="xl">Busca un juego por nombre para empezar.</Text>
+        )}
+      </ScrollArea>
+    </Stack>
   );
 }

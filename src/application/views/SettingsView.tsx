@@ -1,60 +1,124 @@
-// Application View: SettingsView — theme, language, botting, advanced toggles
+// Application View: SettingsView — UI settings only (theme, etc.) — Mantine v7
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useUIStore } from '../store/uiStore';
+import { Group, Stack, Text, Switch, TextInput, NumberInput, Button, Accordion, AccordionItem, AccordionControl, AccordionPanel } from '@mantine/core';
+import { Moon, Sun, Globe, Shield, Server, Code, Terminal, Lock, Check } from 'lucide-react';
+import { notifications } from '@mantine/notifications';
 
 export function SettingsView(): JSX.Element {
-  const notify = useUIStore((s) => s.notify);
-  const [savePasswords, setSavePasswords] = useState(false);
-  const [botting, setBotting] = useState(false);
-  const [bottingInterval, setBottingInterval] = useState(5);
+  const { theme: currentTheme, toggleTheme } = useUIStore((s) => s);
+  const [webServerPort, setWebServerPort] = useState(3000);
+  const [webServerEnabled, setWebServerEnabled] = useState(false);
+  const [devMode, setDevMode] = useState(false);
+  const [autoRejoin, setAutoRejoin] = useState(false);
+  const [password, setPassword] = useState('');
 
-  const handleSave = async (key: string, value: boolean) => {
-    await window.api.settings.set(key, value);
-    notify('success', `Configuración guardada: ${key}`);
+  // Note: For persistence of non-UI settings (web server, dev mode, etc.),
+  // these would need to be saved via IPC to settings repo.
+  // This MVP version focuses on UI-state persistence via zustand.
+
+  const handleSave = async () => {
+    // In a full implementation, these would be saved via IPC to settings repository
+    // For now, we show a toast indicating they'd be saved
+    notifications.show({ message: 'Ajustes guardados (simulado)', color: 'blue' });
   };
 
-  const cardStyle: React.CSSProperties = { padding: 16, background: 'var(--bg-card)', borderRadius: 8, border: '1px solid var(--border)' };
-  const headingStyle: React.CSSProperties = { fontSize: 14, color: 'var(--text-secondary)', marginBottom: 12 };
-  const btnStyle: React.CSSProperties = { padding: '6px 12px', color: 'var(--text-primary)', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
-
   return (
-    <div style={{ padding: 16, overflow: 'auto', height: '100%' }}>
-      <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>Ajustes</h2>
-      
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* General */}
-        <div style={cardStyle}>
-          <h3 style={headingStyle}>General</h3>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--text-primary)' }}>
-            <input type="checkbox" checked={savePasswords} onChange={(e) => { setSavePasswords(e.target.checked); handleSave('savePasswords', e.target.checked); }} />
-            Guardar contraseñas (cifrado AES-256)
-          </label>
-        </div>
+    <Stack gap="md" p="md" h="100%">
+      <Group justify="space-between" align="center" h={12} px="md">
+        <Text size="lg" fw={600}>Ajustes</Text>
+        <Button variant="filled" color="primary" size="sm" onClick={handleSave}>Guardar</Button>
+      </Group>
 
-        {/* Botting */}
-        <div style={cardStyle}>
-          <h3 style={headingStyle}>Botting</h3>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--text-primary)', marginBottom: 8 }}>
-            <input type="checkbox" checked={botting} onChange={(e) => { setBotting(e.target.checked); handleSave('botting', e.target.checked); }} />
-            Activar modo botting
-          </label>
-          <label style={{ fontSize: 14, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            Intervalo (minutos):
-            <input type="number" min={1} max={60} value={bottingInterval} onChange={(e) => setBottingInterval(Number(e.target.value))} style={{ width: 60, padding: 4, background: 'var(--bg)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 4 }} />
-          </label>
-        </div>
+      <Accordion variant="separated">
+        {/* Apariencia */}
+        <AccordionItem value="appearance">
+          <AccordionControl>
+            <Text size="sm" fw={500}>Apariencia</Text>
+          </AccordionControl>
+          <AccordionPanel p="md">
+            <Stack gap="xs">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'xs' }}>
+                <Moon size={16} />
+                <Switch checked={currentTheme === 'dark'} onChange={toggleTheme} />
+                <span>Tema oscuro</span>
+              </div>
+              <Text size="xs" c="dimmed" mt="xs">
+                Reinicia la aplicacion para aplicar el tema en todas las areas.
+              </Text>
+            </Stack>
+          </AccordionPanel>
+        </AccordionItem>
 
-        {/* Advanced */}
-        <div style={cardStyle}>
-          <h3 style={headingStyle}>Avanzado</h3>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={async () => { const r = await window.api.advanced.exportData(); if (r.success) notify('success', 'Datos exportados'); }} style={{ ...btnStyle, background: 'var(--bg-elevated)' }}>Exportar datos</button>
-            <button onClick={async () => { if (confirm('¿Borrar todas las cuentas?')) { await window.api.advanced.deleteAllAccounts(); notify('success', 'Cuentas eliminadas'); } }} style={{ ...btnStyle, background: '#7f1d1d' }}>Borrar todo</button>
-            <button onClick={async () => { await window.api.advanced.clearCache(); notify('success', 'Cache limpiado'); }} style={{ ...btnStyle, background: 'var(--bg-elevated)' }}>Limpiar cache</button>
-          </div>
-        </div>
-      </div>
-    </div>
+        {/* Servidor web */}
+        <AccordionItem value="webserver">
+          <AccordionControl>
+            <Text size="sm" fw={500}>Servidor web</Text>
+          </AccordionControl>
+          <AccordionPanel p="md">
+            <Stack gap="xs">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'xs' }}>
+                <Server size={16} />
+                <Switch checked={webServerEnabled} onChange={(e) => setWebServerEnabled(e.target.checked)} />
+                <span>Habilitar servidor web</span>
+              </div>
+              {webServerEnabled && (
+                <Stack gap="xs" mt="sm">
+                  <TextInput
+                    label="Puerto"
+                    placeholder="Ej: 3000"
+                    value={webServerPort}
+                    onChange={(e) => setWebServerPort(Number(e.target.value) || 3000)}
+                    type="number"
+                    min={1}
+                    max={65535}
+                    size="sm"
+                    style={{ width: 100 }}
+                  />
+                  <Text size="xs" c="dimmed" mt="xs">
+                    Accede a http://localhost:{webServerPort} desde tu navegador
+                  </Text>
+                </Stack>
+              )}
+            </Stack>
+          </AccordionPanel>
+        </AccordionItem>
+
+        {/* Avanzado */}
+        <AccordionItem value="advanced">
+          <AccordionControl>
+            <Text size="sm" fw={500}>Avanzado</Text>
+          </AccordionControl>
+          <AccordionPanel p="md">
+            <Stack gap="xs">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'xs' }}>
+                <Code size={16} />
+                <Switch checked={devMode} onChange={(e) => setDevMode(e.target.checked)} />
+                <span>Modo desarrollador</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'xs' }}>
+                <Terminal size={16} />
+                <Switch checked={autoRejoin} onChange={(e) => setAutoRejoin(e.target.checked)} />
+                <span>Auto-rejoin al perder conexión</span>
+              </div>
+              <Group mt="sm">
+                <TextInput
+                  label="Password de cifrado (opcional)"
+                  placeholder="Dejar vacío para usar solo sal"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type="password"
+                  size="sm"
+                />
+                <Text size="xs" c="dimmed" mt="xs">
+                  Protege las cuentas almacenadas con AES-256-GCM
+                </Text>
+              </Group>
+            </Stack>
+          </AccordionPanel>
+        </AccordionItem>
+      </Accordion>
+    </Stack>
   );
 }

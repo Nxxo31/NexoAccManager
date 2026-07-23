@@ -8,23 +8,23 @@ import { useAccounts } from './hooks/useAccounts';
 import { Sidebar } from './layout/Sidebar';
 import { TopBar } from './layout/TopBar';
 import { ContentArea, type ViewContext } from './layout/ContentArea';
-import { NotificationBar } from './components/NotificationBar';
 import { AddAccountModal } from './components/AddAccountModal';
+import { useMantineColorScheme, useMantineTheme } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import './i18n';
 
-type Theme = 'dark' | 'light';
-
 export function App(): JSX.Element {
-  const activeView = useUIStore((s) => s.activeView);
-  const accounts = useAccountStore((s) => s.accounts);
+  const activeView = useUIStore((state) => state.activeView);
+  const accounts = useAccountStore((state) => state.accounts);
   const { loadAccounts, loginBrowser } = useAccounts();
-  const [theme, setTheme] = useState<Theme>('dark');
+  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+  const theme = useMantineTheme();
+  const isDark = colorScheme === 'dark' || (colorScheme === 'auto' && useMediaQuery('(prefers-color-scheme: dark)'));
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
 
-  useEffect(() => {
-    document.documentElement.className = theme;
-  }, [theme]);
+  const bgColor = isDark ? theme.colors.black[0] : theme.colors.white[0];
+  const textColor = isDark ? theme.colors.white[0] : theme.colors.black[0];
 
   useEffect(() => { loadAccounts(); }, [loadAccounts]);
 
@@ -32,17 +32,14 @@ export function App(): JSX.Element {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden font-sans"
-      style={{ background: 'var(--bg)', color: 'var(--text-primary)' }}>
+      style={{ background: bgColor, color: textColor }}>
       <Sidebar accountCount={accounts.length} />
       <div className="flex flex-col flex-1 min-w-0">
         <TopBar
-          theme={theme}
-          onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           onAddAccount={() => setShowAddModal(true)}
           searchQuery={searchQuery}
           onSearch={setSearchQuery}
         />
-        <NotificationBar />
         <AnimatePresence mode="wait">
           <motion.div
             key={activeView}

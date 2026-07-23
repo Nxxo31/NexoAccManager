@@ -1,15 +1,12 @@
-// Application View: AccountsView — hub with grid + JoinBar + detail
+// Application View: AccountsView — account grid + join bar + detail panel
 
-import { useState, useMemo, useCallback } from 'react';
-import { Reorder } from 'framer-motion';
-import { Globe, Shuffle, Skull, Plus, Users } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Shuffle, Plus, Users, LogOut } from 'lucide-react';
 import { useAccountStore } from '../store/accountStore';
-import { useUIStore } from '../store/uiStore';
 import { useAccounts } from '../hooks/useAccounts';
-import { AccountCard } from '../components/accounts/AccountCard';
 import { AccountDetailPanel } from '../components/AccountDetailPanel';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
+import { Group, Stack, Text, Button, TextInput, ScrollArea, Skeleton, Tooltip, Checkbox } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import type { Account } from '../../domain/entities/Account';
 
 interface AccountsViewProps {
@@ -21,8 +18,6 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
   const selectedId = useAccountStore((s) => s.selectedId);
   const select = useAccountStore((s) => s.select);
   const update = useAccountStore((s) => s.update);
-  const setAccounts = useAccountStore((s) => s.setAccounts);
-  const notify = useUIStore((s) => s.notify);
   const { removeAccount, loginBrowser } = useAccounts();
   const [placeId, setPlaceId] = useState('');
   const [jobId, setJobId] = useState('');
@@ -36,24 +31,9 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
     return accounts.filter((a) =>
       a.username.toLowerCase().includes(q) ||
       a.group.toLowerCase().includes(q) ||
-      (a.description ?? '').toLowerCase().includes(q),
+      (a.description ?? '').toLowerCase().includes(q)
     );
   }, [accounts, searchQuery]);
-
-  const groups = useMemo(() => {
-    const map = new Map<string, Account[]>();
-    for (const acc of filtered) {
-      const g = acc.group || 'Default';
-      if (!map.has(g)) map.set(g, []);
-      map.get(g)!.push(acc);
-    }
-    return Array.from(map.entries());
-  }, [filtered]);
-
-  const agingDays = useCallback((acc: Account) => {
-    const last = new Date(acc.lastUsed);
-    return Math.floor((Date.now() - last.getTime()) / 86400000);
-  }, []);
 
   const handleLaunch = async () => {
     if (!selected) return;
@@ -63,101 +43,145 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
       setJobId(finalJobId);
     }
     const result = await window.api.roblox.launch(selected.id, placeId || undefined, finalJobId || undefined);
-    if (result.success) notify('success', `${selected.username} lanzado`);
-    else notify('error', result.error);
+    if (result.success) notifications.show({ message: `${selected.username} lanzado`, color: 'green' });
+    else notifications.show({ message: result.error ?? 'Error', color: 'red' });
   };
 
   const handleKillAll = async () => {
     const result = await window.api.roblox.killAll();
-    if (result.success) notify('success', 'Procesos cerrados');
-    else notify('error', result.error);
-  };
-
-  const handleToggleFavorite = async (acc: Account) => {
-    const newVal = !acc.isFavorite;
-    update(acc.id, { isFavorite: newVal });
-    await window.api.account.setFavorite(acc.id, newVal);
+    if (result.success) notifications.show({ message: 'Procesos cerrados', color: 'green' });
+    else notifications.show({ message: result.error ?? 'Error', color: 'red' });
   };
 
   const handleRefreshCookie = async () => {
     if (!selected) return;
     const result = await window.api.cookie.refresh(selected.id);
-    if (result.success) notify('success', 'Cookie actualizada');
-    else notify('error', result.error);
-  };
-
-  const handleLogoutAll = async () => {
-    if (!selected) return;
-    notify('info', 'Cerrando sesiones remotas...');
-    notify('warning', 'Función no disponible desde el renderer directamente');
+    if (result.success) notifications.show({ message: 'Cookie actualizada', color: 'green' });
+    else notifications.show({ message: result.error ?? 'Error', color: 'red' });
   };
 
   if (accounts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4">
-        <Users size={48} style={{ opacity: 0.2 }} />
-        <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>No hay cuentas agregadas</p>
-        <Button variant="primary" onClick={() => loginBrowser()}><Plus size={14} /> Iniciar sesión</Button>
-      </div>
+      <Stack align="center" justify="center" h="100%" gap="md">
+        <Users size={48} style={{ opacity: 0.3 }} />
+        <Text size="sm" c="dimmed">No hay cuentas agregadas</Text>
+        <Button variant="filled" color="primary" leftSection={<Plus size={16} />} onClick={() => loginBrowser()}>
+          Iniciar sesion
+        </Button>
+      </Stack>
     );
   }
 
   return (
-    <div className="relative flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        {groups.map(([groupName, accs]) => (
-          <div key={groupName}>
-            <div className="flex items-center gap-2 mb-2 px-1">
-              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{groupName}</span>
-              <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>({accs.length})</span>
-            </div>
-            <Reorder.Group
-              axis="y"
-              values={accs}
-              onReorder={(newOrder: Account[]) => {
-                const others = accounts.filter((a) => a.group !== groupName);
-                setAccounts([...newOrder, ...others]);
-              }}
-              className="space-y-2"
-            >
-              {accs.map((acc) => (
-                <Reorder.Item key={acc.id} value={acc}>
-                  <AccountCard
-                    account={acc}
-                    selected={acc.id === selectedId}
-                    onClick={() => select(acc.id)}
-                    onRemove={() => removeAccount(acc.id)}
-                    onToggleFavorite={() => handleToggleFavorite(acc)}
-                    agingDays={agingDays(acc)}
-                  />
-                </Reorder.Item>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Top action bar */}
+      <Group h={48} px="md" gap="sm" align="center" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
+        <Button variant="light" size="sm" leftSection={<Plus size={14} />} onClick={() => loginBrowser()}>Agregar</Button>
+        <Tooltip label="Mezclar Job IDs">
+          <Checkbox checked={shuffle} onChange={(e) => setShuffle(e.currentTarget.checked)} label="Shuffle" size="sm" />
+        </Tooltip>
+        <div style={{ flex: 1 }} />
+        <Button variant="light" size="sm" color="red" leftSection={<LogOut size={14} />} onClick={handleKillAll}>Cerrar todos</Button>
+      </Group>
+
+      {/* Content area */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        {/* Account grid */}
+        <ScrollArea style={{ flex: 1 }} p="md">
+          {filtered.length === 0 ? (
+            <Stack align="center" justify="center" h={200} gap="sm">
+              <Text size="sm" c="dimmed">No se encontraron cuentas</Text>
+            </Stack>
+          ) : (
+            <Stack gap="sm">
+              {filtered.map((account) => (
+                <AccountCard
+                  key={account.id}
+                  account={account}
+                  selected={account.id === selectedId}
+                  onSelect={() => select(account.id)}
+                  onRemove={() => removeAccount(account.id)}
+                  onToggleFavorite={() => {
+                    update(account.id, { isFavorite: !account.isFavorite });
+                    window.api.account.setFavorite(account.id, !account.isFavorite);
+                  }}
+                />
               ))}
-            </Reorder.Group>
-          </div>
-        ))}
-      </div>
+            </Stack>
+          )}
+        </ScrollArea>
 
-      {/* JoinBar */}
-      <div className="flex items-center gap-2 p-3 border-t"
-        style={{ borderColor: 'var(--border)', background: 'var(--bg)' }}>
-        <Globe size={14} className="flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-        <Input value={placeId} onChange={(e) => setPlaceId(e.target.value)} placeholder="Place ID" className="h-8 w-32 text-xs" />
-        <Input value={jobId} onChange={(e) => setJobId(e.target.value)} placeholder="Job ID (opcional)" className="h-8 flex-1 text-xs" />
-        <Button variant="ghost" size="sm" onClick={() => setShuffle(!shuffle)} aria-pressed={shuffle}>
-          <Shuffle size={14} className={shuffle ? 'text-blue-500' : ''} />
-        </Button>
-        <Button variant="primary" size="sm" onClick={handleLaunch} disabled={!selected}>Jugar</Button>
-        <Button variant="danger" size="sm" onClick={handleKillAll}><Skull size={14} /></Button>
+        {/* Join bar + detail */}
+        {selected && (
+          <>
+            <Group p="md" gap="sm" align="center" style={{ borderTop: '1px solid var(--mantine-color-gray-3)' }}>
+              <TextInput placeholder="Place ID" value={placeId} onChange={(e) => setPlaceId(e.target.value)} size="sm" style={{ width: 120 }} />
+              <TextInput placeholder="Job ID (opcional)" value={jobId} onChange={(e) => setJobId(e.target.value)} size="sm" style={{ width: 120 }} />
+              <Button variant="filled" color="primary" size="sm" onClick={handleLaunch} disabled={!placeId.trim()}>
+                Unirse
+              </Button>
+            </Group>
+            <AccountDetailPanel
+              account={selected}
+              onClose={() => select(null)}
+              onLaunch={handleLaunch}
+              onRefreshCookie={handleRefreshCookie}
+              onLogoutAll={() => notifications.show({ message: 'Funcion no disponible', color: 'orange' })}
+            />
+          </>
+        )}
       </div>
-
-      {/* Detail Panel */}
-      <AccountDetailPanel
-        account={selected}
-        onClose={() => select(null)}
-        onLaunch={handleLaunch}
-        onRefreshCookie={handleRefreshCookie}
-        onLogoutAll={handleLogoutAll}
-      />
     </div>
+  );
+}
+
+// Inline AccountCard — minimalist with Mantine
+import { Card, Badge, ActionIcon, Avatar } from '@mantine/core';
+import { Trash2, Star, Play } from 'lucide-react';
+
+interface AccountCardProps {
+  account: Account;
+  selected: boolean;
+  onSelect: () => void;
+  onRemove: () => Promise<void>;
+  onToggleFavorite: () => void;
+}
+
+function AccountCard({ account, selected, onSelect, onRemove, onToggleFavorite }: AccountCardProps): JSX.Element {
+  return (
+    <Card
+      withBorder
+      radius="md"
+      padding="sm"
+      style={{
+        cursor: 'pointer',
+        borderColor: selected ? 'var(--mantine-color-primary-5)' : undefined,
+        borderWidth: selected ? 2 : 1,
+      }}
+      onClick={onSelect}
+    >
+      <Group justify="space-between" align="center">
+        <Group gap="sm" align="center">
+          <Avatar size="sm" radius="xl" style={{ backgroundColor: 'var(--mantine-color-gray-4)' }}>
+            {account.username.charAt(0).toUpperCase()}
+          </Avatar>
+          <Stack gap={2}>
+            <Text size="sm" fw={500}>{account.username}</Text>
+            <Text size="xs" c="dimmed">{account.group}</Text>
+          </Stack>
+        </Group>
+        <Group gap="xs">
+          <Badge size="xs" variant="light" color={account.isFavorite ? 'yellow' : 'gray'}>
+            {account.cookieExpiresAt ? 'Valida' : 'Expirada'}
+          </Badge>
+          <ActionIcon variant="subtle" color={account.isFavorite ? 'yellow' : 'gray'} onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}>
+            <Star size={14} fill={account.isFavorite ? 'currentColor' : 'none'} />
+          </ActionIcon>
+          <ActionIcon variant="subtle" color="gray" onClick={(e) => { e.stopPropagation(); onRemove(); }}>
+            <Trash2 size={14} />
+          </ActionIcon>
+        </Group>
+      </Group>
+    </Card>
   );
 }
