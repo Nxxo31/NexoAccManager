@@ -1,14 +1,7 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import path from 'path';
 import electron from 'vite-plugin-electron';
 import react from '@vitejs/plugin-react';
-
-// Single Vite config for both Electron dev and browser-only preview.
-// Set BROWSER_ONLY=1 to skip the Electron plugin (renderer-only mode for
-// WSL without display, CI, or browser-based E2E testing).
-// Usage:
-//   npm run dev              → Electron app (requires display)
-//   BROWSER_ONLY=1 npm run dev  → browser-only renderer at localhost:5173
 
 const browserOnly = process.env.BROWSER_ONLY === '1';
 
@@ -17,11 +10,9 @@ const electronPlugin = browserOnly
   : [
       electron([
         {
-          entry: path.resolve(__dirname, 'src/main/main.ts'),
+          entry: path.resolve(__dirname, 'src/main.ts'),
           onstart: (options) => {
-            if (options.startup) {
-              options.startup();
-            }
+            if (options.startup) options.startup();
           },
           vite: {
             build: {
@@ -34,11 +25,9 @@ const electronPlugin = browserOnly
           },
         },
         {
-          entry: path.resolve(__dirname, 'src/preload/preload.ts'),
+          entry: path.resolve(__dirname, 'src/preload/index.ts'),
           onstart: (options) => {
-            if (options.reload) {
-              options.reload();
-            }
+            if (options.reload) options.reload();
           },
           vite: {
             build: {
@@ -52,10 +41,7 @@ const electronPlugin = browserOnly
 
 export default defineConfig({
   plugins: [react(), ...electronPlugin],
-  server: {
-    port: 5173,
-    host: true,
-  },
+  server: { port: 5173, host: true },
   base: './',
   build: {
     outDir: path.resolve(__dirname, 'dist/renderer'),
@@ -63,8 +49,11 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src/renderer'),
-      '@renderer': path.resolve(__dirname, 'src/renderer'),
+      '@': path.resolve(__dirname, 'src'),
+      '@domain': path.resolve(__dirname, 'src/domain'),
+      '@infrastructure': path.resolve(__dirname, 'src/infrastructure'),
+      '@application': path.resolve(__dirname, 'src/application'),
+      '@config': path.resolve(__dirname, 'src/config'),
     },
   },
 });
