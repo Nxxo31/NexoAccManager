@@ -15,10 +15,11 @@ interface TopBarProps {
 
 export function TopBar({ theme, onToggleTheme, onAddAccount, searchQuery, onSearch }: TopBarProps): JSX.Element {
   return (
-    <div className="flex items-center h-12 bg-[#0d0d1a] border-b border-[#2a2a4e] px-4 gap-3 flex-shrink-0">
+    <div className="flex items-center h-12 border-b px-4 gap-3 flex-shrink-0"
+      style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
       {/* Search */}
       <div className="relative flex-1 max-w-xs">
-        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#666]" />
+        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-tertiary)' }} />
         <Input value={searchQuery} onChange={(e) => onSearch(e.target.value)} placeholder="Buscar cuentas..." className="pl-8 h-8 text-xs" />
       </div>
       <div className="flex-1" />

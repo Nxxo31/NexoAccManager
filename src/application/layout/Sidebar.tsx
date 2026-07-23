@@ -21,11 +21,13 @@ export function Sidebar({ accountCount }: { accountCount: number }): JSX.Element
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className={cn('flex flex-col bg-[#0d0d1a] border-r border-[#2a2a4e] transition-all duration-150 flex-shrink-0', collapsed ? 'w-16' : 'w-52')}>
+    <div className={cn('flex flex-col border-r transition-all duration-150 flex-shrink-0', collapsed ? 'w-16' : 'w-52')}
+      style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
       {/* Logo */}
-      <div className="flex items-center h-12 border-b border-[#2a2a4e] px-3">
-        {!collapsed && <span className="text-sm font-bold text-[#eee] tracking-tight">NX-Manager</span>}
-        <button onClick={() => setCollapsed(!collapsed)} className={cn('p-1 text-[#666] hover:text-[#eee] transition-colors', collapsed ? 'mx-auto' : 'ml-auto')}>
+      <div className="flex items-center h-12 border-b px-3" style={{ borderColor: 'var(--border)' }}>
+        {!collapsed && <span className="text-sm font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>NX-Manager</span>}
+        <button onClick={() => setCollapsed(!collapsed)} className={cn('p-1 transition-colors', collapsed ? 'mx-auto' : 'ml-auto')}
+          style={{ color: 'var(--text-tertiary)' }}>
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </div>
@@ -35,9 +37,13 @@ export function Sidebar({ accountCount }: { accountCount: number }): JSX.Element
           const active = activeView === key;
           return (
             <button key={key} onClick={() => setView(key)} title={collapsed ? label : undefined}
-              className={cn('flex items-center gap-3 w-full h-10 px-3 transition-colors duration-150 text-sm',
-                active ? 'bg-[#1a1a2e] text-[#eee] border-l-2 border-[#3b82f6]' : 'text-[#aaa] hover:bg-[#1a1a2e]/50 hover:text-[#eee] border-l-2 border-transparent',
-                collapsed && 'justify-center')}>
+              className={cn('flex items-center gap-3 w-full h-10 px-3 transition-colors duration-150 text-sm border-l-2',
+                collapsed && 'justify-center')}
+              style={{
+                background: active ? 'var(--bg-card)' : 'transparent',
+                color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
+                borderColor: active ? 'var(--primary)' : 'transparent',
+              }}>
               <Icon size={18} className="flex-shrink-0" />
               {!collapsed && <span>{label}</span>}
             </button>
@@ -45,11 +51,11 @@ export function Sidebar({ accountCount }: { accountCount: number }): JSX.Element
         })}
       </nav>
       {/* Counter */}
-      <div className="border-t border-[#2a2a4e] px-3 py-2">
+      <div className="border-t px-3 py-2" style={{ borderColor: 'var(--border)' }}>
         {!collapsed ? (
-          <span className="text-xs text-[#666]">{accountCount} / {MAX_ACCOUNTS} cuentas</span>
+          <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{accountCount} / {MAX_ACCOUNTS} cuentas</span>
         ) : (
-          <span className="text-xs text-[#666] text-center block">{accountCount}</span>
+          <span className="text-xs text-center block" style={{ color: 'var(--text-tertiary)' }}>{accountCount}</span>
         )}
       </div>
     </div>

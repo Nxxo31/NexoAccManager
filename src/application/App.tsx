@@ -23,7 +23,6 @@ export function App(): JSX.Element {
   const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
-    // Toggle dark/light class on root
     document.documentElement.className = theme;
   }, [theme]);
 
@@ -32,7 +31,8 @@ export function App(): JSX.Element {
   const context: ViewContext = { searchQuery, accounts };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#0d0d1a] text-[#eee] font-sans">
+    <div className="flex h-screen w-screen overflow-hidden font-sans"
+      style={{ background: 'var(--bg)', color: 'var(--text-primary)' }}>
       <Sidebar accountCount={accounts.length} />
       <div className="flex flex-col flex-1 min-w-0">
         <TopBar

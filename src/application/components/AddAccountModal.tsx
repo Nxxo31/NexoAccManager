@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Globe, Cookie, Upload, Loader2 } from 'lucide-react';
 import { ModalShell } from './ui/ModalShell';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
 import { useUIStore } from '../store/uiStore';
 import { useAccounts } from '../hooks/useAccounts';
 

@@ -1,4 +1,4 @@
-/* NexoAccManager v4.0 — Base CSS */
+/* NexoAccManager v4.0 — Base CSS with dark/light theme support */
 :root {
   --bg: #0d0d1a;
   --bg-card: #1a1a2e;
@@ -15,6 +15,20 @@
   --font-size-xs: 11px;
 }
 
+/* Light theme overrides */
+.light {
+  --bg: #f5f5f5;
+  --bg-card: #ffffff;
+  --bg-surface: #e8e8e8;
+  --bg-elevated: #d0d0d0;
+  --text-primary: #1a1a2e;
+  --text-secondary: #555;
+  --text-tertiary: #999;
+  --border: #d0d0d0;
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -26,5 +40,4 @@ body {
 }
 
 button { font-family: inherit; font-size: inherit; }
-
 input { font-family: inherit; }

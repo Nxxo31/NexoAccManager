@@ -7,8 +7,8 @@ import { AccountRepositoryImpl } from '../database/AccountRepositoryImpl';
 import { SettingsRepositoryImpl } from '../database/SettingsRepositoryImpl';
 import { encrypt, decrypt, hashCookie } from '../database/CryptoService';
 import { getDb } from '../database/DatabaseManager';
-import { loginBrowser, loginUserPass, verifyCookie, importCookies } from '../external/RobloxAuthService';
-import { searchGames, getGameServers, getServerUsers, getGameThumbnail, getServerRegion } from '../external/RobloxGamesService';
+import { loginBrowser, loginUserPass, verifyCookie } from '../external/RobloxAuthService';
+import { searchGames, getGameServers, getServerUsers, getServerRegion } from '../external/RobloxGamesService';
 import { getPresence, getFriends, getFriendRequests, respondFriendRequest, getBlockedUsers, blockUser, unblockUser, followUser, unfollowUser, getRobuxBalance, getRecentGames } from '../external/RobloxPresenceService';
 import { getProfile, updateProfile, get2FAStatus, toggle2FA, getActiveSessions, logoutSession, logoutAllSessions, changePassword, getPrivacySettings, updatePrivacySetting, getNotificationSettings, updateNotificationSetting } from '../external/RobloxSettingsService';
 import { getCookieExpiry, refreshCookie } from '../external/RobloxCookieService';
@@ -22,7 +22,6 @@ import { launchMulti, killInstance, getRunningInstances } from '../external/Mult
 import { solveCaptcha } from '../external/CaptchaService';
 import { start as startLocalApi, stop as stopLocalApi } from '../external/LocalApiService';
 import { getTheme, setTheme, type ThemeId } from '../external/ThemeService';
-
 type IpcResult<T = unknown> = { success: true; data: T } | { success: false; error: string };
 
 function ok<T>(data: T): IpcResult<T> { return { success: true, data }; }
@@ -170,6 +169,15 @@ export function registerHandlers(): void {
   ipcMain.handle('account:profile:update', async (_e, { cookie, updates }: { cookie: string; updates: { displayName?: string; description?: string } }) => {
     try { await updateProfile(cookie, updates); return ok(null); } catch (e) { return err(String(e)); }
   });
+
+  ipcMain.handle('account:control', async (_e, { accountId, command }: { accountId: string; command: string }) => { 
+    try { 
+      // TODO: implement account control (WebSocket or in-game command)
+      // Params accountId and command are intentionally unused for now
+      return ok({ result: 'Account control stub' });
+    } catch (e) { return err(String(e)); } 
+  });
+
 
   // ============ ROBLOX ============
   ipcMain.handle('roblox:launch', async (_e, { accountId, placeId, jobId }: { accountId: string; placeId?: string; jobId?: string }) => {
@@ -373,7 +381,12 @@ export function registerHandlers(): void {
   ipcMain.handle('roblox:outfits', async (_e, { userId, cookie }) => { try { const outfits = await getOutfits(userId, cookie); return ok(outfits); } catch (e) { return errMsg(e); } });
   ipcMain.handle('roblox:universes', async (_e, { gameId, cookie }) => { try { const universes = await getUniverses(gameId, cookie); return ok(universes); } catch (e) { return errMsg(e); } });
   ipcMain.handle('captcha:solve', async (_e, image: string) => { try { const solution = await solveCaptcha(image); return ok(solution); } catch (e) { return errMsg(e); } });
-  ipcMain.handle('advanced:devmode', async (_e, enable: boolean) => { try { /* TODO: save to settings DB */ return ok(enable); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('advanced:devmode', async (_e, enable: boolean) => { 
+    try { 
+      await settingsRepo.set('devmode', enable); 
+      return ok(enable); 
+    } catch (e) { return errMsg(e); } 
+  });
   ipcMain.handle('advanced:local-api:start', async (_e, port: number) => { try { await startLocalApi(port); return ok(null); } catch (e) { return errMsg(e); } });
   ipcMain.handle('advanced:local-api:stop', async () => { try { await stopLocalApi(); return ok(null); } catch (e) { return errMsg(e); } });
   ipcMain.handle('cookie:refresh-real', async (_e, cookie: string) => { try { const refreshed = await refreshCookie(cookie); return ok(refreshed); } catch (e) { return errMsg(e); } });

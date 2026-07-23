@@ -19,21 +19,23 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
     <AnimatePresence>
       {account && (
         <motion.div
-          className="absolute right-0 top-0 bottom-0 w-80 bg-[#0d0d1a] border-l border-[#2a2a4e] flex flex-col z-10"
+          className="absolute right-0 top-0 bottom-0 w-80 border-l flex flex-col z-10"
+          style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}
           initial={{ x: 320, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 320, opacity: 0 }}
           transition={{ duration: 0.15, ease: 'easeInOut' }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-3 h-12 border-b border-[#2a2a4e]">
+          <div className="flex items-center justify-between px-3 h-12 border-b" style={{ borderColor: 'var(--border)' }}>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded bg-[#2a2a4e] flex items-center justify-center text-sm font-bold text-[#aaa]">
+              <div className="w-8 h-8 rounded flex items-center justify-center text-sm font-bold"
+                style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}>
                 {account.username.charAt(0).toUpperCase()}
               </div>
-              <span className="text-sm font-medium text-[#eee]">{account.username}</span>
+              <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{account.username}</span>
             </div>
-            <button onClick={onClose} className="text-[#666] hover:text-[#eee] transition-colors"><X size={16} /></button>
+            <button onClick={onClose} className="transition-colors" style={{ color: 'var(--text-tertiary)' }}><X size={16} /></button>
           </div>
 
           {/* Body */}
@@ -44,12 +46,12 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
                 <Badge variant="info">{account.group}</Badge>
                 {account.isFavorite && <Badge variant="warning">★</Badge>}
               </div>
-              {account.description && <p className="text-xs text-[#aaa]">{account.description}</p>}
+              {account.description && <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{account.description}</p>}
             </div>
 
             {/* Cookie status */}
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs text-[#666]"><Cookie size={14} /> Estado de cookie</div>
+              <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-tertiary)' }}><Cookie size={14} /> Estado de cookie</div>
               <Badge variant={account.cookieExpiresAt ? 'success' : 'error'}>
                 {account.cookieExpiresAt ? 'Válida' : 'Desconocida'}
               </Badge>
@@ -75,8 +77,8 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
             </div>
 
             {/* Security shortcuts */}
-            <div className="space-y-1 pt-2 border-t border-[#2a2a4e]">
-              <div className="flex items-center gap-2 text-xs text-[#666] mb-2"><Shield size={14} /> Seguridad</div>
+            <div className="space-y-1 pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex items-center gap-2 text-xs mb-2" style={{ color: 'var(--text-tertiary)' }}><Shield size={14} /> Seguridad</div>
               <Button variant="ghost" size="sm" className="w-full justify-start"><Users size={12} /> Sesiones activas</Button>
             </div>
           </div>

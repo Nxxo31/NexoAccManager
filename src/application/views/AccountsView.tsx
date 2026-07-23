@@ -10,7 +10,6 @@ import { AccountCard } from '../components/accounts/AccountCard';
 import { AccountDetailPanel } from '../components/AccountDetailPanel';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { MAX_ACCOUNTS } from '../../config/constants';
 import type { Account } from '../../domain/entities/Account';
 
 interface AccountsViewProps {
@@ -58,7 +57,12 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
 
   const handleLaunch = async () => {
     if (!selected) return;
-    const result = await window.api.roblox.launch(selected.id, placeId || undefined, jobId || undefined);
+    let finalJobId = jobId;
+    if (shuffle && placeId) {
+      finalJobId = Math.random().toString(36).substring(2, 18);
+      setJobId(finalJobId);
+    }
+    const result = await window.api.roblox.launch(selected.id, placeId || undefined, finalJobId || undefined);
     if (result.success) notify('success', `${selected.username} lanzado`);
     else notify('error', result.error);
   };
@@ -67,14 +71,6 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
     const result = await window.api.roblox.killAll();
     if (result.success) notify('success', 'Procesos cerrados');
     else notify('error', result.error);
-  };
-
-  const handleShuffle = async () => {
-    if (!placeId || !selected) return;
-    // shuffleJobId not available in preload API — generate random job ID
-    const randomJobId = Math.random().toString(36).substring(2, 18);
-    setJobId(randomJobId);
-    notify('info', 'Job ID aleatorio generado');
   };
 
   const handleToggleFavorite = async (acc: Account) => {
@@ -93,16 +89,14 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
   const handleLogoutAll = async () => {
     if (!selected) return;
     notify('info', 'Cerrando sesiones remotas...');
-    // Note: logoutAllSessions needs a cookie string, but we don't expose raw cookie in renderer
-    // This should go through a backend handler that decrypts the cookie server-side
     notify('warning', 'Función no disponible desde el renderer directamente');
   };
 
   if (accounts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
-        <Users className="text-5xl opacity-20" size={48} />
-        <p className="text-sm text-[#666]">No hay cuentas agregadas</p>
+        <Users size={48} style={{ opacity: 0.2 }} />
+        <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>No hay cuentas agregadas</p>
         <Button variant="primary" onClick={() => loginBrowser()}><Plus size={14} /> Iniciar sesión</Button>
       </div>
     );
@@ -114,8 +108,8 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
         {groups.map(([groupName, accs]) => (
           <div key={groupName}>
             <div className="flex items-center gap-2 mb-2 px-1">
-              <span className="text-xs font-medium text-[#666] uppercase tracking-wide">{groupName}</span>
-              <span className="text-xs text-[#444]">({accs.length})</span>
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--text-tertiary)' }}>{groupName}</span>
+              <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>({accs.length})</span>
             </div>
             <Reorder.Group
               axis="y"
@@ -144,12 +138,13 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
       </div>
 
       {/* JoinBar */}
-      <div className="flex items-center gap-2 p-3 border-t border-[#2a2a4e] bg-[#0d0d1a]">
-        <Globe size={14} className="text-[#666] flex-shrink-0" />
+      <div className="flex items-center gap-2 p-3 border-t"
+        style={{ borderColor: 'var(--border)', background: 'var(--bg)' }}>
+        <Globe size={14} className="flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
         <Input value={placeId} onChange={(e) => setPlaceId(e.target.value)} placeholder="Place ID" className="h-8 w-32 text-xs" />
         <Input value={jobId} onChange={(e) => setJobId(e.target.value)} placeholder="Job ID (opcional)" className="h-8 flex-1 text-xs" />
         <Button variant="ghost" size="sm" onClick={() => setShuffle(!shuffle)} aria-pressed={shuffle}>
-          <Shuffle size={14} className={shuffle ? 'text-[#3b82f6]' : ''} />
+          <Shuffle size={14} className={shuffle ? 'text-blue-500' : ''} />
         </Button>
         <Button variant="primary" size="sm" onClick={handleLaunch} disabled={!selected}>Jugar</Button>
         <Button variant="danger" size="sm" onClick={handleKillAll}><Skull size={14} /></Button>

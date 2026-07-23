@@ -22,15 +22,18 @@ export function ServersView(): JSX.Element {
     setLoading(false);
   };
 
+  const inputStyle: React.CSSProperties = { flex: 1, padding: 8, background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 4, fontSize: 13 };
+  const btnStyle: React.CSSProperties = { padding: '8px 16px', background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 };
+
   return (
     <div style={{ padding: 16, overflow: 'auto', height: '100%' }}>
-      <h2 style={{ fontSize: 18, fontWeight: 600, color: '#eee', marginBottom: 16 }}>Servidores</h2>
+      <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>Servidores</h2>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        <input placeholder="Place ID" value={placeId} onChange={(e) => setPlaceId(e.target.value)} style={{ flex: 1, padding: 8, background: '#1a1a2e', color: '#eee', border: '1px solid #333', borderRadius: 4, fontSize: 13 }} />
-        <button onClick={searchServers} style={{ padding: '8px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}>Buscar</button>
+        <input placeholder="Place ID" value={placeId} onChange={(e) => setPlaceId(e.target.value)} style={inputStyle} />
+        <button onClick={searchServers} style={btnStyle}>Buscar</button>
       </div>
-      {loading && <p style={{ color: '#666' }}>Cargando...</p>}
-      {!loading && servers.length === 0 && <p style={{ color: '#666' }}>Ingresa un Place ID para buscar servidores</p>}
+      {loading && <p style={{ color: 'var(--text-tertiary)' }}>Cargando...</p>}
+      {!loading && servers.length === 0 && <p style={{ color: 'var(--text-tertiary)' }}>Ingresa un Place ID para buscar servidores</p>}
     </div>
   );
 }

@@ -36,67 +36,46 @@ const duplicatePreventionMap = new Map<string, number>();
 let duplicatePreventionEnabled = false;
 
 /**
- * Check if Roblox process is running
- */
-function isRobloxRunning(): boolean {
-  try {
-    if (process.platform === 'win32') {
-      const output = execSync('tasklist /FI "IMAGENAME eq RobloxPlayerBeta.exe"', { encoding: 'utf8' });
-      return output.includes('RobloxPlayerBeta.exe');
-    } else {
-      // Linux/macOS
-      const output = execSync('pgrep -f RobloxPlayer', { encoding: 'utf8' });
-      return output.trim() !== '';
-    }
-  } catch (err) {
-    // execSync throws if process not found
-    return false;
-  }
-}
-
-/**
  * Set auto-relaunch for an account
  */
 export async function setAutoRelaunch(accountId: string, enable: boolean): Promise<void> {
   if (!enable) {
+    if (autoRelaunchIntervals.has(accountId)) {
+      clearInterval(autoRelaunchIntervals.get(accountId)!);
+      autoRelaunchIntervals.delete(accountId);
+    }
+    return;
+  }
+
   if (autoRelaunchIntervals.has(accountId)) {
-    clearInterval(autoRelaunchIntervals.get(accountId)!);
-    autoRelaunchIntervals.delete(accountId);
-  }
-  return;
-}
-
-if (autoRelaunchIntervals.has(accountId)) {
-  return; // already running
-}
-
-const interval = setInterval(async () => {
-  let isRunning = false;
-  try {
-    if (process.platform === 'win32') {
-      const output = execSync('tasklist /FI "IMAGENAME eq RobloxPlayerBeta.exe"', { encoding: 'utf8' });
-      isRunning = output.includes('RobloxPlayerBeta.exe');
-    } else {
-      // Linux/macOS
-      const output = execSync('pgrep -f RobloxPlayerBeta', { encoding: 'utf8' });
-      isRunning = output.trim() !== '';
-    }
-  } catch (err) {
-    // execSync throws if process not found
-    isRunning = false;
+    return; // already running
   }
 
-  if (!isRunning) {
-    console.warn(`Auto-relaunch: Roblox process not found for account ${accountId}. Attempting to launch with missing parameters.`);
+  const interval = setInterval(async () => {
+    let isRunning = false;
     try {
-      await launchRobloxDirect('', '', ''); // placeId, jobId, cookie
-    } catch (e) {
-      console.error(`Failed to relaunch Roblox for account ${accountId}:`, e);
+      if (process.platform === 'win32') {
+        const output = execSync('tasklist /FI "IMAGENAME eq RobloxPlayerBeta.exe"', { encoding: 'utf8' });
+        isRunning = output.includes('RobloxPlayerBeta.exe');
+      } else {
+        const output = execSync('pgrep -f RobloxPlayerBeta', { encoding: 'utf8' });
+        isRunning = output.trim() !== '';
+      }
+    } catch {
+      isRunning = false;
     }
-  }
-}, 30000); // 30 seconds
 
-autoRelaunchIntervals.set(accountId, interval);
+    if (!isRunning) {
+      console.warn(`Auto-relaunch: Roblox process not found for account ${accountId}`);
+      try {
+        await launchRobloxDirect('', '', '');
+      } catch (e) {
+        console.error(`Failed to relaunch Roblox for account ${accountId}:`, e);
+      }
+    }
+  }, 30000);
+
+  autoRelaunchIntervals.set(accountId, interval);
 }
 
 /**
