@@ -92,6 +92,16 @@ declare global {
       shell: {
         openExternal: (url: string) => Promise<IpcResult>;
       };
+      byAccount: {
+        friendsList: (accountId: string) => Promise<IpcResult>;
+        friendsRequests: (accountId: string) => Promise<IpcResult>;
+        friendsRespond: (requestId: number, accept: boolean, accountId: string) => Promise<IpcResult>;
+        follow: (userId: number, accountId: string) => Promise<IpcResult>;
+        unfollow: (userId: number, accountId: string) => Promise<IpcResult>;
+        gamesSearch: (query: string, accountId: string) => Promise<IpcResult>;
+        serversList: (placeId: string, accountId: string, serverType?: 'Public' | 'Private') => Promise<IpcResult>;
+        serversUsers: (serverId: string, accountId: string) => Promise<IpcResult>;
+      };
     };
   }
 }

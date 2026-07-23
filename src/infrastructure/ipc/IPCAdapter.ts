@@ -22,6 +22,8 @@ import { launchMulti, killInstance, getRunningInstances } from '../external/Mult
 import { solveCaptcha } from '../external/CaptchaService';
 import { start as startLocalApi, stop as stopLocalApi } from '../external/LocalApiService';
 import { getTheme, setTheme, type ThemeId } from '../external/ThemeService';
+import * as http from 'node:http';
+
 type IpcResult<T = unknown> = { success: true; data: T } | { success: false; error: string };
 
 function ok<T>(data: T): IpcResult<T> { return { success: true, data }; }
@@ -170,14 +172,76 @@ export function registerHandlers(): void {
     try { await updateProfile(cookie, updates); return ok(null); } catch (e) { return err(String(e)); }
   });
 
-  ipcMain.handle('account:control', async (_e, { accountId, command }: { accountId: string; command: string }) => { 
-    try { 
-      // TODO: implement account control (WebSocket or in-game command)
-      // Params accountId and command are intentionally unused for now
-      return ok({ result: 'Account control stub' });
-    } catch (e) { return err(String(e)); } 
-  });
+  // ============ ACCOUNT CONTROL (via HTTP to LocalApiService) ============
+  ipcMain.handle('account:control', async (_e, { accountId, command }: { accountId: string; command: string }) => {
+    try {
+      // Validate accountId exists (optional, but we can let the service handle it)
+      const account = await accountRepo.getById(accountId);
+      if (!account) {
+        return err('Account not found');
+      }
 
+      const baseUrl = 'http://127.0.0.1:31415';
+      let endpoint = '';
+      let method = 'POST';
+
+      switch (command) {
+        case 'launch':
+          endpoint = `/accounts/${accountId}/launch`;
+          break;
+        case 'kill':
+          endpoint = `/accounts/${accountId}/kill`;
+          break;
+        case 'status':
+          endpoint = `/accounts/${accountId}/status`;
+          method = 'GET';
+          break;
+        case 'refresh-cookie':
+          endpoint = `/accounts/${accountId}/refresh-cookie`;
+          break;
+        default:
+          return err(`Unknown command: ${command}`);
+      }
+
+      const url = `${baseUrl}${endpoint}`;
+
+      // Make the HTTP request
+      const response = await new Promise<{ statusCode: number; data: any }>((resolve, reject) => {
+        const req = http.request(url, { method }, (res: http.IncomingMessage) => {
+          let data = '';
+          res.on('data', (chunk: Buffer) => {
+            data += chunk.toString();
+          });
+          res.on('end', () => {
+            try {
+              const parsed = JSON.parse(data);
+              resolve({ statusCode: res.statusCode ?? 0, data: parsed });
+            } catch {
+              resolve({ statusCode: res.statusCode ?? 0, data });
+            }
+          });
+        });
+
+        req.on('error', (error: Error) => {
+          reject(error);
+        });
+
+        req.end();
+      });
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ok(response.data);
+      } else {
+        // If the response is a JSON error, we can extract the error message.
+        const errorMsg = response.data && (response.data as any).error
+          ? (response.data as any).error
+          : `HTTP ${response.statusCode}`;
+        return err(errorMsg);
+      }
+    } catch (caught) {
+      return err(errMsg(caught));
+    }
+  });
 
   // ============ ROBLOX ============
   ipcMain.handle('roblox:launch', async (_e, { accountId, placeId, jobId }: { accountId: string; placeId?: string; jobId?: string }) => {
@@ -185,7 +249,12 @@ export function registerHandlers(): void {
       const acc = await accountRepo.getById(accountId);
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
-      await launchRobloxDirect(placeId ?? acc.savedPlaceId, jobId ?? acc.savedJobId, cookie);
+      const placeIdToUse = placeId ?? acc.savedPlaceId;
+      const jobIdToUse = jobId ?? acc.savedJobId;
+      if (!placeIdToUse || !jobIdToUse) {
+        return err('Place ID y Job ID son requeridos');
+      }
+      await launchRobloxDirect(placeIdToUse, jobIdToUse, cookie);
       await accountRepo.updateLastUsed(accountId);
       return ok(null);
     } catch (e) { return err(String(e)); }
@@ -381,13 +450,83 @@ export function registerHandlers(): void {
   ipcMain.handle('roblox:outfits', async (_e, { userId, cookie }) => { try { const outfits = await getOutfits(userId, cookie); return ok(outfits); } catch (e) { return errMsg(e); } });
   ipcMain.handle('roblox:universes', async (_e, { gameId, cookie }) => { try { const universes = await getUniverses(gameId, cookie); return ok(universes); } catch (e) { return errMsg(e); } });
   ipcMain.handle('captcha:solve', async (_e, image: string) => { try { const solution = await solveCaptcha(image); return ok(solution); } catch (e) { return errMsg(e); } });
-  ipcMain.handle('advanced:devmode', async (_e, enable: boolean) => { 
-    try { 
-      await settingsRepo.set('devmode', enable); 
-      return ok(enable); 
-    } catch (e) { return errMsg(e); } 
+  ipcMain.handle('advanced:devmode', async (_e, enable: boolean) => {
+    try {
+      await settingsRepo.set('devmode', enable);
+      return ok(enable);
+    } catch (e) { return errMsg(e); }
   });
   ipcMain.handle('advanced:local-api:start', async (_e, port: number) => { try { await startLocalApi(port); return ok(null); } catch (e) { return errMsg(e); } });
   ipcMain.handle('advanced:local-api:stop', async () => { try { await stopLocalApi(); return ok(null); } catch (e) { return errMsg(e); } });
   ipcMain.handle('cookie:refresh-real', async (_e, cookie: string) => { try { const refreshed = await refreshCookie(cookie); return ok(refreshed); } catch (e) { return errMsg(e); } });
+
+  // === New handlers that accept accountId instead of raw cookie ===
+  // These resolve the cookie internally so the renderer never sees it
+
+  async function getCookieForAccount(accountId: string): Promise<string> {
+    const acc = await accountRepo.getById(accountId);
+    if (!acc) throw new Error('Cuenta no encontrada');
+    return decrypt(acc.encryptedCookie);
+  }
+
+  ipcMain.handle('friends:listByAccount', async (_e, { accountId }: { accountId: string }) => {
+    try {
+      const acc = await accountRepo.getById(accountId);
+      if (!acc) return err('Cuenta no encontrada');
+      const cookie = decrypt(acc.encryptedCookie);
+      return ok(await getFriends(acc.robloxUserId, cookie));
+    } catch (e) { return err(String(e)); }
+  });
+
+  ipcMain.handle('friends:requestsByAccount', async (_e, { accountId }: { accountId: string }) => {
+    try {
+      const cookie = await getCookieForAccount(accountId);
+      return ok(await getFriendRequests(cookie));
+    } catch (e) { return err(String(e)); }
+  });
+
+  ipcMain.handle('friends:respondByAccount', async (_e, { requestId, accept, accountId }: { requestId: number; accept: boolean; accountId: string }) => {
+    try {
+      const cookie = await getCookieForAccount(accountId);
+      await respondFriendRequest(requestId, accept, cookie);
+      return ok(null);
+    } catch (e) { return err(String(e)); }
+  });
+
+  ipcMain.handle('follow:byAccount', async (_e, { userId, accountId }: { userId: number; accountId: string }) => {
+    try {
+      const cookie = await getCookieForAccount(accountId);
+      await followUser(userId, cookie);
+      return ok(null);
+    } catch (e) { return err(String(e)); }
+  });
+
+  ipcMain.handle('unfollow:byAccount', async (_e, { userId, accountId }: { userId: number; accountId: string }) => {
+    try {
+      const cookie = await getCookieForAccount(accountId);
+      await unfollowUser(userId, cookie);
+      return ok(null);
+    } catch (e) { return err(String(e)); }
+  });
+
+  ipcMain.handle('games:searchByAccount', async (_e, { query, accountId }: { query: string; accountId: string }) => {
+    try {
+      const cookie = await getCookieForAccount(accountId);
+      return ok(await searchGames(query, cookie));
+    } catch (e) { return err(String(e)); }
+  });
+
+  ipcMain.handle('servers:listByAccount', async (_e, { placeId, accountId, serverType }: { placeId: string; accountId: string; serverType?: 'Public' | 'Private' }) => {
+    try {
+      const cookie = await getCookieForAccount(accountId);
+      return ok(await getGameServers(placeId, cookie, serverType ?? 'Public'));
+    } catch (e) { return err(String(e)); }
+  });
+
+  ipcMain.handle('servers:usersByAccount', async (_e, { serverId, accountId }: { serverId: string; accountId: string }) => {
+    try {
+      const cookie = await getCookieForAccount(accountId);
+      return ok(await getServerUsers(serverId, cookie));
+    } catch (e) { return err(String(e)); }
+  });
 }

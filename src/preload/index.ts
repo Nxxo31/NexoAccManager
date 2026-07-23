@@ -130,6 +130,18 @@ const api = {
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke('shell:open-external', { url }),
   },
+
+  // By-account handlers (resolve cookie internally — renderer never sees it)
+  byAccount: {
+    friendsList: (accountId: string) => ipcRenderer.invoke('friends:listByAccount', { accountId }),
+    friendsRequests: (accountId: string) => ipcRenderer.invoke('friends:requestsByAccount', { accountId }),
+    friendsRespond: (requestId: number, accept: boolean, accountId: string) => ipcRenderer.invoke('friends:respondByAccount', { requestId, accept, accountId }),
+    follow: (userId: number, accountId: string) => ipcRenderer.invoke('follow:byAccount', { userId, accountId }),
+    unfollow: (userId: number, accountId: string) => ipcRenderer.invoke('unfollow:byAccount', { userId, accountId }),
+    gamesSearch: (query: string, accountId: string) => ipcRenderer.invoke('games:searchByAccount', { query, accountId }),
+    serversList: (placeId: string, accountId: string, serverType?: 'Public' | 'Private') => ipcRenderer.invoke('servers:listByAccount', { placeId, accountId, serverType }),
+    serversUsers: (serverId: string, accountId: string) => ipcRenderer.invoke('servers:usersByAccount', { serverId, accountId }),
+  },
 };
 
 contextBridge.exposeInMainWorld('api', api);
