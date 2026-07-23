@@ -1,0 +1,56 @@
+name: Build & Verify
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - name: Verify ASAR paths
+        run: |
+          npx asar list release/win-unpacked/resources/app.asar > asar-list.txt
+          findstr "renderer/index.html" asar-list.txt
+          if %ERRORLEVEL% neq 0 exit 1
+          findstr "preload/index.js" asar-list.txt
+          if %ERRORLEVEL% neq 0 exit 1
+          findstr "renderer/assets" asar-list.txt
+          if %ERRORLEVEL% neq 0 exit 1
+      - name: Verify loadFile path in compiled main.js
+        run: |
+          findstr "loadFile" dist/main/main.js
+          findstr "../renderer/index.html" dist/main/main.js
+          if %ERRORLEVEL% neq 0 exit 1
+      - name: Smoke test - launch app for 5 seconds
+        shell: powershell
+        run: |
+          $exe = Get-ChildItem release/win-unpacked/*.exe | Select-Object -First 1
+          $proc = Start-Process $exe.FullName -PassThru
+          Start-Sleep -Seconds 5
+          if ($proc.HasExited) {
+            Write-Host "APP CRASHED - process exited with code $($proc.ExitCode)"
+            exit 1
+          }
+          Write-Host "App running successfully"
+          Stop-Process -Id $proc.Id -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: release/*.exe
+      - name: Upload to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: powershell
+        run: |
+          $tag = ${GITHUB_REF} -replace 'refs/tags/', ''
+          gh release upload $tag release/*.exe release/*.exe.blockmap --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

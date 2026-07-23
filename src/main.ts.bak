@@ -24,11 +24,11 @@ function createWindow(): BrowserWindow {
   });
 
   // En desarrollo carga Vite, en producción carga el build
-  if (app.isPackaged) {
-    win.loadFile(path.join(__dirname, '../renderer/index.html'));
-  } else {
+  if (process.env.NODE_ENV === 'development') {
     win.loadURL('http://localhost:5173');
     win.webContents.openDevTools();
+  } else {
+    win.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
 
   // Abrir links externos en navegador, no en Electron
