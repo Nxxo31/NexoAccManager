@@ -107,6 +107,41 @@ declare global {
         sendFriendRequest: (userId: number, accountId: string) => Promise<IpcResult>;
         outfits: (accountId: string) => Promise<IpcResult>;
         serverRegion: (placeId: string, accountId: string) => Promise<IpcResult>;
+        // NEW: FastFlags
+        fflagsGetAll: (accountId: string) => Promise<IpcResult>;
+        fflagsSetFlag: (accountId: string, key: string, value: string | number | boolean) => Promise<IpcResult>;
+        fflagsDeleteFlag: (accountId: string, key: string) => Promise<IpcResult>;
+        fflagsImportFlags: (accountId: string, flags: Record<string, unknown>) => Promise<IpcResult>;
+        fflagsExportFlags: (accountId: string) => Promise<IpcResult>;
+        // NEW: Content Modding
+        modsListAvailable: () => Promise<IpcResult>;
+        modsInstallMod: (modName: string) => Promise<IpcResult>;
+        modsUninstallMod: (modName: string) => Promise<IpcResult>;
+        modsIsModInstalled: (modName: string) => Promise<IpcResult>;
+        modsBackupOriginals: () => Promise<IpcResult>;
+        modsRestoreOriginals: () => Promise<IpcResult>;
+        // NEW: Roblox Logs
+        logsGetRecent: (sinceHours?: number, maxEntries?: number) => Promise<IpcResult>;
+        logsClearOld: (daysToKeep: number) => Promise<IpcResult>;
+        // NEW: Cache Cleaner
+        cacheAnalyze: () => Promise<IpcResult>;
+        cacheClean: (options?: Record<string, boolean>) => Promise<IpcResult>;
+        // NEW: Discord RPC
+        discordInitialize: (clientId?: string) => Promise<IpcResult>;
+        discordUpdatePresence: (details?: string, state?: string, largeImageKey?: string, smallImageKey?: string, startTimestamp?: number) => Promise<IpcResult>;
+        discordClearPresence: () => Promise<IpcResult>;
+        discordShutdown: () => Promise<IpcResult>;
+        // NEW: Launch Presets
+        presetsGetAll: () => Promise<IpcResult>;
+        presetsSavePreset: (preset: Omit<LaunchPreset, 'id'>) => Promise<IpcResult>;
+        presetsDeletePreset: (presetId: string) => Promise<IpcResult>;
+        presetsLaunchPreset: (presetId: string) => Promise<IpcResult>;
+        // NEW: Playtime Tracking
+        playtimeStartTracking: (accountId: string, placeId: string) => Promise<IpcResult>;
+        playtimeStopTracking: (accountId: string) => Promise<IpcResult>;
+        playtimeGetTotalPlaytime: (accountId: string) => Promise<IpcResult>;
+        playtimeGetSessionHistory: (accountId: string, limit?: number) => Promise<IpcResult>;
+        playtimeClearHistory: (accountId: string) => Promise<IpcResult>;
       };
     };
   }

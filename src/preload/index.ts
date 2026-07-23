@@ -2,6 +2,7 @@
 // Expone window.api con tipado fuerte al renderer — usa invoke/handle, nunca send/on
 
 import { contextBridge, ipcRenderer } from 'electron';
+import type { LaunchPreset } from '../domain/entities/LaunchPreset';
 
 const api = {
   // Account
@@ -136,14 +137,49 @@ const api = {
     friendsList: (accountId: string) => ipcRenderer.invoke('friends:listByAccount', { accountId }),
     friendsRequests: (accountId: string) => ipcRenderer.invoke('friends:requestsByAccount', { accountId }),
     friendsRespond: (requestId: number, accept: boolean, accountId: string) => ipcRenderer.invoke('friends:respondByAccount', { requestId, accept, accountId }),
+    sendFriendRequest: (userId: number, accountId: string) => ipcRenderer.invoke('friends:sendByAccount', { userId, accountId }),
     follow: (userId: number, accountId: string) => ipcRenderer.invoke('follow:byAccount', { userId, accountId }),
     unfollow: (userId: number, accountId: string) => ipcRenderer.invoke('unfollow:byAccount', { userId, accountId }),
     gamesSearch: (query: string, accountId: string) => ipcRenderer.invoke('games:searchByAccount', { query, accountId }),
     serversList: (placeId: string, accountId: string, serverType?: 'Public' | 'Private') => ipcRenderer.invoke('servers:listByAccount', { placeId, accountId, serverType }),
     serversUsers: (serverId: string, accountId: string) => ipcRenderer.invoke('servers:usersByAccount', { serverId, accountId }),
-    sendFriendRequest: (userId: number, accountId: string) => ipcRenderer.invoke('friends:sendByAccount', { userId, accountId }),
     outfits: (accountId: string) => ipcRenderer.invoke('roblox:outfitsByAccount', { accountId }),
     serverRegion: (placeId: string, accountId: string) => ipcRenderer.invoke('roblox:serverRegionByAccount', { placeId, accountId }),
+    // FastFlags
+    fflagsGetAll: (accountId: string) => ipcRenderer.invoke('fflags:getAll', { accountId }),
+    fflagsSetFlag: (accountId: string, key: string, value: string | number | boolean) => ipcRenderer.invoke('fflags:setFlag', { accountId, key, value }),
+    fflagsDeleteFlag: (accountId: string, key: string) => ipcRenderer.invoke('fflags:deleteFlag', { accountId, key }),
+    fflagsImportFlags: (accountId: string, flags: Record<string, unknown>) => ipcRenderer.invoke('fflags:importFlags', { accountId, flags }),
+    fflagsExportFlags: (accountId: string) => ipcRenderer.invoke('fflags:exportFlags', { accountId }),
+    // Content Modding
+    modsListAvailable: () => ipcRenderer.invoke('mods:listAvailable'),
+    modsInstallMod: (modName: string) => ipcRenderer.invoke('mods:installMod', { modName }),
+    modsUninstallMod: (modName: string) => ipcRenderer.invoke('mods:uninstallMod', { modName }),
+    modsIsModInstalled: (modName: string) => ipcRenderer.invoke('mods:isModInstalled', { modName }),
+    modsBackupOriginals: () => ipcRenderer.invoke('mods:backupOriginals'),
+    modsRestoreOriginals: () => ipcRenderer.invoke('mods:restoreOriginals'),
+    // Roblox Logs
+    logsGetRecent: (sinceHours?: number, maxEntries?: number) => ipcRenderer.invoke('logs:getRecent', { sinceHours, maxEntries }),
+    logsClearOld: (daysToKeep: number) => ipcRenderer.invoke('logs:clearOld', { daysToKeep }),
+    // Cache Cleaner
+    cacheAnalyze: () => ipcRenderer.invoke('cache:analyze'),
+    cacheClean: (options?: Record<string, boolean>) => ipcRenderer.invoke('cache:clean', { options }),
+    // Discord RPC
+    discordInitialize: (clientId?: string) => ipcRenderer.invoke('discord:initialize', { clientId }),
+    discordUpdatePresence: (details?: string, state?: string, largeImageKey?: string, smallImageKey?: string, startTimestamp?: number) => ipcRenderer.invoke('discord:updatePresence', { details, state, largeImageKey, smallImageKey, startTimestamp }),
+    discordClearPresence: () => ipcRenderer.invoke('discord:clearPresence'),
+    discordShutdown: () => ipcRenderer.invoke('discord:shutdown'),
+    // Launch Presets
+    presetsGetAll: () => ipcRenderer.invoke('presets:getAll'),
+    presetsSavePreset: (preset: Omit<LaunchPreset, 'id'>) => ipcRenderer.invoke('presets:savePreset', { preset }),
+    presetsDeletePreset: (presetId: string) => ipcRenderer.invoke('presets:deletePreset', { presetId }),
+    presetsLaunchPreset: (presetId: string) => ipcRenderer.invoke('presets:launchPreset', { presetId }),
+    // Playtime Tracking
+    playtimeStartTracking: (accountId: string, placeId: string) => ipcRenderer.invoke('playtime:startTracking', { accountId, placeId }),
+    playtimeStopTracking: (accountId: string) => ipcRenderer.invoke('playtime:stopTracking', { accountId }),
+    playtimeGetTotalPlaytime: (accountId: string) => ipcRenderer.invoke('playtime:getTotalPlaytime', { accountId }),
+    playtimeGetSessionHistory: (accountId: string, limit?: number) => ipcRenderer.invoke('playtime:getSessionHistory', { accountId, limit }),
+    playtimeClearHistory: (accountId: string) => ipcRenderer.invoke('playtime:clearHistory', { accountId }),
   },
 };
 

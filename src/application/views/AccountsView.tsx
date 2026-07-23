@@ -1,7 +1,7 @@
 // Application View: AccountsView — account grid with groups + editable description — Mantine v7
 
 import { useState, useMemo } from 'react';
-import { Shuffle, Plus, Users, LogOut, Tag, Pencil } from 'lucide-react';
+import { Shuffle, Plus, Users, LogOut, Tag, Pencil, Star, Trash2 } from 'lucide-react';
 import { useAccountStore } from '../store/accountStore';
 import { useAccounts } from '../hooks/useAccounts';
 import { AccountDetailPanel } from '../components/AccountDetailPanel';
@@ -183,57 +183,55 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
   function handleSaveRequest() {
     handleSaveEdit();
   }
-}
 
-// Inline AccountCard — minimalist with Mantine
-function AccountCard({ account, selected, onSelect, onRemove, onToggleFavorite, onEdit }: {
-  account: Account;
-  selected: boolean;
-  onSelect: () => void;
-  onRemove: () => Promise<void>;
-  onToggleFavorite: () => void;
-  onEdit: () => void;
-}): JSX.Element {
-  return (
-    <Card
-      withBorder
-      radius="md"
-      padding="sm"
-      style={{
-        cursor: 'pointer',
-        borderColor: selected ? 'var(--mantine-color-primary-5)' : undefined,
-        borderWidth: selected ? 2 : 1,
-      }}
-      onClick={onSelect}
-    >
-      <Group justify="space-between" align="center">
-        <Group gap="sm" align="center">
-          <Avatar size="sm" radius="xl" style={{ backgroundColor: 'var(--mantine-color-gray-4)' }}>
-            {account.username.charAt(0).toUpperCase()}
-          </Avatar>
-          <Stack gap={2}>
-            <Text size="sm" fw={500}>{account.username}</Text>
-            {account.group && <Badge size="xs" variant="light" color="blue">{account.group}</Badge>}
-            {account.description && <Text size="xs" c="dimmed" lineClamp={1}>{account.description}</Text>}
-          </Stack>
+  // Inline AccountCard — minimalist with Mantine
+  function AccountCard({ account, selected, onSelect, onRemove, onToggleFavorite, onEdit }: {
+    account: Account;
+    selected: boolean;
+    onSelect: () => void;
+    onRemove: () => Promise<void>;
+    onToggleFavorite: () => void;
+    onEdit: () => void;
+  }): JSX.Element {
+    return (
+      <Card
+        withBorder
+        radius="md"
+        padding="sm"
+        style={{
+          cursor: 'pointer',
+          borderColor: selected ? 'var(--mantine-color-primary-5)' : undefined,
+          borderWidth: selected ? 2 : 1,
+        }}
+        onClick={onSelect}
+      >
+        <Group justify="space-between" align="center">
+          <Group gap="sm" align="center">
+            <Avatar size="sm" radius="xl" style={{ backgroundColor: 'var(--mantine-color-gray-4)' }}>
+              {account.username.charAt(0).toUpperCase()}
+            </Avatar>
+            <Stack gap={2}>
+              <Text size="sm" fw={500}>{account.username}</Text>
+              {account.group && <Badge size="xs" variant="light" color="blue">{account.group}</Badge>}
+              {account.description && <Text size="xs" c="dimmed" lineClamp={1}>{account.description}</Text>}
+            </Stack>
+          </Group>
+          <Group gap="xs">
+            <Badge size="xs" variant="light" color={account.cookieExpiresAt ? 'green' : 'red'}>
+              {account.cookieExpiresAt ? 'Valida' : 'Expirada'}
+            </Badge>
+            <ActionIcon variant="subtle" color={account.isFavorite ? 'yellow' : 'gray'} onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}>
+              <Star size={14} fill={account.isFavorite ? 'currentColor' : 'none'} />
+            </ActionIcon>
+            <ActionIcon variant="subtle" color="gray" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+              <Pencil size={14} />
+            </ActionIcon>
+            <ActionIcon variant="subtle" color="gray" onClick={(e) => { e.stopPropagation(); onRemove(); }}>
+              <Trash2 size={14} />
+            </ActionIcon>
+          </Group>
         </Group>
-        <Group gap="xs">
-          <Badge size="xs" variant="light" color={account.cookieExpiresAt ? 'green' : 'red'}>
-            {account.cookieExpiresAt ? 'Valida' : 'Expirada'}
-          </Badge>
-          <ActionIcon variant="subtle" color={account.isFavorite ? 'yellow' : 'gray'} onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}>
-            <Star size={14} fill={account.isFavorite ? 'currentColor' : 'none'} />
-          </ActionIcon>
-          <ActionIcon variant="subtle" color="gray" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
-            <Pencil size={14} />
-          </ActionIcon>
-          <ActionIcon variant="subtle" color="gray" onClick={(e) => { e.stopPropagation(); onRemove(); }}>
-            <Trash2 size={14} />
-          </ActionIcon>
-        </Group>
-      </Group>
-    </Card>
-  );
+      </Card>
+    );
+  }
 }
-
-import { Star, Trash2 } from 'lucide-react';

@@ -24,6 +24,16 @@ import { start as startLocalApi, stop as stopLocalApi } from '../external/LocalA
 import { getTheme, setTheme, type ThemeId } from '../external/ThemeService';
 import * as http from 'node:http';
 
+// NEW: Advanced services
+import { getAllFastFlags, setFastFlag, deleteFastFlag, importFlagsFromJson, exportFlagsToJson } from '../external/FastFlagsService';
+import { backupContent, restoreContent, listAvailableBackups } from '../external/ContentModService';
+import { parseRobloxLogsAsync } from '../external/RobloxLogService';
+import { getRobloxCacheSize, cleanRobloxCache, cleanOldLogs } from '../external/CacheCleanerService';
+import { initializeDiscordRPC, updateDiscordPresence, clearDiscordPresence, shutdownDiscordRPC } from '../external/DiscordRPCService';
+import { getAllPresets, savePreset, deletePreset, launchPreset } from '../external/LaunchPresetService';
+import { startPlaytimeTracking, stopPlaytimeTracking, getTotalPlaytime, getSessionHistory, clearPlaytimeHistory } from '../external/PlaytimeService';
+import type { LaunchPreset } from '../../domain/entities/LaunchPreset';
+
 type IpcResult<T = unknown> = { success: true; data: T } | { success: false; error: string };
 
 function ok<T>(data: T): IpcResult<T> { return { success: true, data }; }
@@ -206,7 +216,7 @@ export function registerHandlers(): void {
       const url = `${baseUrl}${endpoint}`;
 
       // Make the HTTP request
-      const response = await new Promise<{ statusCode: number; data: any }>((resolve, reject) => {
+      const response = await new Promise<{ statusCode: number; data: Record<string, unknown> | string }>((resolve, reject) => {
         const req = http.request(url, { method }, (res: http.IncomingMessage) => {
           let data = '';
           res.on('data', (chunk: Buffer) => {
@@ -215,7 +225,7 @@ export function registerHandlers(): void {
           res.on('end', () => {
             try {
               const parsed = JSON.parse(data);
-              resolve({ statusCode: res.statusCode ?? 0, data: parsed });
+              resolve({ statusCode: res.statusCode ?? 0, data: parsed as Record<string, unknown> });
             } catch {
               resolve({ statusCode: res.statusCode ?? 0, data });
             }
@@ -232,9 +242,8 @@ export function registerHandlers(): void {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return ok(response.data);
       } else {
-        // If the response is a JSON error, we can extract the error message.
-        const errorMsg = response.data && (response.data as any).error
-          ? (response.data as any).error
+        const errorMsg = typeof response.data === 'object' && response.data !== null && 'error' in response.data
+          ? String(response.data.error)
           : `HTTP ${response.statusCode}`;
         return err(errorMsg);
       }
@@ -555,5 +564,109 @@ export function registerHandlers(): void {
       const _cookie = await getCookieForAccount(accountId);
       return ok(await getServerRegion(placeId));
     } catch (e) { return err(String(e)); }
+  });
+
+  // ===== NEW SERVICES IPC HANDLERS =====
+  // FastFlags — no cookie needed, reads/writes local ClientAppSettings.json
+  ipcMain.handle('fflags:getAll', async () => {
+    try { return ok(getAllFastFlags()); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('fflags:setFlag', async (_e, { key, value }: { key: string; value: string | number | boolean }) => {
+    try { setFastFlag(key, value); return ok(null); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('fflags:deleteFlag', async (_e, { key }: { key: string }) => {
+    try { deleteFastFlag(key); return ok(null); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('fflags:importFlags', async (_e, { flags }: { flags: Record<string, unknown> }) => {
+    try { const count = importFlagsFromJson(flags); return ok({ count }); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('fflags:exportFlags', async () => {
+    try { return ok(exportFlagsToJson()); } catch (e) { return err(String(e)); }
+  });
+
+  // Content Modding
+  ipcMain.handle('mods:listAvailable', async () => {
+    try { return ok(listAvailableBackups()); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('mods:installMod', async (_e, { modName }: { modName: string }) => {
+    try { backupContent(modName); return ok(null); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('mods:uninstallMod', async (_e, { modName }: { modName: string }) => {
+    try { restoreContent(modName); return ok(null); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('mods:isModInstalled', async (_e, { modName }: { modName: string }) => {
+    try { const backups = listAvailableBackups(); return ok(backups.includes(modName)); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('mods:backupOriginals', async (_e, { relativePath }: { relativePath: string }) => {
+    try { backupContent(relativePath); return ok(null); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('mods:restoreOriginals', async (_e, { relativePath }: { relativePath: string }) => {
+    try { restoreContent(relativePath); return ok(null); } catch (e) { return err(String(e)); }
+  });
+
+  // Roblox Logs
+  ipcMain.handle('logs:getRecent', async (_e, { sinceHours, maxEntries }: { sinceHours?: number; maxEntries?: number }) => {
+    try {
+      const since = sinceHours ? new Date(Date.now() - (sinceHours * 60 * 60 * 1000)) : undefined;
+      const logs = await parseRobloxLogsAsync(since);
+      const limited = maxEntries ? logs.slice(0, maxEntries) : logs;
+      return ok(limited);
+    } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('logs:clearOld', async (_e, { daysToKeep }: { daysToKeep: number }) => {
+    try { const freedBytes = cleanOldLogs(); return ok({ freedBytes }); } catch (e) { return err(String(e)); }
+  });
+
+  // Cache Cleaner
+  ipcMain.handle('cache:analyze', async () => {
+    try { return ok(getRobloxCacheSize()); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('cache:clean', async () => {
+    try { return ok(cleanRobloxCache()); } catch (e) { return err(String(e)); }
+  });
+
+  // Discord RPC
+  ipcMain.handle('discord:initialize', async (_e, { clientId }: { clientId?: string }) => {
+    try { await initializeDiscordRPC(clientId); return ok(null); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('discord:updatePresence', async (_e, { details, state, largeImageKey, smallImageKey, startTimestamp }: { details?: string; state?: string; largeImageKey?: string; smallImageKey?: string; startTimestamp?: number }) => {
+    try { await updateDiscordPresence({ details, state, largeImageKey, smallImageKey, startTimestamp }); return ok(null); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('discord:clearPresence', async () => {
+    try { await clearDiscordPresence(); return ok(null); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('discord:shutdown', async () => {
+    try { await shutdownDiscordRPC(); return ok(null); } catch (e) { return err(String(e)); }
+  });
+
+  // Launch Presets
+  ipcMain.handle('presets:getAll', async () => {
+    try { return ok(getAllPresets()); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('presets:savePreset', async (_e, { preset }: { preset: Omit<LaunchPreset, 'id'> }) => {
+    try { const id = savePreset(preset); return ok(id); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('presets:deletePreset', async (_e, { presetId }: { presetId: string }) => {
+    try { deletePreset(presetId); return ok(null); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('presets:launchPreset', async (_e, { presetId }: { presetId: string }) => {
+    try { await launchPreset(presetId); return ok(null); } catch (e) { return err(String(e)); }
+  });
+
+  // Playtime Tracking
+  ipcMain.handle('playtime:startTracking', async (_e, { accountId, placeId }: { accountId: string; placeId: string }) => {
+    try { startPlaytimeTracking(accountId, placeId); return ok(null); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('playtime:stopTracking', async (_e, { accountId }: { accountId: string }) => {
+    try { stopPlaytimeTracking(accountId); return ok(null); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('playtime:getTotalPlaytime', async (_e, { accountId }: { accountId: string }) => {
+    try { return ok(getTotalPlaytime(accountId)); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('playtime:getSessionHistory', async (_e, { accountId, limit }: { accountId: string; limit?: number }) => {
+    try { return ok(getSessionHistory(accountId, limit)); } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('playtime:clearHistory', async (_e, { accountId }: { accountId: string }) => {
+    try { clearPlaytimeHistory(accountId); return ok(null); } catch (e) { return err(String(e)); }
   });
 }
