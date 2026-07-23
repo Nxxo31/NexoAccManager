@@ -1,10 +1,10 @@
-// Application View: FriendsView — friend list, requests, follow/unfollow — Mantine v7
+// Application View: FriendsView — friends, requests, send requests, follow/unfollow — Mantine v7
 
 import { useState, useEffect } from 'react';
 import { useAccountStore } from '../store/accountStore';
 import { notifications } from '@mantine/notifications';
-import { Group, Stack, Text, Badge, Button, Select, SegmentedControl, Card, ScrollArea, ActionIcon, Avatar, Skeleton } from '@mantine/core';
-import { UserPlus, UserMinus, Check, X } from 'lucide-react';
+import { Group, Stack, Text, Badge, Button, Select, SegmentedControl, Card, ScrollArea, ActionIcon, Avatar, Skeleton, TextInput } from '@mantine/core';
+import { UserPlus, UserMinus, Check, X, Send } from 'lucide-react';
 
 interface Friend {
   userId: number;
@@ -27,6 +27,7 @@ export function FriendsView(): JSX.Element {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [requests, setRequests] = useState<FriendRequest[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchUserId, setSearchUserId] = useState('');
 
   useEffect(() => {
     if (selectedAccountId) loadData();
@@ -71,6 +72,21 @@ export function FriendsView(): JSX.Element {
     }
   };
 
+  const handleSendRequest = async () => {
+    const userIdNum = parseInt(searchUserId, 10);
+    if (!userIdNum || isNaN(userIdNum)) {
+      notifications.show({ message: 'Ingresa un User ID valido', color: 'red' });
+      return;
+    }
+    const result = await window.api.byAccount.sendFriendRequest(userIdNum, selectedAccountId);
+    if (result.success) {
+      notifications.show({ message: 'Solicitud de amistad enviada', color: 'green' });
+      setSearchUserId('');
+    } else {
+      notifications.show({ message: result.error ?? 'Error al enviar solicitud', color: 'red' });
+    }
+  };
+
   if (accounts.length === 0) {
     return (
       <Stack align="center" justify="center" h="100%">
@@ -100,6 +116,7 @@ export function FriendsView(): JSX.Element {
         data={[
           { value: 'friends', label: 'Amigos' },
           { value: 'requests', label: 'Solicitudes' },
+          { value: 'send', label: 'Enviar solicitud' },
         ]}
         size="sm"
       />
@@ -115,6 +132,26 @@ export function FriendsView(): JSX.Element {
 
         {!loading && !selectedAccountId && (
           <Text c="dimmed" ta="center" pt="xl">Selecciona una cuenta para ver su informacion.</Text>
+        )}
+
+        {/* Send friend request tab */}
+        {!loading && selectedAccountId && activeTab === 'send' && (
+          <Stack gap="md" p="sm">
+            <Text size="sm" c="dimmed">Ingresa el User ID de Roblox de la persona a la que quieres enviar una solicitud de amistad.</Text>
+            <Group gap="sm">
+              <TextInput
+                placeholder="User ID (ej: 12345678)"
+                value={searchUserId}
+                onChange={(e) => setSearchUserId(e.currentTarget.value)}
+                leftSection={<UserPlus size={14} />}
+                size="sm"
+                style={{ flex: 1 }}
+              />
+              <Button variant="filled" color="primary" size="sm" leftSection={<Send size={14} />} onClick={handleSendRequest}>
+                Enviar
+              </Button>
+            </Group>
+          </Stack>
         )}
 
         {/* Friends list */}

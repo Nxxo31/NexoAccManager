@@ -1,11 +1,11 @@
-// Application View: AccountsView — account grid + join bar + detail panel
+// Application View: AccountsView — account grid with groups + editable description — Mantine v7
 
 import { useState, useMemo } from 'react';
-import { Shuffle, Plus, Users, LogOut } from 'lucide-react';
+import { Shuffle, Plus, Users, LogOut, Tag, Pencil } from 'lucide-react';
 import { useAccountStore } from '../store/accountStore';
 import { useAccounts } from '../hooks/useAccounts';
 import { AccountDetailPanel } from '../components/AccountDetailPanel';
-import { Group, Stack, Text, Button, TextInput, ScrollArea, Skeleton, Tooltip, Checkbox } from '@mantine/core';
+import { Group, Stack, Text, Button, TextInput, ScrollArea, Skeleton, Tooltip, Checkbox, Badge, Card, ActionIcon, Avatar, Modal, Textarea } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import type { Account } from '../../domain/entities/Account';
 
@@ -22,6 +22,9 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
   const [placeId, setPlaceId] = useState('');
   const [jobId, setJobId] = useState('');
   const [shuffle, setShuffle] = useState(false);
+  const [editAccount, setEditAccount] = useState<Account | null>(null);
+  const [editGroup, setEditGroup] = useState('');
+  const [editDesc, setEditDesc] = useState('');
 
   const selected = useMemo(() => accounts.find((a) => a.id === selectedId) ?? null, [accounts, selectedId]);
 
@@ -53,11 +56,23 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
     else notifications.show({ message: result.error ?? 'Error', color: 'red' });
   };
 
-  const handleRefreshCookie = async () => {
-    if (!selected) return;
-    const result = await window.api.cookie.refresh(selected.id);
-    if (result.success) notifications.show({ message: 'Cookie actualizada', color: 'green' });
-    else notifications.show({ message: result.error ?? 'Error', color: 'red' });
+  const handleSaveEdit = async () => {
+    if (!editAccount) return;
+    try {
+      await window.api.account.fieldSet(editAccount.id, 'group', editGroup);
+      await window.api.account.fieldSet(editAccount.id, 'description', editDesc);
+      update(editAccount.id, { group: editGroup, description: editDesc });
+      notifications.show({ message: 'Cuenta actualizada', color: 'green' });
+      setEditAccount(null);
+    } catch {
+      notifications.show({ message: 'Error al actualizar', color: 'red' });
+    }
+  };
+
+  const openEdit = (account: Account) => {
+    setEditAccount(account);
+    setEditGroup(account.group ?? '');
+    setEditDesc(account.description ?? '');
   };
 
   if (accounts.length === 0) {
@@ -105,6 +120,7 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
                     update(account.id, { isFavorite: !account.isFavorite });
                     window.api.account.setFavorite(account.id, !account.isFavorite);
                   }}
+                  onEdit={() => openEdit(account)}
                 />
               ))}
             </Stack>
@@ -116,7 +132,6 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
           <>
             <Group p="md" gap="sm" align="center" style={{ borderTop: '1px solid var(--mantine-color-gray-3)' }}>
               <TextInput placeholder="Place ID" value={placeId} onChange={(e) => setPlaceId(e.target.value)} size="sm" style={{ width: 120 }} />
-              <TextInput placeholder="Job ID (opcional)" value={jobId} onChange={(e) => setJobId(e.target.value)} size="sm" style={{ width: 120 }} />
               <Button variant="filled" color="primary" size="sm" onClick={handleLaunch} disabled={!placeId.trim()}>
                 Unirse
               </Button>
@@ -125,29 +140,60 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
               account={selected}
               onClose={() => select(null)}
               onLaunch={handleLaunch}
-              onRefreshCookie={handleRefreshCookie}
+              onRefreshCookie={async () => {
+                const result = await window.api.cookie.refresh(selected.id);
+                if (result.success) notifications.show({ message: 'Cookie actualizada', color: 'green' });
+                else notifications.show({ message: result.error ?? 'Error', color: 'red' });
+              }}
               onLogoutAll={() => notifications.show({ message: 'Funcion no disponible', color: 'orange' })}
             />
           </>
         )}
       </div>
+
+      {/* Edit modal — group + description */}
+      <Modal opened={editAccount !== null} onClose={() => setEditAccount(null)} title="Editar cuenta" size="sm">
+        <Stack gap="md">
+          <TextInput
+            label="Grupo"
+            placeholder="ej: Main, Alt, Trading..."
+            value={editGroup}
+            onChange={(e) => setEditGroup(e.currentTarget.value)}
+            leftSection={<Tag size={14} />}
+            size="sm"
+          />
+          <Textarea
+            label="Descripcion"
+            placeholder="Notas sobre esta cuenta..."
+            value={editDesc}
+            onChange={(e) => setEditDesc(e.currentTarget.value)}
+            autosize
+            minRows={2}
+            maxRows={4}
+            size="sm"
+          />
+          <Button variant="filled" color="primary" size="sm" onClick={handleSaveRequest} fullWidth>
+            Guardar
+          </Button>
+        </Stack>
+      </Modal>
     </div>
   );
+
+  function handleSaveRequest() {
+    handleSaveEdit();
+  }
 }
 
 // Inline AccountCard — minimalist with Mantine
-import { Card, Badge, ActionIcon, Avatar } from '@mantine/core';
-import { Trash2, Star, Play } from 'lucide-react';
-
-interface AccountCardProps {
+function AccountCard({ account, selected, onSelect, onRemove, onToggleFavorite, onEdit }: {
   account: Account;
   selected: boolean;
   onSelect: () => void;
   onRemove: () => Promise<void>;
   onToggleFavorite: () => void;
-}
-
-function AccountCard({ account, selected, onSelect, onRemove, onToggleFavorite }: AccountCardProps): JSX.Element {
+  onEdit: () => void;
+}): JSX.Element {
   return (
     <Card
       withBorder
@@ -167,15 +213,19 @@ function AccountCard({ account, selected, onSelect, onRemove, onToggleFavorite }
           </Avatar>
           <Stack gap={2}>
             <Text size="sm" fw={500}>{account.username}</Text>
-            <Text size="xs" c="dimmed">{account.group}</Text>
+            {account.group && <Badge size="xs" variant="light" color="blue">{account.group}</Badge>}
+            {account.description && <Text size="xs" c="dimmed" lineClamp={1}>{account.description}</Text>}
           </Stack>
         </Group>
         <Group gap="xs">
-          <Badge size="xs" variant="light" color={account.isFavorite ? 'yellow' : 'gray'}>
+          <Badge size="xs" variant="light" color={account.cookieExpiresAt ? 'green' : 'red'}>
             {account.cookieExpiresAt ? 'Valida' : 'Expirada'}
           </Badge>
           <ActionIcon variant="subtle" color={account.isFavorite ? 'yellow' : 'gray'} onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}>
             <Star size={14} fill={account.isFavorite ? 'currentColor' : 'none'} />
+          </ActionIcon>
+          <ActionIcon variant="subtle" color="gray" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+            <Pencil size={14} />
           </ActionIcon>
           <ActionIcon variant="subtle" color="gray" onClick={(e) => { e.stopPropagation(); onRemove(); }}>
             <Trash2 size={14} />
@@ -185,3 +235,5 @@ function AccountCard({ account, selected, onSelect, onRemove, onToggleFavorite }
     </Card>
   );
 }
+
+import { Star, Trash2 } from 'lucide-react';

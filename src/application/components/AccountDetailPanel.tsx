@@ -1,12 +1,19 @@
-// Application Component: AccountDetailPanel — slide-in detail with Mantine v7
+// Application Component: AccountDetailPanel — slide-in detail with inventory/outfits — Mantine v7
 
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, Shield, Cookie, Gamepad2, Users, LogOut } from 'lucide-react';
+import { X, Eye } from 'lucide-react';
+import { Group, Stack, Text, Badge, Button, ActionIcon, Card, ScrollArea, Skeleton, Image as MantineImage, Avatar } from '@mantine/core';
 import type { Account } from '../../domain/entities/Account';
-import { Box, Group, Text, ActionIcon, Avatar, Badge, Button, useMantineTheme, Anchor, Stack } from '@mantine/core';
+
+interface Outfit {
+  id: number;
+  name: string;
+  thumbnailUrl?: string;
+}
 
 interface AccountDetailPanelProps {
-  account: Account | null;
+  account: Account;
   onClose: () => void;
   onLaunch: () => void;
   onRefreshCookie: () => void;
@@ -14,75 +21,117 @@ interface AccountDetailPanelProps {
 }
 
 export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie, onLogoutAll }: AccountDetailPanelProps): JSX.Element {
-  const theme = useMantineTheme();
+  const [outfits, setOutfits] = useState<Outfit[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadOutfits();
+  }, [account.id]);
+
+  const loadOutfits = async () => {
+    setLoading(true);
+    try {
+      const result = await window.api.byAccount.outfits(account.id);
+      if (result.success) setOutfits(Array.isArray(result.data) ? result.data : []);
+      else setOutfits([]);
+    } catch {
+      setOutfits([]);
+    }
+    setLoading(false);
+  };
 
   return (
     <AnimatePresence>
-      {account && (
-        <motion.div
-          style={{
-            position: 'fixed', right: 0, top: 0, bottom: 0, width: 320,
-            backgroundColor: theme.colors.dark[0], borderLeft: `1px solid ${theme.colors.gray[3]}`,
-            zIndex: 1000, display: 'flex', flexDirection: 'column',
-          }}
-          initial={{ x: 320, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 320, opacity: 0 }}
-          transition={{ duration: 0.15, ease: 'easeInOut' }}
-        >
-          <Group h={48} px="md" justify="space-between" align="center" style={{ borderBottom: `1px solid ${theme.colors.gray[3]}` }}>
-            <Group gap="xs" align="center">
-              <Avatar size="sm" style={{ backgroundColor: theme.colors.gray[4], color: theme.colors.gray[6] }}>
-                {account.username.charAt(0).toUpperCase()}
-              </Avatar>
-              <Text size="sm" fw={500} c="white">{account.username}</Text>
-            </Group>
-            <ActionIcon onClick={onClose} variant="subtle" color="gray" size="sm">
-              <X size={16} />
-            </ActionIcon>
-          </Group>
-
-          <Box style={{ flex: 1, overflowY: 'auto' }} p="md">
-            <Stack gap="md">
-              <Group gap="xs">
-                <Badge variant="light" color="blue">{account.group}</Badge>
-                {account.isFavorite && <Badge variant="light" color="yellow">★</Badge>}
-              </Group>
-
-              {account.description && <Text size="xs" c="dimmed">{account.description}</Text>}
-
-              <Group gap="xs">
-                <Cookie size={14} style={{ color: theme.colors.gray[6] }} />
-                <Text size="xs" c="dimmed">Estado de cookie</Text>
-              </Group>
-              <Badge variant={account.cookieExpiresAt ? 'filled' : 'light'} color={account.cookieExpiresAt ? 'green' : 'red'}>
-                {account.cookieExpiresAt ? 'Valida' : 'Desconocida'}
-              </Badge>
-
-              <Button variant="filled" color="primary" onClick={onLaunch} leftSection={<Gamepad2 size={14} />}>
-                Jugar
-              </Button>
-
-              <Group gap="xs">
-                <Button variant="outline" color="gray" size="xs" onClick={onRefreshCookie} leftSection={<Cookie size={12} />}>Refresh</Button>
-                <Button variant="outline" color="gray" size="xs" onClick={onLogoutAll} leftSection={<LogOut size={12} />}>Logout All</Button>
-              </Group>
-
-              <Anchor href={`https://www.roblox.com/users/${account.robloxUserId}/profile`} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" color="gray" size="xs" leftSection={<ExternalLink size={12} />}>Ver perfil</Button>
-              </Anchor>
-
-              <Box style={{ borderTop: `1px solid ${theme.colors.gray[3]}` }} pt="md">
-                <Group gap="xs" mb="xs">
-                  <Shield size={14} style={{ color: theme.colors.gray[6] }} />
-                  <Text size="xs" c="dimmed">Seguridad</Text>
-                </Group>
-                <Button variant="outline" color="gray" size="xs" leftSection={<Users size={12} />}>Sesiones activas</Button>
-              </Box>
+      <motion.div
+        initial={{ x: 300, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: 300, opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        style={{
+          width: 320,
+          borderLeft: '1px solid var(--mantine-color-gray-3)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Header */}
+        <Group justify="space-between" p="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
+          <Group gap="sm">
+            <Avatar size="md" radius="xl" style={{ backgroundColor: 'var(--mantine-color-gray-4)' }}>
+              {account.username.charAt(0).toUpperCase()}
+            </Avatar>
+            <Stack gap={2}>
+              <Text size="sm" fw={500}>{account.username}</Text>
+              {account.group && <Badge size="xs" variant="light" color="blue">{account.group}</Badge>}
             </Stack>
-          </Box>
-        </motion.div>
-      )}
+          </Group>
+          <ActionIcon variant="subtle" color="gray" onClick={onClose}>
+            <X size={16} />
+          </ActionIcon>
+        </Group>
+
+        {/* Details */}
+        <ScrollArea style={{ flex: 1 }} p="md">
+          <Stack gap="md">
+            {/* Description */}
+            {account.description && (
+              <Card withBorder padding="sm" radius="md">
+                <Text size="xs" c="dimmed" mb={4}>Descripcion</Text>
+                <Text size="sm">{account.description}</Text>
+              </Card>
+            )}
+
+            {/* Actions */}
+            <Group gap="xs">
+              <Button variant="filled" color="primary" size="xs" fullWidth onClick={onLaunch}>
+                Lanzar Roblox
+              </Button>
+              <Button variant="light" size="xs" fullWidth onClick={onRefreshCookie}>
+                Actualizar cookie
+              </Button>
+            </Group>
+
+            {/* Inventory / Outfits */}
+            <div>
+              <Group gap="xs" mb="sm">
+                <Eye size={14} />
+                <Text size="sm" fw={500}>Apariencia / Atuendos</Text>
+              </Group>
+              {loading ? (
+                <Stack gap="xs">
+                  <Skeleton height={80} radius="md" />
+                  <Skeleton height={80} radius="md" />
+                </Stack>
+              ) : outfits.length === 0 ? (
+                <Text size="xs" c="dimmed" ta="center" pt="md">
+                  No se pudieron cargar los atuendos. La cuenta puede no tener atuendos guardados.
+                </Text>
+              ) : (
+                <Stack gap="xs">
+                  {outfits.map((outfit) => (
+                    <Card key={outfit.id} withBorder padding="sm" radius="md">
+                      <Group gap="sm" align="center">
+                        {outfit.thumbnailUrl ? (
+                          <MantineImage src={outfit.thumbnailUrl} w={48} h={48} radius="md" fit="cover" />
+                        ) : (
+                          <div style={{ width: 48, height: 48, borderRadius: 'var(--mantine-radius-md)', backgroundColor: 'var(--mantine-color-gray-3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Eye size={20} style={{ opacity: 0.3 }} />
+                          </div>
+                        )}
+                        <Stack gap={2}>
+                          <Text size="sm" fw={500}>{outfit.name}</Text>
+                          <Text size="xs" c="dimmed">ID: {outfit.id}</Text>
+                        </Stack>
+                      </Group>
+                    </Card>
+                  ))}
+                </Stack>
+              )}
+            </div>
+          </Stack>
+        </ScrollArea>
+      </motion.div>
     </AnimatePresence>
   );
 }

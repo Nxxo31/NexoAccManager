@@ -100,6 +100,10 @@ export async function unfollowUser(userId: number, cookie: string): Promise<void
   await apiPost('https://api.roblox.com/user/unfollow', cookie, { userId });
 }
 
+export async function sendFriendRequest(userId: number, cookie: string): Promise<void> {
+  await apiPost(`https://friends.roblox.com/v1/users/${userId}/request-friendship`, cookie);
+}
+
 export async function getRobuxBalance(userId: number, cookie: string): Promise<RobuxBalance> {
   const data = await apiGet<{ robux: number; pendingRobux: number }>(
     `https://economy.roblox.com/v1/users/${userId}/currency`,

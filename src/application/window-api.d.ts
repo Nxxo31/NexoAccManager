@@ -84,6 +84,9 @@ declare global {
         exportData: () => Promise<IpcResult>;
         deleteAllAccounts: () => Promise<IpcResult>;
         clearCache: () => Promise<IpcResult>;
+        devMode: (enable: boolean) => Promise<IpcResult>;
+        localApiStart: (port: number) => Promise<IpcResult>;
+        localApiStop: () => Promise<IpcResult>;
       };
       cookie: {
         expiry: (accountId: string) => Promise<IpcResult>;
@@ -101,6 +104,9 @@ declare global {
         gamesSearch: (query: string, accountId: string) => Promise<IpcResult>;
         serversList: (placeId: string, accountId: string, serverType?: 'Public' | 'Private') => Promise<IpcResult>;
         serversUsers: (serverId: string, accountId: string) => Promise<IpcResult>;
+        sendFriendRequest: (userId: number, accountId: string) => Promise<IpcResult>;
+        outfits: (accountId: string) => Promise<IpcResult>;
+        serverRegion: (placeId: string, accountId: string) => Promise<IpcResult>;
       };
     };
   }

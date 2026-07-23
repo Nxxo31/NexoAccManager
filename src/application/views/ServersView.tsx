@@ -1,10 +1,10 @@
-// Application View: ServersView — search servers + join — Mantine v7
+// Application View: ServersView — server browser with region + ping, no Job ID — Mantine v7
 
 import { useState } from 'react';
 import { useAccountStore } from '../store/accountStore';
 import { notifications } from '@mantine/notifications';
-import { Group, Stack, Text, Badge, Button, Select, TextInput, Card, Progress, ScrollArea, Skeleton } from '@mantine/core';
-import { Globe, Search } from 'lucide-react';
+import { Group, Stack, Text, Badge, Button, Select, TextInput, Card, Progress, ScrollArea, Skeleton, Tooltip } from '@mantine/core';
+import { Search, Globe, Wifi } from 'lucide-react';
 
 interface ServerInfo {
   id: string;
@@ -15,20 +15,31 @@ interface ServerInfo {
   fps: number;
 }
 
+interface RegionInfo {
+  region: string;
+  ping: number;
+}
+
 export function ServersView(): JSX.Element {
   const accounts = useAccountStore((s) => s.accounts);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [placeId, setPlaceId] = useState('');
   const [servers, setServers] = useState<ServerInfo[]>([]);
+  const [region, setRegion] = useState<RegionInfo | null>(null);
   const [loading, setLoading] = useState(false);
 
   const searchServers = async () => {
     if (!placeId || !selectedAccountId) return;
     setLoading(true);
+    setRegion(null);
     try {
-      const result = await window.api.byAccount.serversList(placeId, selectedAccountId, 'Public');
-      if (result.success) setServers(Array.isArray(result.data) ? result.data : []);
-      else { notifications.show({ message: result.error ?? 'Error', color: 'red' }); setServers([]); }
+      const [serversResult, regionResult] = await Promise.all([
+        window.api.byAccount.serversList(placeId, selectedAccountId, 'Public'),
+        window.api.byAccount.serverRegion(placeId, selectedAccountId),
+      ]);
+      if (serversResult.success) setServers(Array.isArray(serversResult.data) ? serversResult.data : []);
+      else { notifications.show({ message: serversResult.error ?? 'Error', color: 'red' }); setServers([]); }
+      if (regionResult.success && regionResult.data) setRegion(regionResult.data as RegionInfo);
     } catch {
       notifications.show({ message: 'Error al buscar servidores', color: 'red' });
       setServers([]);
@@ -72,6 +83,22 @@ export function ServersView(): JSX.Element {
         <Button variant="filled" color="primary" size="sm" onClick={searchServers}>Buscar</Button>
       </Group>
 
+      {/* Region + ping info */}
+      {region && (
+        <Card withBorder padding="sm" radius="md">
+          <Group gap="sm" align="center">
+            <Globe size={16} />
+            <Text size="sm" fw={500}>Region: {region.region}</Text>
+            <Badge size="sm" variant="light" color={region.ping < 100 ? 'green' : region.ping < 200 ? 'yellow' : 'red'}>
+              <Group gap={4}>
+                <Wifi size={12} />
+                {region.ping}ms
+              </Group>
+            </Badge>
+          </Group>
+        </Card>
+      )}
+
       <ScrollArea style={{ flex: 1 }}>
         {loading && (<Stack gap="sm"><Skeleton height={80} radius="md" /><Skeleton height={80} radius="md" /><Skeleton height={80} radius="md" /></Stack>)}
 
@@ -86,7 +113,10 @@ export function ServersView(): JSX.Element {
             {servers.map((s) => (
               <Card key={s.id} withBorder padding="sm" radius="md">
                 <Group justify="space-between" mb="xs">
-                  <Text size="xs" ff="monospace" c="dimmed">{s.id.substring(0, 12)}...</Text>
+                  <Group gap="sm" align="center">
+                    <Globe size={14} />
+                    <Text size="xs" ff="monospace" c="dimmed">{s.id.substring(0, 12)}...</Text>
+                  </Group>
                   <Badge size="xs" variant="light" color={s.ping < 100 ? 'green' : s.ping < 200 ? 'yellow' : 'red'}>
                     {s.ping}ms
                   </Badge>

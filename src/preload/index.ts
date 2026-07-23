@@ -141,6 +141,9 @@ const api = {
     gamesSearch: (query: string, accountId: string) => ipcRenderer.invoke('games:searchByAccount', { query, accountId }),
     serversList: (placeId: string, accountId: string, serverType?: 'Public' | 'Private') => ipcRenderer.invoke('servers:listByAccount', { placeId, accountId, serverType }),
     serversUsers: (serverId: string, accountId: string) => ipcRenderer.invoke('servers:usersByAccount', { serverId, accountId }),
+    sendFriendRequest: (userId: number, accountId: string) => ipcRenderer.invoke('friends:sendByAccount', { userId, accountId }),
+    outfits: (accountId: string) => ipcRenderer.invoke('roblox:outfitsByAccount', { accountId }),
+    serverRegion: (placeId: string, accountId: string) => ipcRenderer.invoke('roblox:serverRegionByAccount', { placeId, accountId }),
   },
 };
 

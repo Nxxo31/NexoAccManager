@@ -9,7 +9,7 @@ import { encrypt, decrypt, hashCookie } from '../database/CryptoService';
 import { getDb } from '../database/DatabaseManager';
 import { loginBrowser, loginUserPass, verifyCookie } from '../external/RobloxAuthService';
 import { searchGames, getGameServers, getServerUsers, getServerRegion } from '../external/RobloxGamesService';
-import { getPresence, getFriends, getFriendRequests, respondFriendRequest, getBlockedUsers, blockUser, unblockUser, followUser, unfollowUser, getRobuxBalance, getRecentGames } from '../external/RobloxPresenceService';
+import { getPresence, getFriends, getFriendRequests, respondFriendRequest, getBlockedUsers, blockUser, unblockUser, followUser, unfollowUser, getRobuxBalance, getRecentGames, sendFriendRequest } from '../external/RobloxPresenceService';
 import { getProfile, updateProfile, get2FAStatus, toggle2FA, getActiveSessions, logoutSession, logoutAllSessions, changePassword, getPrivacySettings, updatePrivacySetting, getNotificationSettings, updateNotificationSetting } from '../external/RobloxSettingsService';
 import { getCookieExpiry, refreshCookie } from '../external/RobloxCookieService';
 import { killAllRoblox, launchRobloxDirect, startBotting, stopBotting, getBottingStatus, joinGroup as joinGroupBot } from '../external/RobloxBottingService';
@@ -527,6 +527,33 @@ export function registerHandlers(): void {
     try {
       const cookie = await getCookieForAccount(accountId);
       return ok(await getServerUsers(serverId, cookie));
+    } catch (e) { return err(String(e)); }
+  });
+
+  // Send friend request by account (cookie resolved internally)
+  ipcMain.handle('friends:sendByAccount', async (_e, { userId, accountId }: { userId: number; accountId: string }) => {
+    try {
+      const cookie = await getCookieForAccount(accountId);
+      await sendFriendRequest(userId, cookie);
+      return ok(null);
+    } catch (e) { return err(String(e)); }
+  });
+
+  // Get outfits by account (for inventory/appearance view)
+  ipcMain.handle('roblox:outfitsByAccount', async (_e, { accountId }: { accountId: string }) => {
+    try {
+      const cookie = await getCookieForAccount(accountId);
+      const account = await accountRepo.getById(accountId);
+      if (!account) return err('Account not found');
+      return ok(await getOutfits(account.robloxUserId, cookie));
+    } catch (e) { return errMsg(e); }
+  });
+
+  // Get server region by account
+  ipcMain.handle('roblox:serverRegionByAccount', async (_e, { placeId, accountId }: { placeId: string; accountId: string }) => {
+    try {
+      const _cookie = await getCookieForAccount(accountId);
+      return ok(await getServerRegion(placeId));
     } catch (e) { return err(String(e)); }
   });
 }
