@@ -1,21 +1,25 @@
 # NexoAccManager — PROJECT.md
 
-# Última actualización: 2026-07-22 (v4.0.0 Clean/Hexagonal Architecture — 54 archivos, 3,825 líneas)
+# Última actualización: 2026-07-23 (v4.0.0 — Migración Mantine v7 + mitigaciones Defender + E2E Electron)
 
-# Versión actual: 4.0.0 (Clean/Hexagonal Architecture — domain + infrastructure + application)
+# Versión actual: 4.0.0 (Clean/Hexagonal Architecture — Mantine v7 UI)
 
 ## Estado actual
 
 | Métrica | Valor |
 |---------|-------|
 | Versión | 4.0.0 |
+| UI Library | Mantine v7 (reemplaza Tailwind) |
 | tsc | ✓ 0 errores |
-| Tests | Eliminados — generaban ruido y confusiones. Análisis vía LSP + code review |
-| LSP | 0 errores, 0 warnings (solo hints de vars sin usar en IPCAdapter y BottingService) |
-| Build | AppImage generado, NSIS pendiente |
-| LOC | 3,825 líneas en 54 archivos (−79% respecto a v3.5.0) |
-| Rama activa | refactor/clean-architecture-v4 (17 commits ahead de main) |
-| Release GitHub | v3.5.0 publicado — pendiente release v4.0.0 |
+| Tests | E2E Electron Playwright configurado (smoke + accounts) |
+| LSP | 0 errores, 0 warnings |
+| Build | AppImage + Snap + NSIS .exe (81MB) con mitigaciones Defender |
+| LOC | ~3,900 líneas en 56 archivos |
+| Rama activa | main (commit bafdcb1) |
+| Release GitHub | v4.0.0 — artifacts subidos |
+| Defender | Mitigado: asarUnpack, sign hook (skip elevate.exe), signingHashAlgorithms sha256, signAndEditExecutable false |
+| E2E | Playwright Electron fixture + smoke + accounts specs |
+| Skill | desktop-ui-professional creado (Mantine v7 patterns + Defender mitigation) |
 
 ## Investigación de patrones UI (2026-07-20) — Documentado
 
