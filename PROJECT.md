@@ -1,8 +1,8 @@
 # NexoAccManager — PROJECT.md
 
-# Última actualización: 2026-07-24 (v4.0.2 — Integración i18n ES/EN/PT en todos los componentes UI)
+# Última actualización: 2026-07-24 (v4.0.3 — Account Control UI tab + Developer Mode confirmado completo)
 
-# Versión actual: 4.0.2 (Clean/Hexagonal Architecture — Mantine v7 UI)
+# Versión actual: 4.0.3 (Clean/Hexagonal Architecture — Mantine v7 UI)
 
 ## Estado actual
 
@@ -500,9 +500,9 @@ Alinear la UI actual con el patrón Master-Detail + Sidebar Navigation canonizad
 
 ## Pendiente
 
-### 🟡 Stubs a completar
-- **Developer Mode** (`advanced:devmode`): handler existe pero no persiste el state en settings DB
-- **Account Control**: WebSocket para remote control de cuentas in-game — solo handler vacío
+### ✅ Stubs completados (2026-07-24, v4.0.3)
+- **Developer Mode** (`advanced:devmode`): handler IPC persiste state en settings DB (`settingsRepo.set('devmode', enable)`). UI en SettingsView con Switch que carga estado inicial vía `settings:get('devmode')` y guarda con `settings:set` + `advanced.devMode`. Completado en batch i18n v4.0.2.
+- **Account Control**: handler IPC `account:control` implementa HTTP calls al LocalApiService (puerto 31415) para commands launch/kill/status/refresh-cookie. UI añadida en AccountDetailPanel como tab "Control" con botones Launch/Kill/Status/RefreshCookie + badge de estado. i18n ES/EN/PT para todas las keys de control. Completado v4.0.3.
 
 ### 🔵 Próximos pasos
 - Build Windows NSIS

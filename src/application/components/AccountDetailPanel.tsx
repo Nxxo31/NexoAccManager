@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { X, Eye, Shield, User, Bell, Lock, Key, LogOut } from 'lucide-react';
+import { X, Eye, Shield, User, Bell, Lock, Key, LogOut, Activity } from 'lucide-react';
 import {
  Group, Stack, Text, Badge, Button, ActionIcon, Card, ScrollArea, Skeleton,
  Image as MantineImage, Avatar, Tabs, TextInput, Textarea, Switch, PasswordInput,
@@ -46,6 +46,10 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
 
  // Notifications state
  const [notifSettings, setNotifSettings] = useState<Record<string, boolean>>({});
+
+ // Control state
+ const [controlStatus, setControlStatus] = useState<'idle' | 'running' | 'stopped' | 'checking'>('idle');
+ const [controlLoading, setControlLoading] = useState<string | null>(null);
 
  const loadOutfits = async () => {
  setLoadingOutfits(true);
@@ -129,12 +133,62 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
  } else notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
  };
 
+ const handleControlLaunch = async () => {
+ setControlLoading('launch');
+ const r = await window.api.byAccount.control(account.id, 'launch');
+ if (r.success) {
+ notifications.show({ message: t('detail.controlLaunchSuccess'), color: 'green' });
+ setControlStatus('running');
+ } else {
+ notifications.show({ message: r.error ?? t('detail.controlNoResponse'), color: 'red' });
+ }
+ setControlLoading(null);
+ };
+
+ const handleControlKill = async () => {
+ setControlLoading('kill');
+ const r = await window.api.byAccount.control(account.id, 'kill');
+ if (r.success) {
+ notifications.show({ message: t('detail.controlKillSuccess'), color: 'green' });
+ setControlStatus('stopped');
+ } else {
+ notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
+ }
+ setControlLoading(null);
+ };
+
+ const handleControlStatus = async () => {
+ setControlLoading('status');
+ setControlStatus('checking');
+ const r = await window.api.byAccount.control(account.id, 'status');
+ if (r.success && r.data) {
+ const data = r.data as { running?: boolean };
+ setControlStatus(data.running ? 'running' : 'stopped');
+ } else {
+ setControlStatus('idle');
+ notifications.show({ message: t('detail.controlNoResponse'), color: 'orange' });
+ }
+ setControlLoading(null);
+ };
+
+ const handleControlRefreshCookie = async () => {
+ setControlLoading('refresh-cookie');
+ const r = await window.api.byAccount.control(account.id, 'refresh-cookie');
+ if (r.success) {
+ notifications.show({ message: t('detail.controlRefreshSuccess'), color: 'green' });
+ } else {
+ notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
+ }
+ setControlLoading(null);
+ };
+
  useEffect(() => { loadOutfits(); }, [account.id]);
  useEffect(() => {
  if (activeTab === 'profile') loadProfile();
  if (activeTab === 'security') loadSecurity();
  if (activeTab === 'privacy') loadPrivacy();
  if (activeTab === 'notifications') loadNotifSettings();
+ if (activeTab === 'control') handleControlStatus();
  }, [activeTab, account.id]);
 
  return (
@@ -185,6 +239,7 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
  <Tabs.Tab value="security" leftSection={<Shield size={14} />}>{t('detail.security')}</Tabs.Tab>
  <Tabs.Tab value="privacy" leftSection={<Lock size={14} />}>{t('detail.privacy')}</Tabs.Tab>
  <Tabs.Tab value="notifications" leftSection={<Bell size={14} />}>{t('detail.notifications')}</Tabs.Tab>
+ <Tabs.Tab value="control" leftSection={<Activity size={14} />}>{t('detail.control')}</Tabs.Tab>
  </Tabs.List>
 
  <ScrollArea style={{ flex: 1 }} p="sm">
@@ -318,6 +373,44 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
  </Group>
  ))
  )}
+ </Stack>
+ </Tabs.Panel>
+
+ {/* Control Tab */}
+ <Tabs.Panel value="control">
+ <Stack gap="md">
+   {/* Status display */}
+   <Group justify="space-between" align="center">
+     <Group gap="sm" align="center">
+       <Activity size={14} />
+       <Text size="sm">{t('detail.controlStatus')}</Text>
+     </Group>
+     <Badge size="sm" color={controlStatus === 'running' ? 'green' : controlStatus === 'stopped' ? 'gray' : controlStatus === 'checking' ? 'yellow' : 'gray'}>
+       {controlStatus === 'running' ? t('detail.controlRunning') : controlStatus === 'stopped' ? t('detail.controlStopped') : controlStatus === 'checking' ? '...' : '—'}
+     </Badge>
+   </Group>
+
+   <Divider />
+
+   {/* Launch / Kill */}
+   <Group gap="xs" grow>
+     <Button variant="filled" color="primary" size="sm" onClick={handleControlLaunch} loading={controlLoading === 'launch'}>
+       {t('detail.controlLaunch')}
+     </Button>
+     <Button variant="light" color="red" size="sm" onClick={handleControlKill} loading={controlLoading === 'kill'}>
+       {t('detail.controlKill')}
+     </Button>
+   </Group>
+
+   {/* Refresh cookie */}
+   <Button variant="light" size="sm" fullWidth onClick={handleControlRefreshCookie} loading={controlLoading === 'refresh-cookie'}>
+     {t('detail.controlRefreshCookie')}
+   </Button>
+
+   {/* Manual status refresh */}
+   <Button variant="subtle" size="xs" fullWidth onClick={handleControlStatus} loading={controlLoading === 'status'}>
+     {t('detail.controlStatus')}
+   </Button>
  </Stack>
  </Tabs.Panel>
  </ScrollArea>
