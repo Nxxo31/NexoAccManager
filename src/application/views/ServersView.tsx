@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { useAccountStore } from '../store/accountStore';
 import { notifications } from '@mantine/notifications';
-import { Group, Stack, Text, Badge, Button, Select, TextInput, Card, Progress, ScrollArea, Skeleton, Tooltip } from '@mantine/core';
+import { Group, Stack, Text, Badge, Button, Select, TextInput, Card, Progress, ScrollArea, Skeleton } from '@mantine/core';
 import { Search, Globe, Wifi } from 'lucide-react';
+import { t } from '../../config/i18n';
 
 interface ServerInfo {
   id: string;
@@ -38,10 +39,10 @@ export function ServersView(): JSX.Element {
         window.api.byAccount.serverRegion(placeId, selectedAccountId),
       ]);
       if (serversResult.success) setServers(Array.isArray(serversResult.data) ? serversResult.data : []);
-      else { notifications.show({ message: serversResult.error ?? 'Error', color: 'red' }); setServers([]); }
+      else { notifications.show({ message: serversResult.error ?? t('common.error'), color: 'red' }); setServers([]); }
       if (regionResult.success && regionResult.data) setRegion(regionResult.data as RegionInfo);
     } catch {
-      notifications.show({ message: 'Error al buscar servidores', color: 'red' });
+      notifications.show({ message: t('servers.searchError'), color: 'red' });
       setServers([]);
     }
     setLoading(false);
@@ -49,20 +50,24 @@ export function ServersView(): JSX.Element {
 
   const handleJoin = async (jobId: string) => {
     const result = await window.api.roblox.serversJoin(selectedAccountId, placeId, jobId);
-    if (result.success) notifications.show({ message: 'Uniendose al servidor...', color: 'green' });
-    else notifications.show({ message: result.error ?? 'Error', color: 'red' });
+    if (result.success) notifications.show({ message: t('servers.joining'), color: 'green' });
+    else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
   };
 
   if (accounts.length === 0) {
-    return (<Stack align="center" justify="center" h="100%"><Text c="dimmed">Agrega una cuenta primero.</Text></Stack>);
+    return (
+      <Stack align="center" justify="center" h="100%">
+        <Text c="dimmed">{t('servers.addAccountFirst')}</Text>
+      </Stack>
+    );
   }
 
   return (
     <Stack gap="md" p="md" h="100%">
-      <Text size="lg" fw={600}>Servidores</Text>
+      <Text size="lg" fw={600}>{t('servers.title')}</Text>
 
       <Select
-        placeholder="Seleccionar cuenta..."
+        placeholder={t('servers.selectAccount')}
         value={selectedAccountId}
         onChange={(val) => setSelectedAccountId(val ?? '')}
         data={accounts.map((acc) => ({ value: acc.id, label: acc.username }))}
@@ -72,7 +77,7 @@ export function ServersView(): JSX.Element {
 
       <Group gap="sm">
         <TextInput
-          placeholder="Place ID..."
+          placeholder={t('servers.placeIdPlaceholder')}
           value={placeId}
           onChange={(e) => setPlaceId(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') searchServers(); }}
@@ -80,7 +85,7 @@ export function ServersView(): JSX.Element {
           size="sm"
           style={{ flex: 1 }}
         />
-        <Button variant="filled" color="primary" size="sm" onClick={searchServers}>Buscar</Button>
+        <Button variant="filled" color="primary" size="sm" onClick={searchServers}>{t('servers.search')}</Button>
       </Group>
 
       {/* Region + ping info */}
@@ -88,7 +93,8 @@ export function ServersView(): JSX.Element {
         <Card withBorder padding="sm" radius="md">
           <Group gap="sm" align="center">
             <Globe size={16} />
-            <Text size="sm" fw={500}>Region: {region.region}</Text>
+            <Text size="sm" fw={500}>{t('servers.region', { region: region.region })}</Text>
+            {/* A-003: Color como unico indicador - anadir icono y texto a ping badge */}
             <Badge size="sm" variant="light" color={region.ping < 100 ? 'green' : region.ping < 200 ? 'yellow' : 'red'}>
               <Group gap={4}>
                 <Wifi size={12} />
@@ -100,12 +106,24 @@ export function ServersView(): JSX.Element {
       )}
 
       <ScrollArea style={{ flex: 1 }}>
-        {loading && (<Stack gap="sm"><Skeleton height={80} radius="md" /><Skeleton height={80} radius="md" /><Skeleton height={80} radius="md" /></Stack>)}
+        {loading && (
+          <Stack gap="sm">
+            <Skeleton height={80} radius="md" />
+            <Skeleton height={80} radius="md" />
+            <Skeleton height={80} radius="md" />
+          </Stack>
+        )}
 
-        {!loading && !selectedAccountId && (<Text c="dimmed" ta="center" pt="xl">Selecciona una cuenta para buscar servidores.</Text>)}
+        {!loading && !selectedAccountId && (
+          <Text c="dimmed" ta="center" pt="xl">
+            {t('servers.selectToSearch')}
+          </Text>
+        )}
 
         {!loading && selectedAccountId && placeId && servers.length === 0 && (
-          <Text c="dimmed" ta="center" pt="xl">No se encontraron servidores. Verifica el Place ID.</Text>
+          <Text c="dimmed" ta="center" pt="xl">
+            {t('servers.noResults')}
+          </Text>
         )}
 
         {!loading && servers.length > 0 && (
@@ -117,13 +135,14 @@ export function ServersView(): JSX.Element {
                     <Globe size={14} />
                     <Text size="xs" ff="monospace" c="dimmed">{s.id.substring(0, 12)}...</Text>
                   </Group>
+                  {/* A-003: Color como unico indicador - anadir texto a ping badge */}
                   <Badge size="xs" variant="light" color={s.ping < 100 ? 'green' : s.ping < 200 ? 'yellow' : 'red'}>
                     {s.ping}ms
                   </Badge>
                 </Group>
                 <Group justify="space-between" mb="xs">
-                  <Text size="sm" c="dimmed">{s.currentPlayers}/{s.maxPlayers} jugadores</Text>
-                  <Text size="xs" c="dimmed">{s.fps} FPS</Text>
+                  <Text size="sm" c="dimmed">{t('servers.players', { current: String(s.currentPlayers), max: String(s.maxPlayers) })}</Text>
+                  <Text size="xs" c="dimmed">{t('servers.fps', { fps: String(s.fps) })}</Text>
                 </Group>
                 <Progress
                   value={(s.currentPlayers / s.maxPlayers) * 100}
@@ -132,7 +151,7 @@ export function ServersView(): JSX.Element {
                   mb="sm"
                 />
                 <Button variant="filled" color="primary" size="xs" fullWidth onClick={() => handleJoin(s.id)}>
-                  Unirse
+                  {t('accounts.join')}
                 </Button>
               </Card>
             ))}

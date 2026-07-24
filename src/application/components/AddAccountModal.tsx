@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { Globe, Cookie, Upload, Loader2 } from 'lucide-react';
-import { Modal, Tabs, TextInput, Textarea, Button, Stack, Text } from '@mantine/core';
+import { Modal, Tabs, Textarea, Button, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useAccounts } from '../hooks/useAccounts';
+import { t } from '../../config/i18n';
 
 interface Props {
   open: boolean;
@@ -20,14 +21,14 @@ export function AddAccountModal({ open, onClose, onLoginBrowser }: Props): JSX.E
 
   const handleBrowser = async () => {
     setLoading(true);
-    notifications.show({ message: 'Abriendo navegador de login...', color: 'blue' });
+    notifications.show({ message: t('modal.openingBrowser'), color: 'blue' });
     await onLoginBrowser();
     setLoading(false);
     onClose();
   };
 
   const handleCookie = async () => {
-    if (!cookie.trim()) { notifications.show({ message: 'Pega una cookie valida', color: 'red' }); return; }
+    if (!cookie.trim()) { notifications.show({ message: t('modal.pasteValidCookie'), color: 'red' }); return; }
     setLoading(true);
     const result = await addAccount(cookie.trim());
     if (result.success) { setCookie(''); onClose(); }
@@ -44,7 +45,7 @@ export function AddAccountModal({ open, onClose, onLoginBrowser }: Props): JSX.E
     }).filter((a) => a.username && a.password);
 
     if (accounts.length === 0) {
-      notifications.show({ message: 'Formato: usuario:password por linea', color: 'red' });
+      notifications.show({ message: t('modal.bulkFormatError'), color: 'red' });
       setLoading(false);
       return;
     }
@@ -62,46 +63,46 @@ export function AddAccountModal({ open, onClose, onLoginBrowser }: Props): JSX.E
         }
       } catch { /* skip */ }
     }
-    notifications.show({ message: `${added} cuentas agregadas`, color: added > 0 ? 'green' : 'red' });
+    notifications.show({ message: t('modal.accountsAdded', { count: String(added) }), color: added > 0 ? 'green' : 'red' });
     if (added > 0) { setBulkText(''); onClose(); }
     setLoading(false);
   };
 
   return (
-    <Modal opened={open} onClose={onClose} title="Agregar cuenta" size="md" centered>
+    <Modal opened={open} onClose={onClose} title={t('modal.addAccountTitle')} size="md" centered>
       <Tabs defaultValue="browser">
         <Tabs.List>
-          <Tabs.Tab value="browser" leftSection={<Globe size={14} />}>Navegador</Tabs.Tab>
-          <Tabs.Tab value="cookie" leftSection={<Cookie size={14} />}>Cookie</Tabs.Tab>
-          <Tabs.Tab value="bulk" leftSection={<Upload size={14} />}>Bulk Import</Tabs.Tab>
+          <Tabs.Tab value="browser" leftSection={<Globe size={14} />}>{t('modal.browser')}</Tabs.Tab>
+          <Tabs.Tab value="cookie" leftSection={<Cookie size={14} />}>{t('modal.cookie')}</Tabs.Tab>
+          <Tabs.Tab value="bulk" leftSection={<Upload size={14} />}>{t('modal.bulkImport')}</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="browser" pt="md">
           <Stack gap="md">
             <Text size="xs" c="dimmed">
-              Se abrira un navegador para iniciar sesion en Roblox. La cookie se capturara automaticamente.
+              {t('modal.browserInfo')}
             </Text>
             <Button variant="filled" color="primary" leftSection={loading ? <Loader2 size={14} className="animate-spin" /> : <Globe size={14} />} loading={loading} onClick={handleBrowser}>
-              Abrir navegador
+              {t('modal.openBrowser')}
             </Button>
           </Stack>
         </Tabs.Panel>
 
         <Tabs.Panel value="cookie" pt="md">
           <Stack gap="md">
-            <Textarea label="Cookie .ROBLOSECURITY" placeholder="Pega la cookie aqui..." value={cookie} onChange={(e) => setCookie(e.target.value)} minRows={4} maxRows={6} />
+            <Textarea label={t('modal.cookieLabel')} placeholder={t('modal.cookiePlaceholder')} value={cookie} onChange={(e) => setCookie(e.target.value)} minRows={4} maxRows={6} />
             <Button variant="filled" color="primary" leftSection={<Cookie size={14} />} loading={loading} onClick={handleCookie} disabled={!cookie.trim()}>
-              Agregar cookie
+              {t('modal.addCookie')}
             </Button>
           </Stack>
         </Tabs.Panel>
 
         <Tabs.Panel value="bulk" pt="md">
           <Stack gap="md">
-            <Text size="xs" c="dimmed">Formato: una cuenta por linea como usuario:password</Text>
-            <Textarea label="Cuentas (usuario:password)" placeholder="usuario1:password1&#10;usuario2:password2" value={bulkText} onChange={(e) => setBulkText(e.target.value)} minRows={6} maxRows={8} />
+            <Text size="xs" c="dimmed">{t('modal.bulkFormat')}</Text>
+            <Textarea label={t('modal.bulkLabel')} placeholder={t('modal.bulkPlaceholder')} value={bulkText} onChange={(e) => setBulkText(e.target.value)} minRows={6} maxRows={8} />
             <Button variant="filled" color="primary" leftSection={<Upload size={14} />} loading={loading} onClick={handleBulk} disabled={!bulkText.trim()}>
-              Importar
+              {t('modal.import')}
             </Button>
           </Stack>
         </Tabs.Panel>

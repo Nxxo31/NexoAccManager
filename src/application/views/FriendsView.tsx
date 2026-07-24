@@ -5,6 +5,7 @@ import { useAccountStore } from '../store/accountStore';
 import { notifications } from '@mantine/notifications';
 import { Group, Stack, Text, Badge, Button, Select, SegmentedControl, Card, ScrollArea, ActionIcon, Avatar, Skeleton, TextInput } from '@mantine/core';
 import { UserPlus, UserMinus, Check, X, Send } from 'lucide-react';
+import { t } from '../../config/i18n';
 
 interface Friend {
   userId: number;
@@ -40,14 +41,14 @@ export function FriendsView(): JSX.Element {
       if (activeTab === 'friends') {
         const result = await window.api.byAccount.friendsList(selectedAccountId);
         if (result.success) setFriends(Array.isArray(result.data) ? result.data : []);
-        else notifications.show({ message: result.error ?? 'Error', color: 'red' });
+        else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
       } else {
         const result = await window.api.byAccount.friendsRequests(selectedAccountId);
         if (result.success) setRequests(Array.isArray(result.data) ? result.data : []);
-        else notifications.show({ message: result.error ?? 'Error', color: 'red' });
+        else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
       }
     } catch {
-      notifications.show({ message: 'Error al cargar datos', color: 'red' });
+      notifications.show({ message: t('friends.loadError'), color: 'red' });
     }
     setLoading(false);
   };
@@ -55,10 +56,10 @@ export function FriendsView(): JSX.Element {
   const handleRespond = async (requestId: number, accept: boolean) => {
     const result = await window.api.byAccount.friendsRespond(requestId, accept, selectedAccountId);
     if (result.success) {
-      notifications.show({ message: accept ? 'Solicitud aceptada' : 'Solicitud rechazada', color: 'green' });
+      notifications.show({ message: accept ? t('friends.requestAccepted') : t('friends.requestRejected'), color: 'green' });
       setRequests(requests.filter((r) => r.id !== requestId));
     } else {
-      notifications.show({ message: result.error ?? 'Error', color: 'red' });
+      notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
     }
   };
 
@@ -66,31 +67,31 @@ export function FriendsView(): JSX.Element {
     const fn = isFollowing ? window.api.byAccount.unfollow : window.api.byAccount.follow;
     const result = await fn(userId, selectedAccountId);
     if (result.success) {
-      notifications.show({ message: isFollowing ? 'Dejaste de seguir' : 'Ahora sigues a este usuario', color: 'green' });
+      notifications.show({ message: isFollowing ? t('friends.unfollowed') : t('friends.nowFollowing'), color: 'green' });
     } else {
-      notifications.show({ message: result.error ?? 'Error', color: 'red' });
+      notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
     }
   };
 
   const handleSendRequest = async () => {
     const userIdNum = parseInt(searchUserId, 10);
     if (!userIdNum || isNaN(userIdNum)) {
-      notifications.show({ message: 'Ingresa un User ID valido', color: 'red' });
+      notifications.show({ message: t('friends.invalidUserId'), color: 'red' });
       return;
     }
     const result = await window.api.byAccount.sendFriendRequest(userIdNum, selectedAccountId);
     if (result.success) {
-      notifications.show({ message: 'Solicitud de amistad enviada', color: 'green' });
+      notifications.show({ message: t('friends.requestSent'), color: 'green' });
       setSearchUserId('');
     } else {
-      notifications.show({ message: result.error ?? 'Error al enviar solicitud', color: 'red' });
+      notifications.show({ message: result.error ?? t('friends.requestSendError'), color: 'red' });
     }
   };
 
   if (accounts.length === 0) {
     return (
       <Stack align="center" justify="center" h="100%">
-        <Text c="dimmed">Agrega una cuenta primero para ver amigos.</Text>
+        <Text c="dimmed">{t('friends.addAccountFirst')}</Text>
       </Stack>
     );
   }
@@ -99,10 +100,10 @@ export function FriendsView(): JSX.Element {
 
   return (
     <Stack gap="md" p="md" h="100%">
-      <Text size="lg" fw={600}>Amigos</Text>
+      <Text size="lg" fw={600}>{t('friends.title')}</Text>
 
       <Select
-        placeholder="Seleccionar cuenta..."
+        placeholder={t('friends.selectAccount')}
         value={selectedAccountId}
         onChange={(val) => setSelectedAccountId(val ?? '')}
         data={accountData}
@@ -114,9 +115,9 @@ export function FriendsView(): JSX.Element {
         value={activeTab}
         onChange={(val) => setActiveTab(val)}
         data={[
-          { value: 'friends', label: 'Amigos' },
-          { value: 'requests', label: 'Solicitudes' },
-          { value: 'send', label: 'Enviar solicitud' },
+          { value: 'friends', label: t('friends.tabFriends') },
+          { value: 'requests', label: t('friends.tabRequests') },
+          { value: 'send', label: t('friends.tabSend') },
         ]}
         size="sm"
       />
@@ -131,16 +132,20 @@ export function FriendsView(): JSX.Element {
         )}
 
         {!loading && !selectedAccountId && (
-          <Text c="dimmed" ta="center" pt="xl">Selecciona una cuenta para ver su informacion.</Text>
+          <Text c="dimmed" ta="center" pt="xl">
+            {t('friends.selectToView')}
+          </Text>
         )}
 
         {/* Send friend request tab */}
         {!loading && selectedAccountId && activeTab === 'send' && (
           <Stack gap="md" p="sm">
-            <Text size="sm" c="dimmed">Ingresa el User ID de Roblox de la persona a la que quieres enviar una solicitud de amistad.</Text>
+            <Text size="sm" c="dimmed">
+              {t('friends.sendRequestInfo')}
+            </Text>
             <Group gap="sm">
               <TextInput
-                placeholder="User ID (ej: 12345678)"
+                placeholder={t('friends.userIdPlaceholder')}
                 value={searchUserId}
                 onChange={(e) => setSearchUserId(e.currentTarget.value)}
                 leftSection={<UserPlus size={14} />}
@@ -148,7 +153,7 @@ export function FriendsView(): JSX.Element {
                 style={{ flex: 1 }}
               />
               <Button variant="filled" color="primary" size="sm" leftSection={<Send size={14} />} onClick={handleSendRequest}>
-                Enviar
+                {t('friends.send')}
               </Button>
             </Group>
           </Stack>
@@ -158,7 +163,7 @@ export function FriendsView(): JSX.Element {
         {!loading && selectedAccountId && activeTab === 'friends' && (
           <Stack gap="sm">
             {friends.length === 0 ? (
-              <Text c="dimmed" ta="center" pt="xl">Sin amigos para mostrar.</Text>
+              <Text c="dimmed" ta="center" pt="xl">{t('friends.noFriends')}</Text>
             ) : (
               friends.map((f) => (
                 <Card key={f.userId} withBorder padding="sm" radius="md">
@@ -171,11 +176,12 @@ export function FriendsView(): JSX.Element {
                         <Text size="sm" fw={500}>{f.displayName}</Text>
                         <Text size="xs" c="dimmed">@{f.username}</Text>
                       </Stack>
+                      {/* A-003: Color como unico indicador - anadir texto a online/offline badge */}
                       <Badge size="xs" variant="light" color={f.isOnline ? 'green' : 'gray'}>
-                        {f.isOnline ? 'Online' : 'Offline'}
+                        {f.isOnline ? t('friends.online') : t('friends.offline')}
                       </Badge>
                     </Group>
-                    <ActionIcon variant="subtle" color="gray" onClick={() => handleFollowToggle(f.userId, true)}>
+                    <ActionIcon variant="subtle" color="gray" onClick={() => handleFollowToggle(f.userId, true)} aria-label={t('friends.unfollow')}>
                       <UserMinus size={16} />
                     </ActionIcon>
                   </Group>
@@ -189,7 +195,7 @@ export function FriendsView(): JSX.Element {
         {!loading && selectedAccountId && activeTab === 'requests' && (
           <Stack gap="sm">
             {requests.length === 0 ? (
-              <Text c="dimmed" ta="center" pt="xl">Sin solicitudes pendientes.</Text>
+              <Text c="dimmed" ta="center" pt="xl">{t('friends.noRequests')}</Text>
             ) : (
               requests.map((r) => (
                 <Card key={r.id} withBorder padding="sm" radius="md">
@@ -200,10 +206,10 @@ export function FriendsView(): JSX.Element {
                     </Stack>
                     <Group gap="xs">
                       <Button size="xs" variant="filled" color="green" leftSection={<Check size={14} />} onClick={() => handleRespond(r.id, true)}>
-                        Aceptar
+                        {t('friends.accept')}
                       </Button>
                       <Button size="xs" variant="light" color="red" leftSection={<X size={14} />} onClick={() => handleRespond(r.id, false)}>
-                        Rechazar
+                        {t('friends.reject')}
                       </Button>
                     </Group>
                   </Group>
