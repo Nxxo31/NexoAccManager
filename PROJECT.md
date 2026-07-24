@@ -20,6 +20,24 @@
 || Defender | Mitigado: asarUnpack, sign hook (skip elevate.exe), signingHashAlgorithms sha256, signAndEditExecutable false ||
 || E2E | Playwright Electron fixture + smoke + accounts specs ||
 
+## Batch 1 — Código muerto + Performance (2026-07-24)
+
+**Código muerto eliminado:**
+- **D-001** `components/accounts/AccountCard.tsx` (legacy Tailwind + hex colors, nunca importado) — reescrito con Mantine v7 + `React.memo` (ver P-001). `lib/utils.ts` (cn helper) conservado — aún usado por badge/button/input/card de shadcn-ui.
+- **D-002** `components/NotificationBar.tsx` — retornaba `null` explícitamente (7 líneas). Eliminado.
+- **D-003** `components/ServerBrowser.tsx` — 52L con inline styles dark-only, reemplazado por `ServersView`. Eliminado.
+
+**Performance fixes:**
+- **P-001** `AccountsView.tsx` — `AccountCard` estaba definido DENTRO de `AccountsView` (recreaba la función en cada render → unmount/mount de N cards). FIX: extraído a `components/accounts/AccountCard.tsx` con Mantine v7 y exportado con `React.memo`. Callbacks `onSelect`/`onRemove`/`onToggleFavorite`/`onEdit` memoizados con `useCallback` para mantener referencias estables entre renders.
+- **P-002** `AccountsView.tsx:17-20` — 4 selectores `useAccountStore` independientes. FIX: consolidado en una sola suscripción vía `useShallow` de `zustand/react/shallow`.
+- **P-003** `GamesView.tsx:66` — `removeFavorite` usaba `setFavorites(favorites.filter())` (mutación local). FIX: ahora llama `loadFavorites()` para recargar desde IPC (fuente de verdad).
+- **P-005** `SettingsView.tsx:518,606` — keys con `key={i}` (index) en playtimeHistory y logEntries. FIX: compuestas estables `${entry.startTime}-${entry.placeName}-${i}` y `${entry.timestamp}-${entry.level}-${i}`.
+
+**Verificación:**
+- `npx tsc --noEmit` → 0 errores
+- `npm run lint` → 53 problemas (3 errores pre-existing en `build/windows-sign.js`, 50 warnings pre-existing). Sin errores/warnings nuevos introducidos por este batch.
+- LOC: -97 líneas netas (6 archivos modificados, 2 eliminados)
+
 ## Migración cookie-based → byAccount (2026-07-24, v4.0.1)
 
 **Problema:** Handlers IPC cookie-based duplicaban canales con los byAccount. En Electron, `ipcMain.handle` con mismo canal crashea ("handler already registered"). El renderer pasaba cookies en texto plano, violando el principio de que la cookie nunca sale del main process.

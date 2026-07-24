@@ -1,11 +1,13 @@
 // Application View: AccountsView — account grid with groups + editable description — Mantine v7
 
-import { useState, useMemo } from 'react';
-import { Shuffle, Plus, Users, LogOut, Tag, Pencil, Star, Trash2 } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { Plus, Users, LogOut, Tag } from 'lucide-react';
 import { useAccountStore } from '../store/accountStore';
 import { useAccounts } from '../hooks/useAccounts';
 import { AccountDetailPanel } from '../components/AccountDetailPanel';
-import { Group, Stack, Text, Button, TextInput, ScrollArea, Skeleton, Tooltip, Checkbox, Badge, Card, ActionIcon, Avatar, Modal, Textarea } from '@mantine/core';
+import { AccountCard } from '../components/accounts/AccountCard';
+import { useShallow } from 'zustand/react/shallow';
+import { Group, Stack, Text, Button, TextInput, ScrollArea, Tooltip, Checkbox, Modal, Textarea } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import type { Account } from '../../domain/entities/Account';
 
@@ -14,10 +16,14 @@ interface AccountsViewProps {
 }
 
 export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
-  const accounts = useAccountStore((s) => s.accounts);
-  const selectedId = useAccountStore((s) => s.selectedId);
-  const select = useAccountStore((s) => s.select);
-  const update = useAccountStore((s) => s.update);
+  const { accounts, selectedId, select, update } = useAccountStore(
+    useShallow((s) => ({
+      accounts: s.accounts,
+      selectedId: s.selectedId,
+      select: s.select,
+      update: s.update,
+    })),
+  );
   const { removeAccount, loginBrowser } = useAccounts();
   const [placeId, setPlaceId] = useState('');
   const [jobId, setJobId] = useState('');
@@ -37,6 +43,27 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
       (a.description ?? '').toLowerCase().includes(q)
     );
   }, [accounts, searchQuery]);
+
+  // Memoized callbacks passed to AccountCard — prevents unmount/mount churn (P-001).
+  // Each callback takes the account id so the same function reference is reused across renders.
+  const handleSelect = useCallback((id: string) => {
+    select(id);
+  }, [select]);
+
+  const handleRemove = useCallback((id: string) => {
+    void removeAccount(id);
+  }, [removeAccount]);
+
+  const handleToggleFavorite = useCallback((account: Account) => {
+    update(account.id, { isFavorite: !account.isFavorite });
+    void window.api.account.setFavorite(account.id, !account.isFavorite);
+  }, [update]);
+
+  const handleEdit = useCallback((account: Account) => {
+    setEditAccount(account);
+    setEditGroup(account.group ?? '');
+    setEditDesc(account.description ?? '');
+  }, []);
 
   const handleLaunch = async () => {
     if (!selected) return;
@@ -67,12 +94,6 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
     } catch {
       notifications.show({ message: 'Error al actualizar', color: 'red' });
     }
-  };
-
-  const openEdit = (account: Account) => {
-    setEditAccount(account);
-    setEditGroup(account.group ?? '');
-    setEditDesc(account.description ?? '');
   };
 
   if (accounts.length === 0) {
@@ -114,13 +135,10 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
                   key={account.id}
                   account={account}
                   selected={account.id === selectedId}
-                  onSelect={() => select(account.id)}
-                  onRemove={() => removeAccount(account.id)}
-                  onToggleFavorite={() => {
-                    update(account.id, { isFavorite: !account.isFavorite });
-                    window.api.account.setFavorite(account.id, !account.isFavorite);
-                  }}
-                  onEdit={() => openEdit(account)}
+                  onSelect={() => handleSelect(account.id)}
+                  onRemove={() => handleRemove(account.id)}
+                  onToggleFavorite={() => handleToggleFavorite(account)}
+                  onEdit={() => handleEdit(account)}
                 />
               ))}
             </Stack>
@@ -172,66 +190,11 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
             maxRows={4}
             size="sm"
           />
-          <Button variant="filled" color="primary" size="sm" onClick={handleSaveRequest} fullWidth>
+          <Button variant="filled" color="primary" size="sm" onClick={handleSaveEdit} fullWidth>
             Guardar
           </Button>
         </Stack>
       </Modal>
     </div>
   );
-
-  function handleSaveRequest() {
-    handleSaveEdit();
-  }
-
-  // Inline AccountCard — minimalist with Mantine
-  function AccountCard({ account, selected, onSelect, onRemove, onToggleFavorite, onEdit }: {
-    account: Account;
-    selected: boolean;
-    onSelect: () => void;
-    onRemove: () => Promise<void>;
-    onToggleFavorite: () => void;
-    onEdit: () => void;
-  }): JSX.Element {
-    return (
-      <Card
-        withBorder
-        radius="md"
-        padding="sm"
-        style={{
-          cursor: 'pointer',
-          borderColor: selected ? 'var(--mantine-color-primary-5)' : undefined,
-          borderWidth: selected ? 2 : 1,
-        }}
-        onClick={onSelect}
-      >
-        <Group justify="space-between" align="center">
-          <Group gap="sm" align="center">
-            <Avatar size="sm" radius="xl" style={{ backgroundColor: 'var(--mantine-color-gray-4)' }}>
-              {account.username.charAt(0).toUpperCase()}
-            </Avatar>
-            <Stack gap={2}>
-              <Text size="sm" fw={500}>{account.username}</Text>
-              {account.group && <Badge size="xs" variant="light" color="blue">{account.group}</Badge>}
-              {account.description && <Text size="xs" c="dimmed" lineClamp={1}>{account.description}</Text>}
-            </Stack>
-          </Group>
-          <Group gap="xs">
-            <Badge size="xs" variant="light" color={account.cookieExpiresAt ? 'green' : 'red'}>
-              {account.cookieExpiresAt ? 'Valida' : 'Expirada'}
-            </Badge>
-            <ActionIcon variant="subtle" color={account.isFavorite ? 'yellow' : 'gray'} onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}>
-              <Star size={14} fill={account.isFavorite ? 'currentColor' : 'none'} />
-            </ActionIcon>
-            <ActionIcon variant="subtle" color="gray" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
-              <Pencil size={14} />
-            </ActionIcon>
-            <ActionIcon variant="subtle" color="gray" onClick={(e) => { e.stopPropagation(); onRemove(); }}>
-              <Trash2 size={14} />
-            </ActionIcon>
-          </Group>
-        </Group>
-      </Card>
-    );
-  }
 }

@@ -516,7 +516,7 @@ export function SettingsView(): JSX.Element {
                         <Text size="xs" c="dimmed" ta="center">Sin sesiones registradas.</Text>
                       ) : (
                         playtimeHistory.map((entry, i) => (
-                          <Card key={i} withBorder padding="xs" radius="sm">
+                          <Card key={`${entry.startTime}-${entry.placeName}-${i}`} withBorder padding="xs" radius="sm">
                             <Group justify="space-between">
                               <Stack gap={2}>
                                 <Text size="sm" fw={500}>{entry.placeName || 'Juego desconocido'}</Text>
@@ -604,7 +604,7 @@ export function SettingsView(): JSX.Element {
                     <Text size="xs" c="dimmed" ta="center">Sin logs recientes.</Text>
                   ) : (
                     logEntries.map((entry, i) => (
-                      <Card key={i} withBorder padding="xs" radius="sm">
+                      <Card key={`${entry.timestamp}-${entry.level}-${i}`} withBorder padding="xs" radius="sm">
                         <Group gap="xs" align="start">
                           <Badge size="xs" variant="light" color={entry.level === 'error' ? 'red' : entry.level === 'warning' ? 'yellow' : 'gray'}>{entry.level}</Badge>
                           <Stack gap={2}>
