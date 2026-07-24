@@ -174,14 +174,6 @@ export function registerHandlers(): void {
     try { await unfollowUser(userId, cookie); return ok(null); } catch (e) { return err(String(e)); }
   });
 
-  ipcMain.handle('account:profile:get', async (_e, { cookie }: { cookie: string }) => {
-    try { return ok(await getProfile(cookie)); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('account:profile:update', async (_e, { cookie, updates }: { cookie: string; updates: { displayName?: string; description?: string } }) => {
-    try { await updateProfile(cookie, updates); return ok(null); } catch (e) { return err(String(e)); }
-  });
-
   // ============ ACCOUNT CONTROL (via HTTP to LocalApiService) ============
   ipcMain.handle('account:control', async (_e, { accountId, command }: { accountId: string; command: string }) => {
     try {
@@ -326,46 +318,6 @@ export function registerHandlers(): void {
     try { settingsRepo.set(key, value); return ok(null); } catch (e) { return err(String(e)); }
   });
 
-  ipcMain.handle('settings:security:password', async (_e, { cookie, current, next }: { cookie: string; current: string; next: string }) => {
-    try { await changePassword(cookie, current, next); return ok(null); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('settings:security:sessions', async (_e, { cookie }: { cookie: string }) => {
-    try { return ok(await getActiveSessions(cookie)); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('settings:security:logout', async (_e, { cookie, sessionId }: { cookie: string; sessionId: string }) => {
-    try { await logoutSession(cookie, sessionId); return ok(null); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('settings:security:logout-all', async (_e, { cookie }: { cookie: string }) => {
-    try { await logoutAllSessions(cookie); return ok(null); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('settings:security:2fa', async (_e, { cookie }: { cookie: string }) => {
-    try { return ok(await get2FAStatus(cookie)); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('settings:security:2fa-toggle', async (_e, { cookie, enable }: { cookie: string; enable: boolean }) => {
-    try { await toggle2FA(cookie, enable); return ok(null); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('settings:privacy:get', async (_e, { cookie }: { cookie: string }) => {
-    try { return ok(await getPrivacySettings(cookie)); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('settings:privacy:update', async (_e, { cookie, key, value }: { cookie: string; key: string; value: string | boolean }) => {
-    try { await updatePrivacySetting(cookie, key, value); return ok(null); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('settings:notifications:get', async (_e, { cookie }: { cookie: string }) => {
-    try { return ok(await getNotificationSettings(cookie)); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('settings:notifications:update', async (_e, { cookie, key, value }: { cookie: string; key: string; value: boolean }) => {
-    try { await updateNotificationSetting(cookie, key, value); return ok(null); } catch (e) { return err(String(e)); }
-  });
-
   // ============ GAMES ============
   ipcMain.handle('games:addFavorite', async (_e, { accountId, game }: { accountId: string; game: { id: string; gameId: number; name: string; icon: string } }) => {
     try {
@@ -471,12 +423,7 @@ export function registerHandlers(): void {
 
   // === New handlers that accept accountId instead of raw cookie ===
   // These resolve the cookie internally so the renderer never sees it
-
-  async function getCookieForAccount(accountId: string): Promise<string> {
-    const acc = await accountRepo.getById(accountId);
-    if (!acc) throw new Error('Cuenta no encontrada');
-    return decrypt(acc.encryptedCookie);
-  }
+  // (cookie resolution is done inline in each handler via accountRepo + decrypt)
 
   ipcMain.handle('friends:listByAccount', async (_e, { accountId }: { accountId: string }) => {
     try {
@@ -489,14 +436,18 @@ export function registerHandlers(): void {
 
   ipcMain.handle('friends:requestsByAccount', async (_e, { accountId }: { accountId: string }) => {
     try {
-      const cookie = await getCookieForAccount(accountId);
+      const acc = await accountRepo.getById(accountId);
+      if (!acc) return err('Cuenta no encontrada');
+      const cookie = decrypt(acc.encryptedCookie);
       return ok(await getFriendRequests(cookie));
     } catch (e) { return err(String(e)); }
   });
 
   ipcMain.handle('friends:respondByAccount', async (_e, { requestId, accept, accountId }: { requestId: number; accept: boolean; accountId: string }) => {
     try {
-      const cookie = await getCookieForAccount(accountId);
+      const acc = await accountRepo.getById(accountId);
+      if (!acc) return err('Cuenta no encontrada');
+      const cookie = decrypt(acc.encryptedCookie);
       await respondFriendRequest(requestId, accept, cookie);
       return ok(null);
     } catch (e) { return err(String(e)); }
@@ -504,7 +455,9 @@ export function registerHandlers(): void {
 
   ipcMain.handle('follow:byAccount', async (_e, { userId, accountId }: { userId: number; accountId: string }) => {
     try {
-      const cookie = await getCookieForAccount(accountId);
+      const acc = await accountRepo.getById(accountId);
+      if (!acc) return err('Cuenta no encontrada');
+      const cookie = decrypt(acc.encryptedCookie);
       await followUser(userId, cookie);
       return ok(null);
     } catch (e) { return err(String(e)); }
@@ -512,7 +465,9 @@ export function registerHandlers(): void {
 
   ipcMain.handle('unfollow:byAccount', async (_e, { userId, accountId }: { userId: number; accountId: string }) => {
     try {
-      const cookie = await getCookieForAccount(accountId);
+      const acc = await accountRepo.getById(accountId);
+      if (!acc) return err('Cuenta no encontrada');
+      const cookie = decrypt(acc.encryptedCookie);
       await unfollowUser(userId, cookie);
       return ok(null);
     } catch (e) { return err(String(e)); }
@@ -520,21 +475,27 @@ export function registerHandlers(): void {
 
   ipcMain.handle('games:searchByAccount', async (_e, { query, accountId }: { query: string; accountId: string }) => {
     try {
-      const cookie = await getCookieForAccount(accountId);
+      const acc = await accountRepo.getById(accountId);
+      if (!acc) return err('Cuenta no encontrada');
+      const cookie = decrypt(acc.encryptedCookie);
       return ok(await searchGames(query, cookie));
     } catch (e) { return err(String(e)); }
   });
 
   ipcMain.handle('servers:listByAccount', async (_e, { placeId, accountId, serverType }: { placeId: string; accountId: string; serverType?: 'Public' | 'Private' }) => {
     try {
-      const cookie = await getCookieForAccount(accountId);
+      const acc = await accountRepo.getById(accountId);
+      if (!acc) return err('Cuenta no encontrada');
+      const cookie = decrypt(acc.encryptedCookie);
       return ok(await getGameServers(placeId, cookie, serverType ?? 'Public'));
     } catch (e) { return err(String(e)); }
   });
 
   ipcMain.handle('servers:usersByAccount', async (_e, { serverId, accountId }: { serverId: string; accountId: string }) => {
     try {
-      const cookie = await getCookieForAccount(accountId);
+      const acc = await accountRepo.getById(accountId);
+      if (!acc) return err('Cuenta no encontrada');
+      const cookie = decrypt(acc.encryptedCookie);
       return ok(await getServerUsers(serverId, cookie));
     } catch (e) { return err(String(e)); }
   });
@@ -542,7 +503,9 @@ export function registerHandlers(): void {
   // Send friend request by account (cookie resolved internally)
   ipcMain.handle('friends:sendByAccount', async (_e, { userId, accountId }: { userId: number; accountId: string }) => {
     try {
-      const cookie = await getCookieForAccount(accountId);
+      const acc = await accountRepo.getById(accountId);
+      if (!acc) return err('Cuenta no encontrada');
+      const cookie = decrypt(acc.encryptedCookie);
       await sendFriendRequest(userId, cookie);
       return ok(null);
     } catch (e) { return err(String(e)); }
@@ -551,22 +514,135 @@ export function registerHandlers(): void {
   // Get outfits by account (for inventory/appearance view)
   ipcMain.handle('roblox:outfitsByAccount', async (_e, { accountId }: { accountId: string }) => {
     try {
-      const cookie = await getCookieForAccount(accountId);
       const account = await accountRepo.getById(accountId);
-      if (!account) return err('Account not found');
+      if (!account) return err('Cuenta no encontrada');
+      const cookie = decrypt(account.encryptedCookie);
       return ok(await getOutfits(account.robloxUserId, cookie));
     } catch (e) { return errMsg(e); }
   });
 
-  // Get server region by account
-  ipcMain.handle('roblox:serverRegionByAccount', async (_e, { placeId, accountId }: { placeId: string; accountId: string }) => {
+  // Get server region by account (cookie not needed by getServerRegion)
+  ipcMain.handle('roblox:serverRegionByAccount', async (_e, { placeId, accountId: _accountId }: { placeId: string; accountId: string }) => {
     try {
-      const _cookie = await getCookieForAccount(accountId);
       return ok(await getServerRegion(placeId));
     } catch (e) { return err(String(e)); }
   });
 
-  // ===== NEW SERVICES IPC HANDLERS =====
+  // ============ BY-ACCOUNT PROFILE ============
+  ipcMain.handle('account:profile:get', async (_e, { accountId }: { accountId: string }) => {
+    try {
+      const account = await accountRepo.getById(accountId);
+      if (!account) return err('Account not found');
+      const cookie = decrypt(account.encryptedCookie);
+      return ok(await getProfile(cookie));
+    } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('account:profile:update', async (_e, { accountId, updates }: { accountId: string; updates: { displayName?: string; description?: string } }) => {
+    try {
+      const account = await accountRepo.getById(accountId);
+      if (!account) return err('Account not found');
+      const cookie = decrypt(account.encryptedCookie);
+      await updateProfile(cookie, updates);
+      return ok(null);
+    } catch (e) { return err(String(e)); }
+  });
+
+  // ============ BY-ACCOUNT SECURITY ============
+  ipcMain.handle('account:security:2fa', async (_e, { accountId }: { accountId: string }) => {
+    try {
+      const account = await accountRepo.getById(accountId);
+      if (!account) return err('Account not found');
+      const cookie = decrypt(account.encryptedCookie);
+      const result = await get2FAStatus(cookie);
+      return ok(result);
+    } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('account:security:2fa-toggle', async (_e, { accountId, enable }: { accountId: string; enable: boolean }) => {
+    try {
+      const account = await accountRepo.getById(accountId);
+      if (!account) return err('Account not found');
+      const cookie = decrypt(account.encryptedCookie);
+      await toggle2FA(cookie, enable);
+      return ok(null);
+    } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('account:security:sessions', async (_e, { accountId }: { accountId: string }) => {
+    try {
+      const account = await accountRepo.getById(accountId);
+      if (!account) return err('Account not found');
+      const cookie = decrypt(account.encryptedCookie);
+      return ok(await getActiveSessions(cookie));
+    } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('account:security:logout', async (_e, { accountId, sessionId }: { accountId: string; sessionId: string }) => {
+    try {
+      const account = await accountRepo.getById(accountId);
+      if (!account) return err('Account not found');
+      const cookie = decrypt(account.encryptedCookie);
+      await logoutSession(cookie, sessionId);
+      return ok(null);
+    } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('account:security:logout-all', async (_e, { accountId }: { accountId: string }) => {
+    try {
+      const account = await accountRepo.getById(accountId);
+      if (!account) return err('Account not found');
+      const cookie = decrypt(account.encryptedCookie);
+      await logoutAllSessions(cookie);
+      return ok(null);
+    } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('account:security:password', async (_e, { accountId, current, next }: { accountId: string; current: string; next: string }) => {
+    try {
+      const account = await accountRepo.getById(accountId);
+      if (!account) return err('Account not found');
+      const cookie = decrypt(account.encryptedCookie);
+      await changePassword(cookie, current, next);
+      return ok(null);
+    } catch (e) { return err(String(e)); }
+  });
+
+  // ============ BY-ACCOUNT PRIVACY ============
+  ipcMain.handle('account:privacy:get', async (_e, { accountId }: { accountId: string }) => {
+    try {
+      const account = await accountRepo.getById(accountId);
+      if (!account) return err('Account not found');
+      const cookie = decrypt(account.encryptedCookie);
+      return ok(await getPrivacySettings(cookie));
+    } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('account:privacy:update', async (_e, { accountId, key, value }: { accountId: string; key: string; value: string | boolean }) => {
+    try {
+      const account = await accountRepo.getById(accountId);
+      if (!account) return err('Account not found');
+      const cookie = decrypt(account.encryptedCookie);
+      await updatePrivacySetting(cookie, key, value);
+      return ok(null);
+    } catch (e) { return err(String(e)); }
+  });
+
+  // ============ BY-ACCOUNT NOTIFICATIONS ============
+  ipcMain.handle('account:notifications:get', async (_e, { accountId }: { accountId: string }) => {
+    try {
+      const account = await accountRepo.getById(accountId);
+      if (!account) return err('Account not found');
+      const cookie = decrypt(account.encryptedCookie);
+      return ok(await getNotificationSettings(cookie));
+    } catch (e) { return err(String(e)); }
+  });
+  ipcMain.handle('account:notifications:update', async (_e, { accountId, key, value }: { accountId: string; key: string; value: boolean }) => {
+    try {
+      const account = await accountRepo.getById(accountId);
+      if (!account) return err('Account not found');
+      const cookie = decrypt(account.encryptedCookie);
+      await updateNotificationSetting(cookie, key, value);
+      return ok(null);
+    } catch (e) { return err(String(e)); }
+  });
+
+// ===== NEW SERVICES IPC HANDLERS =====
+
+// ===== NEW SERVICES IPC HANDLERS =====
   // FastFlags — no cookie needed, reads/writes local ClientAppSettings.json
   ipcMain.handle('fflags:getAll', async () => {
     try { return ok(getAllFastFlags()); } catch (e) { return err(String(e)); }

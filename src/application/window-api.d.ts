@@ -31,8 +31,8 @@ declare global {
         follow: (userId: number, cookie: string) => Promise<IpcResult>;
         unfollow: (userId: number, cookie: string) => Promise<IpcResult>;
         profile: {
-          get: (cookie: string) => Promise<IpcResult>;
-          update: (cookie: string, updates: unknown) => Promise<IpcResult>;
+          get: (accountId: string) => Promise<IpcResult>;
+          update: (accountId: string, updates: unknown) => Promise<IpcResult>;
         };
       };
       roblox: {
@@ -53,22 +53,6 @@ declare global {
       settings: {
         get: (key: string) => Promise<IpcResult>;
         set: (key: string, value: unknown) => Promise<IpcResult>;
-        security: {
-          password: (cookie: string, current: string, next: string) => Promise<IpcResult>;
-          sessions: (cookie: string) => Promise<IpcResult>;
-          logout: (cookie: string, sessionId: string) => Promise<IpcResult>;
-          logoutAll: (cookie: string) => Promise<IpcResult>;
-          twoFA: (cookie: string) => Promise<IpcResult>;
-          twoFAToggle: (cookie: string, enable: boolean) => Promise<IpcResult>;
-        };
-        privacy: {
-          get: (cookie: string) => Promise<IpcResult>;
-          update: (cookie: string, key: string, value: string | boolean) => Promise<IpcResult>;
-        };
-        notifications: {
-          get: (cookie: string) => Promise<IpcResult>;
-          update: (cookie: string, key: string, value: boolean) => Promise<IpcResult>;
-        };
       };
       games: {
         addFavorite: (accountId: string, game: unknown) => Promise<IpcResult>;
@@ -142,6 +126,21 @@ declare global {
         playtimeGetTotalPlaytime: (accountId: string) => Promise<IpcResult>;
         playtimeGetSessionHistory: (accountId: string, limit?: number) => Promise<IpcResult>;
         playtimeClearHistory: (accountId: string) => Promise<IpcResult>;
+        // Security (by-account)
+        twoFA: (accountId: string) => Promise<IpcResult>;
+        twoFAToggle: (accountId: string, enable: boolean) => Promise<IpcResult>;
+        sessions: (accountId: string) => Promise<IpcResult>;
+        logout: (accountId: string, sessionId: string) => Promise<IpcResult>;
+        logoutAll: (accountId: string) => Promise<IpcResult>;
+        password: (accountId: string, current: string, next: string) => Promise<IpcResult>;
+        // Privacy (by-account)
+        privacyGet: (accountId: string) => Promise<IpcResult>;
+        privacyUpdate: (accountId: string, key: string, value: string | boolean) => Promise<IpcResult>;
+        // Notifications (by-account)
+        notificationsGet: (accountId: string) => Promise<IpcResult>;
+        notificationsUpdate: (accountId: string, key: string, value: boolean) => Promise<IpcResult>;
+        // Account Control
+        control: (accountId: string, command: string) => Promise<IpcResult>;
       };
     };
   }

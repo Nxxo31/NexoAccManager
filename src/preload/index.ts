@@ -32,8 +32,8 @@ const api = {
     follow: (userId: number, cookie: string) => ipcRenderer.invoke('account:follow:user', { userId, cookie }),
     unfollow: (userId: number, cookie: string) => ipcRenderer.invoke('account:unfollow:user', { userId, cookie }),
     profile: {
-      get: (cookie: string) => ipcRenderer.invoke('account:profile:get', { cookie }),
-      update: (cookie: string, updates: { displayName?: string; description?: string }) => ipcRenderer.invoke('account:profile:update', { cookie, updates }),
+      get: (accountId: string) => ipcRenderer.invoke('account:profile:get', { accountId }),
+      update: (accountId: string, updates: { displayName?: string; description?: string }) => ipcRenderer.invoke('account:profile:update', { accountId, updates }),
     },
   },
 
@@ -67,22 +67,6 @@ const api = {
   settings: {
     get: (key: string) => ipcRenderer.invoke('settings:get', { key }),
     set: (key: string, value: unknown) => ipcRenderer.invoke('settings:set', { key, value }),
-    security: {
-      password: (cookie: string, current: string, next: string) => ipcRenderer.invoke('settings:security:password', { cookie, current, next }),
-      sessions: (cookie: string) => ipcRenderer.invoke('settings:security:sessions', { cookie }),
-      logout: (cookie: string, sessionId: string) => ipcRenderer.invoke('settings:security:logout', { cookie, sessionId }),
-      logoutAll: (cookie: string) => ipcRenderer.invoke('settings:security:logout-all', { cookie }),
-      twoFA: (cookie: string) => ipcRenderer.invoke('settings:security:2fa', { cookie }),
-      twoFAToggle: (cookie: string, enable: boolean) => ipcRenderer.invoke('settings:security:2fa-toggle', { cookie, enable }),
-    },
-    privacy: {
-      get: (cookie: string) => ipcRenderer.invoke('settings:privacy:get', { cookie }),
-      update: (cookie: string, key: string, value: string | boolean) => ipcRenderer.invoke('settings:privacy:update', { cookie, key, value }),
-    },
-    notifications: {
-      get: (cookie: string) => ipcRenderer.invoke('settings:notifications:get', { cookie }),
-      update: (cookie: string, key: string, value: boolean) => ipcRenderer.invoke('settings:notifications:update', { cookie, key, value }),
-    },
   },
 
   // Games
@@ -180,7 +164,24 @@ const api = {
     playtimeGetTotalPlaytime: (accountId: string) => ipcRenderer.invoke('playtime:getTotalPlaytime', { accountId }),
     playtimeGetSessionHistory: (accountId: string, limit?: number) => ipcRenderer.invoke('playtime:getSessionHistory', { accountId, limit }),
     playtimeClearHistory: (accountId: string) => ipcRenderer.invoke('playtime:clearHistory', { accountId }),
-  },
+  
+    // Security
+    twoFA: (accountId: string) => ipcRenderer.invoke('account:security:2fa', { accountId }),
+    twoFAToggle: (accountId: string, enable: boolean) => ipcRenderer.invoke('account:security:2fa-toggle', { accountId, enable }),
+    sessions: (accountId: string) => ipcRenderer.invoke('account:security:sessions', { accountId }),
+    logout: (accountId: string, sessionId: string) => ipcRenderer.invoke('account:security:logout', { accountId, sessionId }),
+    logoutAll: (accountId: string) => ipcRenderer.invoke('account:security:logout-all', { accountId }),
+    password: (accountId: string, current: string, next: string) => ipcRenderer.invoke('account:security:password', { accountId, current, next }),
+    // Privacy
+    privacyGet: (accountId: string) => ipcRenderer.invoke('account:privacy:get', { accountId }),
+    privacyUpdate: (accountId: string, key: string, value: string | boolean) => ipcRenderer.invoke('account:privacy:update', { accountId, key, value }),
+    // Notifications
+    notificationsGet: (accountId: string) => ipcRenderer.invoke('account:notifications:get', { accountId }),
+    notificationsUpdate: (accountId: string, key: string, value: boolean) => ipcRenderer.invoke('account:notifications:update', { accountId, key, value }),
+    // Account Control
+    control: (accountId: string, command: string) => ipcRenderer.invoke('account:control', { accountId, command }),
+  
+      },
 };
 
 contextBridge.exposeInMainWorld('api', api);
