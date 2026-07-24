@@ -1,8 +1,8 @@
 # NexoAccManager — PROJECT.md
 
-# Última actualización: 2026-07-24 (v4.0.1 — Migración handlers cookie-based → byAccount completada)
+# Última actualización: 2026-07-24 (v4.0.2 — Integración i18n ES/EN/PT en todos los componentes UI)
 
-# Versión actual: 4.0.1 (Clean/Hexagonal Architecture — Mantine v7 UI)
+# Versión actual: 4.0.2 (Clean/Hexagonal Architecture — Mantine v7 UI)
 
 ## Estado actual
 
@@ -19,6 +19,34 @@
 || Release GitHub | v4.0.0 — artifacts subidos ||
 || Defender | Mitigado: asarUnpack, sign hook (skip elevate.exe), signingHashAlgorithms sha256, signAndEditExecutable false ||
 || E2E | Playwright Electron fixture + smoke + accounts specs ||
+
+## Batch 3 — Integración i18n ES/EN/PT (2026-07-24, v4.0.2)
+
+**Problema:** El sistema i18n definido en `src/config/i18n.ts` (t(), setLang(), getLang()) no era usado por ningún componente. Todos los strings estaban hardcodeados en español. El AGENTS.md y PROJECT.md afirmaban soporte tri-idioma pero era falso. Además, muchos strings tenían acentos faltantes ("Iniciar sesion", "Contrasena", "Valida", "Confirmar eliminacion", etc.).
+
+**Cambios realizados:**
+- **src/config/i18n.ts** — Expandido de 26 a 70 keys con traducciones completas ES/EN/PT. El sistema usa un patrón simple: `t(key, vars?)` busca en `translations[lang][key]`, fallback a ES, fallback a la key. Las interpolaciones usan `{var}` (ej: `{count}`, `{name}`).
+- **10 componentes UI** migrados de strings hardcodeados a `t()`:
+  - `App.tsx` — Carga idioma persistido vía `settings:get('lang')` on mount
+  - `Sidebar.tsx` — Nav labels, collapse/expand aria-labels, counter
+  - `TopBar.tsx` — Search placeholder, add button, theme toggle aria-label
+  - `AccountsView.tsx` (incl. AccountCard inline) — Empty state, launch notifications, delete confirmation modal, edit modal, cookie badges, aria-labels
+  - `ServersView.tsx` — Title, select account, search, region, server cards
+  - `GamesView.tsx` — Title, search, favorites, results
+  - `FriendsView.tsx` — Title, tabs, friend requests, follow/unfollow notifications
+  - `SettingsView.tsx` — Todos los 12 accordion sections (apariencia, general, botting, webserver, fastflags, mods, discord, playtime, presets, cache, logs, data) + selector de idioma
+  - `AccountDetailPanel.tsx` — Tabs (outfits, profile, security, privacy, notifications), session management, password change
+  - `AddAccountModal.tsx` — Browser/cookie/bulk tabs, notifications
+- **Selector de idioma** añadido en SettingsView → Apariencia: dropdown ES/EN/PT con `Mantine Select` + icono `Languages`. Persiste vía `settings:set('lang', value)`.
+- **Corrección de acentos:** Todos los strings sin acento corregidos al migrarlos a i18n. Ej: "Iniciar sesion" → "Iniciar sesión", "Contrasena" → "Contraseña", "Valida" → "Válida", "Confirmar eliminacion" → "Confirmar eliminación", "Sesion cerrada" → "Sesión cerrada", etc.
+
+**Verificación:**
+- `npx tsc --noEmit` → 0 errores
+- `npm run lint` → 3 errores pre-existing en `build/windows-sign.js` (no relacionados). 49 warnings (baseline era 50, se redujo en 1 por cleanup de imports).
+- Validación de keys: 70 keys definidas × 3 idiomas, 0 missing, 0 unused.
+- Sin strings en español sin acentos restantes en componentes UI.
+
+**Archivos modificados:** 11 (i18n.ts, App.tsx, Sidebar.tsx, TopBar.tsx, AccountsView.tsx, ServersView.tsx, GamesView.tsx, FriendsView.tsx, SettingsView.tsx, AccountDetailPanel.tsx, AddAccountModal.tsx)
 
 ## Batch 1 — Código muerto + Performance (2026-07-24)
 
