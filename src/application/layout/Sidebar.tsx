@@ -1,7 +1,6 @@
 // Application Layout: Sidebar — Mantine v7
 
-import { useState } from 'react';
-import { Users, Globe, Gamepad2, Mail, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Globe, Gamepad2, Mail, Settings, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
 import { PAGES, type PageKey, MAX_ACCOUNTS } from '../../config/constants';
 import { Box, Text, ActionIcon, Group, NavLink, useMantineTheme } from '@mantine/core';
@@ -18,7 +17,8 @@ const NAV: { key: PageKey; icon: typeof Users; labelKey: string }[] = [
 export function Sidebar({ accountCount }: { accountCount: number }): JSX.Element {
   const activeView = useUIStore((s) => s.activeView);
   const setView = useUIStore((s) => s.setView);
-  const [collapsed, setCollapsed] = useState(false);
+  const collapsed = useUIStore((s) => s.sidebarCollapsed);
+  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const theme = useMantineTheme();
 
   return (
@@ -37,7 +37,7 @@ export function Sidebar({ accountCount }: { accountCount: number }): JSX.Element
       {/* Logo */}
       <Group h={48} px="sm" justify="space-between" style={{ borderBottom: `1px solid ${theme.colors.gray[3]}` }}>
         {!collapsed && <Text size="sm" fw={600} c="white">NX-Manager</Text>}
-        <ActionIcon onClick={() => setCollapsed(!collapsed)} variant="subtle" color="gray" size="sm" aria-label={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}>
+        <ActionIcon onClick={toggleSidebar} variant="subtle" color="gray" size="sm" aria-label={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}>
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </ActionIcon>
       </Group>
@@ -52,7 +52,6 @@ export function Sidebar({ accountCount }: { accountCount: number }): JSX.Element
             label={collapsed ? '' : t(labelKey)}
             leftSection={<Icon size={18} />}
             style={{ height: 40, margin: '0 6px', borderRadius: 6 }}
-            // A-005: Mantener aria-label cuando label=""
             aria-label={t(labelKey)}
           />
         ))}

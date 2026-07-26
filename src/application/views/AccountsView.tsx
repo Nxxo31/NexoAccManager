@@ -1,6 +1,6 @@
 // Application View: AccountsView — account grid with groups + editable description — Mantine v7
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Shuffle, Plus, Users, LogOut, Tag, Pencil, Star, Trash2, Check, X } from 'lucide-react';
 import { useAccountStore } from '../store/accountStore';
 import { useAccounts } from '../hooks/useAccounts';
@@ -29,18 +29,25 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
   const [editDesc, setEditDesc] = useState('');
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
   const [togglingFavorites, setTogglingFavorites] = useState<Set<string>>(new Set());
+  const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
+
+  // Debounce search input — 300ms wait before filtering
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const selected = useMemo(() => accounts.find((a) => a.id === selectedId) ?? null, [accounts, selectedId]);
 
   const filtered = useMemo(() => {
-    if (!searchQuery.trim()) return accounts;
-    const q = searchQuery.toLowerCase();
+    if (!debouncedQuery.trim()) return accounts;
+    const q = debouncedQuery.toLowerCase();
     return accounts.filter((a) =>
       a.username.toLowerCase().includes(q) ||
       a.group.toLowerCase().includes(q) ||
       (a.description ?? '').toLowerCase().includes(q)
     );
-  }, [accounts, searchQuery]);
+  }, [accounts, debouncedQuery]);
 
   const handleLaunch = async () => {
     if (!selected) return;

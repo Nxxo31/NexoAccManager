@@ -9,6 +9,7 @@ import { Sidebar } from './layout/Sidebar';
 import { TopBar } from './layout/TopBar';
 import { ContentArea, type ViewContext } from './layout/ContentArea';
 import { AddAccountModal } from './components/AddAccountModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { useMantineColorScheme, useMantineTheme } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { setLang, type LangId } from '../config/i18n';
@@ -57,6 +58,7 @@ export function App(): JSX.Element {
  const context: ViewContext = { searchQuery, accounts };
 
  return (
+ <ErrorBoundary>
  <div className="flex h-screen w-screen overflow-hidden font-sans"
  style={{ background: bgColor, color: textColor }}>
  <Sidebar accountCount={accounts.length} />
@@ -82,5 +84,6 @@ export function App(): JSX.Element {
  </div>
  <AddAccountModal open={showAddModal} onClose={() => setShowAddModal(false)} onLoginBrowser={loginBrowser} />
  </div>
+ </ErrorBoundary>
  );
 }
