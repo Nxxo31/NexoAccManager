@@ -1,10 +1,15 @@
 // Infrastructure: RobloxGamesService — implementa games del RobloxApiPort
 // Search, thumbnails, servers, server users, region, player search
+//
+// DT-4 (DIP): se añade `RobloxGamesApiImpl implements RobloxGamesPort` que envuelve
+// las funciones exportadas. La class es el adaptador formal del port; las funciones
+// sueltas se mantienen para no romper imports existentes en IPCAdapter.ts.
 
 import { apiGet, apiPost } from './RobloxHttp';
 import { LRUCache } from '../database/LRUCache';
 import type { ServerInfo, ServerUser } from '../../domain/entities/ServerInfo';
 import type { OutfitData, UniverseData } from '../../domain/entities/GameData';
+import type { RobloxGamesPort } from '../../domain/repositories/RobloxApiPort';
 
 const thumbnailCache = new LRUCache<number, string>(200, 300_000); // 5min
 const serverCache = new LRUCache<string, ServerInfo[]>(50, 60_000); // 1min
@@ -143,3 +148,24 @@ export async function shuffleJobId(placeId: string, cookie: string): Promise<str
   const randomIndex = Math.floor(Math.random() * servers.length);
   return servers[randomIndex].jobId;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DT-4 (DIP): Adapter class que implementa RobloxGamesPort.
+// Envuelve las funciones sueltas para que el puerto pueda inyectarse como
+// dependencia en tests/use-cases sin reescribir imports de IPCAdapter.ts.
+// Nota: detectVIPServers y shuffleJobId NO son parte de RobloxGamesPort — son
+// utilidades del módulo y quedan como funciones exportadas adicionales.
+// ─────────────────────────────────────────────────────────────────────────────
+export class RobloxGamesApiImpl implements RobloxGamesPort {
+  public searchGames = searchGames;
+  public getGameThumbnail = getGameThumbnail;
+  public getGameServers = getGameServers;
+  public getServerUsers = getServerUsers;
+  public getServerRegion = getServerRegion;
+  public searchPlayer = searchPlayer;
+  public getOutfits = getOutfits;
+  public getUniverses = getUniverses;
+}
+
+// Instancia singleton exportada para consumers que quieran inyectar por DI.
+export const robloxGamesApi = new RobloxGamesApiImpl();

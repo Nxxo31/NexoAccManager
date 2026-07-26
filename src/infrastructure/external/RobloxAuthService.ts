@@ -1,8 +1,13 @@
 // Infrastructure: RobloxAuthService — implementa la parte de auth del RobloxApiPort
 // Login browser, login user:pass, verify cookie, import cookies
+//
+// DT-4 (DIP): se añade `RobloxAuthApiImpl implements RobloxAuthPort` que envuelve
+// las funciones exportadas. La class es el adaptador formal del port; las funciones
+// sueltas se mantienen para no romper imports existentes en IPCAdapter.ts.
 
 import { BrowserWindow, session } from 'electron';
-import { apiGet, apiPost, cookieHeader } from './RobloxHttp';
+import { apiGet, apiPost, cookieHeader, getCsrfToken } from './RobloxHttp';
+import type { RobloxAuthPort } from '../../domain/repositories/RobloxApiPort';
 
 export async function loginBrowser(): Promise<{ cookie: string; userId: number; username: string }> {
   return new Promise((resolve, reject) => {
@@ -186,3 +191,19 @@ export async function importCookies(cookies: string[]): Promise<{ added: number;
   }
   return { added, skipped };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DT-4 (DIP): Adapter class que implementa RobloxAuthPort.
+// Envuelve las funciones sueltas para que el puerto pueda inyectarse como
+// dependencia en tests/use-cases sin reescribir imports de IPCAdapter.ts.
+// ─────────────────────────────────────────────────────────────────────────────
+export class RobloxAuthApiImpl implements RobloxAuthPort {
+  public loginBrowser = loginBrowser;
+  public loginUserPass = loginUserPass;
+  public verifyCookie = verifyCookie;
+  public importCookies = importCookies;
+  public getCsrfToken = getCsrfToken;
+}
+
+// Instancia singleton exportada para consumers que quieran inyectar por DI.
+export const robloxAuthApi = new RobloxAuthApiImpl();

@@ -1,6 +1,11 @@
 // Infrastructure: RobloxSettingsService — profile, security, privacy, notifications
+//
+// DT-4 (DIP): se añade `RobloxSettingsApiImpl implements RobloxSettingsPort` que
+// envuelve las funciones exportadas. La class es el adaptador formal del port;
+// las funciones sueltas se mantienen para no romper imports existentes en IPCAdapter.ts.
 
 import { apiGet, apiPost } from './RobloxHttp';
+import type { RobloxSettingsPort } from '../../domain/repositories/RobloxApiPort';
 
 export async function getProfile(cookie: string): Promise<{ displayName: string; description: string }> {
   const data = await apiGet<{ displayName: string; description: string }>('https://users.roblox.com/v1/users/authenticated', cookie);
@@ -58,3 +63,26 @@ export async function getNotificationSettings(cookie: string): Promise<Record<st
 export async function updateNotificationSetting(cookie: string, key: string, value: boolean): Promise<void> {
   await apiPost('https://accountsettings.roblox.com/v1/notification-settings', cookie, { [key]: value });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DT-4 (DIP): Adapter class que implementa RobloxSettingsPort.
+// Envuelve las funciones sueltas para que el puerto pueda inyectarse como
+// dependencia en tests/use-cases sin reescribir imports de IPCAdapter.ts.
+// ─────────────────────────────────────────────────────────────────────────────
+export class RobloxSettingsApiImpl implements RobloxSettingsPort {
+  public getProfile = getProfile;
+  public updateProfile = updateProfile;
+  public get2FAStatus = get2FAStatus;
+  public toggle2FA = toggle2FA;
+  public getActiveSessions = getActiveSessions;
+  public logoutSession = logoutSession;
+  public logoutAllSessions = logoutAllSessions;
+  public changePassword = changePassword;
+  public getPrivacySettings = getPrivacySettings;
+  public updatePrivacySetting = updatePrivacySetting;
+  public getNotificationSettings = getNotificationSettings;
+  public updateNotificationSetting = updateNotificationSetting;
+}
+
+// Instancia singleton exportada para consumers que quieran inyectar por DI.
+export const robloxSettingsApi = new RobloxSettingsApiImpl();

@@ -1,8 +1,18 @@
 // Infrastructure: RobloxPresenceService — presencia, amigos, robux, recent games
+//
+// DT-4 (DIP): este módulo implementa DOS sub-ports de RobloxApiPort:
+//   - RobloxPresencePort (getPresence, getRecentGames, getRobuxBalance)
+//   - RobloxSocialPort   (getFriends, getFriendRequests, respondFriendRequest,
+//                         getBlockedUsers, blockUser, unblockUser, followUser,
+//                         unfollowUser)
+// Se añaden dos adapter classes — `RobloxPresenceApiImpl` y `RobloxSocialApiImpl` —
+// que envuelven las funciones sueltas. Las funciones exportadas se mantienen para
+// no romper imports existentes en IPCAdapter.ts.
 
 import { apiGet, apiPost } from './RobloxHttp';
 import { LRUCache } from '../database/LRUCache';
 import type { PresenceData, RobuxBalance, Friend, FriendRequest, BlockedUser } from '../../domain/entities/PresenceData';
+import type { RobloxPresencePort, RobloxSocialPort } from '../../domain/repositories/RobloxApiPort';
 
 const presenceCache = new LRUCache<string, PresenceData[]>(100, 30_000); // 30s
 const friendCache = new LRUCache<number, Friend[]>(50, 60_000); // 1min
@@ -132,3 +142,31 @@ export async function getRecentGames(userId: number, cookie: string): Promise<{ 
     universeId: g.universeId,
   }));
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DT-4 (DIP): Adapter classes que implementan los sub-ports de RobloxApiPort.
+// Envuelven las funciones sueltas para que los puertos puedan inyectarse como
+// dependencias en tests/use-cases sin reescribir imports de IPCAdapter.ts.
+// Nota: `sendFriendRequest` y `getFriendRequests` no son parte de RobloxSocialPort
+// — son utilidades adicionales del módulo que quedan como funciones exportadas.
+// ─────────────────────────────────────────────────────────────────────────────
+export class RobloxPresenceApiImpl implements RobloxPresencePort {
+  public getPresence = getPresence;
+  public getRecentGames = getRecentGames;
+  public getRobuxBalance = getRobuxBalance;
+}
+
+export class RobloxSocialApiImpl implements RobloxSocialPort {
+  public getFriends = getFriends;
+  public getFriendRequests = getFriendRequests;
+  public respondFriendRequest = respondFriendRequest;
+  public getBlockedUsers = getBlockedUsers;
+  public blockUser = blockUser;
+  public unblockUser = unblockUser;
+  public followUser = followUser;
+  public unfollowUser = unfollowUser;
+}
+
+// Instancias singleton exportadas para consumers que quieran inyectar por DI.
+export const robloxPresenceApi = new RobloxPresenceApiImpl();
+export const robloxSocialApi = new RobloxSocialApiImpl();

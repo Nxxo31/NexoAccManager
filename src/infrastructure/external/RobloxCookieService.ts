@@ -1,7 +1,12 @@
 // Infrastructure: RobloxCookieService — cookie expiry + refresh
+//
+// DT-4 (DIP): se añade `RobloxCookieApiImpl implements RobloxCookiePort` que
+// envuelve las funciones exportadas. La class es el adaptador formal del port;
+// las funciones sueltas se mantienen para no romper imports existentes en IPCAdapter.ts.
 
 import { BrowserWindow } from 'electron';
 import { apiGet } from './RobloxHttp';
+import type { RobloxCookiePort } from '../../domain/repositories/RobloxApiPort';
 
 export async function getCookieExpiry(cookie: string): Promise<Date | null> {
   try {
@@ -69,3 +74,16 @@ export async function refreshCookie(cookie: string): Promise<string> {
     win.destroy();
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DT-4 (DIP): Adapter class que implementa RobloxCookiePort.
+// Envuelve las funciones sueltas para que el puerto pueda inyectarse como
+// dependencia en tests/use-cases sin reescribir imports de IPCAdapter.ts.
+// ─────────────────────────────────────────────────────────────────────────────
+export class RobloxCookieApiImpl implements RobloxCookiePort {
+  public getCookieExpiry = getCookieExpiry;
+  public refreshCookie = refreshCookie;
+}
+
+// Instancia singleton exportada para consumers que quieran inyectar por DI.
+export const robloxCookieApi = new RobloxCookieApiImpl();
