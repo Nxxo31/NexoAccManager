@@ -1,8 +1,44 @@
 # NexoAccManager — PROJECT.md
 
-# Última actualización: 2026-07-25 (v4.0.5 — Refactor deuda técnica SOLID/seguridad)
+# Última actualización: 2026-07-25 (v4.0.6 — DT-6 SettingsView SRP refactor)
 
-# Versión actual: 4.0.5 (Clean/Hexagonal Architecture — Mantine v7 UI — Refactor deuda técnica)
+# Versión actual: 4.0.6 (Clean/Hexagonal Architecture — Mantine v7 UI — Refactor deuda técnica)
+
+## DT-6 — SettingsView SRP refactor (2026-07-25, v4.0.6)
+
+**Task:** SettingsView.tsx tenía 713 líneas mezclando 12 concerns (Appearance, General, Botting, WebServer, FastFlags, ContentMods, DiscordRPC, Playtime, LaunchPresets, Cache, Logs, Data). SRP violado.
+
+**Branch:** main
+
+**Cambios realizados:**
+- **`src/application/views/SettingsView.tsx`** — 713 → ~135 líneas. Reducido al Accordion wrapper que renderiza los 12 sub-componentes. Cada `Accordion.Item` conserva su icono + label i18n; el panel delega al sub-componente correspondiente.
+- **`src/application/components/settings/`** (nuevo directorio) — 12 sub-componentes extraídos, cada uno con su propio state (`useState`) + inicialización via `useEffect`, y patrón browser guard `const api = typeof window !== 'undefined' ? window.api : undefined; if (!api) return null;`:
+  - `SettingsAppearance.tsx` — theme + color picker + language selector (i18n `setLang/getLang`)
+  - `SettingsGeneral.tsx` — devmode, savePasswords, autoRejoin toggles
+  - `SettingsBotting.tsx` — botting enable + interval
+  - `SettingsWebServer.tsx` — LocalApiService toggle + port
+  - `SettingsFastFlags.tsx` — fflags CRUD + export (auto-load on account select via `useEffect`)
+  - `SettingsContentMods.tsx` — mods install/uninstall + backup/restore originals
+  - `SettingsDiscordRPC.tsx` — discord initialize/shutdown + presence update
+  - `SettingsPlaytime.tsx` — playtime viewer + clear history (auto-load on account select)
+  - `SettingsLaunchPresets.tsx` — presets CRUD + launch
+  - `SettingsCache.tsx` — cache analysis + clean
+  - `SettingsLogs.tsx` — recent Roblox logs viewer + clear old
+  - `SettingsData.tsx` — export data + delete all accounts (confirm modal)
+- Cada sub-componente mueve su propio state (estado aislado — ya no hay un único `useState` gigante en la vista).
+- Imports i18n `t` movidos a cada sub-componente.
+- Keys de lista compuestas estables preservadas en Playtime (`startTime-placeName-i`) y Logs (`timestamp-level-i`) — P-005 se mantiene.
+
+**Verificación:**
+- `npx tsc --noEmit` → 0 errores
+- `npm run lint` → 0 errores, 46 warnings (baseline previo: 46 — **0 delta**)
+- `npx vitest run` → 36/36 tests pasando (CryptoService 11 + Account 10 + DomainFactories 15)
+- `xvfb-run npx playwright test --config playwright.electron.config.ts` → 6/6 pasando (8.1s), incluyendo test "navegación a Settings y acordeón Apariencia visible" que valida el accordion wrapper
+
+**Archivos modificados (2):** `src/application/views/SettingsView.tsx`, `PROJECT.md`
+**Archivos creados (12):** `src/application/components/settings/Settings{Appearance,General,Botting,WebServer,FastFlags,ContentMods,DiscordRPC,Playtime,LaunchPresets,Cache,Logs,Data}.tsx`
+
+
 
 ## Estado actual
 
@@ -709,7 +745,7 @@ DT-2. **Domain: RobloxApiPort god-interface** — segregar en RobloxAuthPort, Ro
 DT-3. **Domain: Factories sin invariantes** — createAccount/createFastFlag/createPlaytimeEntry/createLaunchPreset deben validar: robloxUserId>0, username non-empty, cookieHash coherente con encryptedCookie, startTime<=endTime [Required]
 DT-4. **Infra: DIP violado** — 18 servicios external no implementan RobloxApiPort, IPCAdapter importa funciones concretas → inyectar interfaces [Required]
 DT-5. **Infra: IPCAdapter 748 líneas** — partir por namespace: handlers/account.ts, handlers/roblox.ts, handlers/advanced.ts, handlers/settings.ts [Required SRP]
-DT-6. **App: SettingsView 713 líneas** — 11 concerns en un componente → extraer SettingsAppearance, SettingsBotting, SettingsFastFlags, etc. [Required SRP]
+DT-6. **App: SettingsView 713 líneas** — 11 concerns en un componente → extraer SettingsAppearance, SettingsBotting, SettingsFastFlags, etc. [Required SRP] — **✅ REPARADO 2026-07-25**
 DT-7. **App: 6 views sin browser guard** — FriendsView, GamesView, ServersView, AccountsView, AccountDetailPanel, AddAccountModal → patrón `const api = typeof window !== 'undefined' ? window.api : undefined` [Required]
 
 ### Verificación post-refactor seguridad

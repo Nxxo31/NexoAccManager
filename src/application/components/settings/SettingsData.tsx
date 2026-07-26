@@ -3,7 +3,7 @@
 
 import { notifications } from '@mantine/notifications';
 import { modals } from '@mantine/modals';
-import { Group, Stack, Text, Button, Checkbox } from '@mantine/core';
+import { Stack, Text, Button, Checkbox } from '@mantine/core';
 import { Download, Trash } from 'lucide-react';
 import { t } from '../../../config/i18n';
 

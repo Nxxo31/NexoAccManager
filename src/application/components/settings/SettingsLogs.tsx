@@ -4,8 +4,8 @@
 import { useState, useEffect } from 'react';
 import { notifications } from '@mantine/notifications';
 import { Group, Stack, Text, Button, ScrollArea, Card, Badge } from '@mantine/core';
-import { Trash } from 'lucide-react';
 import { t } from '../../../config/i18n';
+// (no icon import — header icon lives in the wrapper Accordion.Control)
 
 type LogEntry = { timestamp: string; level: string; message: string };
 

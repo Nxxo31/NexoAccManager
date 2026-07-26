@@ -6,7 +6,7 @@ import { notifications } from '@mantine/notifications';
 import {
   Group, Stack, Text, Select, TextInput, Button, ScrollArea, Card, ActionIcon,
 } from '@mantine/core';
-import { Flag, Trash, Download } from 'lucide-react';
+import { Trash, Download } from 'lucide-react';
 import { useAccountStore } from '../../store/accountStore';
 import { t } from '../../../config/i18n';
 
