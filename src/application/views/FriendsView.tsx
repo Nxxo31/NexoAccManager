@@ -23,6 +23,7 @@ interface FriendRequest {
 
 export function FriendsView(): JSX.Element {
   const accounts = useAccountStore((s) => s.accounts);
+  const api = typeof window !== 'undefined' ? window.api : undefined;
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [activeTab, setActiveTab] = useState<string>('friends');
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -31,19 +32,19 @@ export function FriendsView(): JSX.Element {
   const [searchUserId, setSearchUserId] = useState('');
 
   useEffect(() => {
-    if (selectedAccountId) loadData();
+    if (selectedAccountId && api) loadData();
   }, [selectedAccountId, activeTab]);
 
   const loadData = async () => {
-    if (!selectedAccountId) return;
+    if (!selectedAccountId || !api) return;
     setLoading(true);
     try {
       if (activeTab === 'friends') {
-        const result = await window.api.byAccount.friendsList(selectedAccountId);
+        const result = await api.byAccount.friendsList(selectedAccountId);
         if (result.success) setFriends(Array.isArray(result.data) ? result.data : []);
         else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
       } else {
-        const result = await window.api.byAccount.friendsRequests(selectedAccountId);
+        const result = await api.byAccount.friendsRequests(selectedAccountId);
         if (result.success) setRequests(Array.isArray(result.data) ? result.data : []);
         else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
       }
@@ -54,7 +55,8 @@ export function FriendsView(): JSX.Element {
   };
 
   const handleRespond = async (requestId: number, accept: boolean) => {
-    const result = await window.api.byAccount.friendsRespond(requestId, accept, selectedAccountId);
+    if (!api) return;
+    const result = await api.byAccount.friendsRespond(requestId, accept, selectedAccountId);
     if (result.success) {
       notifications.show({ message: accept ? t('friends.requestAccepted') : t('friends.requestRejected'), color: 'green' });
       setRequests(requests.filter((r) => r.id !== requestId));
@@ -64,7 +66,8 @@ export function FriendsView(): JSX.Element {
   };
 
   const handleFollowToggle = async (userId: number, isFollowing: boolean) => {
-    const fn = isFollowing ? window.api.byAccount.unfollow : window.api.byAccount.follow;
+    if (!api) return;
+    const fn = isFollowing ? api.byAccount.unfollow : api.byAccount.follow;
     const result = await fn(userId, selectedAccountId);
     if (result.success) {
       notifications.show({ message: isFollowing ? t('friends.unfollowed') : t('friends.nowFollowing'), color: 'green' });
@@ -74,12 +77,13 @@ export function FriendsView(): JSX.Element {
   };
 
   const handleSendRequest = async () => {
+    if (!api) return;
     const userIdNum = parseInt(searchUserId, 10);
     if (!userIdNum || isNaN(userIdNum)) {
       notifications.show({ message: t('friends.invalidUserId'), color: 'red' });
       return;
     }
-    const result = await window.api.byAccount.sendFriendRequest(userIdNum, selectedAccountId);
+    const result = await api.byAccount.sendFriendRequest(userIdNum, selectedAccountId);
     if (result.success) {
       notifications.show({ message: t('friends.requestSent'), color: 'green' });
       setSearchUserId('');

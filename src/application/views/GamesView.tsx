@@ -23,6 +23,7 @@ interface FavoriteGame {
 
 export function GamesView(): JSX.Element {
   const accounts = useAccountStore((s) => s.accounts);
+  const api = typeof window !== 'undefined' ? window.api : undefined;
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<GameResult[]>([]);
@@ -30,14 +31,14 @@ export function GamesView(): JSX.Element {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (selectedAccountId) loadFavorites();
+    if (selectedAccountId && api) loadFavorites();
   }, [selectedAccountId]);
 
   const search = async () => {
-    if (!query.trim() || !selectedAccountId) return;
+    if (!query.trim() || !selectedAccountId || !api) return;
     setLoading(true);
     try {
-      const result = await window.api.byAccount.gamesSearch(query, selectedAccountId);
+      const result = await api.byAccount.gamesSearch(query, selectedAccountId);
       if (result.success) setResults(Array.isArray(result.data) ? result.data : []);
       else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
     } catch {
@@ -47,15 +48,16 @@ export function GamesView(): JSX.Element {
   };
 
   const loadFavorites = async () => {
-    if (!selectedAccountId) return;
+    if (!selectedAccountId || !api) return;
     try {
-      const result = await window.api.games.getFavorites(selectedAccountId);
+      const result = await api.games.getFavorites(selectedAccountId);
       if (result.success) setFavorites(Array.isArray(result.data) ? result.data : []);
     } catch { /* silent */ }
   };
 
   const addFavorite = async (game: GameResult) => {
-    const result = await window.api.games.addFavorite(selectedAccountId, {
+    if (!api) return;
+    const result = await api.games.addFavorite(selectedAccountId, {
       id: String(game.id), gameId: game.id, name: game.name, icon: game.thumbnail ?? '',
     });
     if (result.success) { notifications.show({ message: t('games.addedToFavorites'), color: 'green' }); loadFavorites(); }
@@ -63,7 +65,8 @@ export function GamesView(): JSX.Element {
   };
 
   const removeFavorite = async (gameId: number) => {
-    const result = await window.api.games.removeFavorite(selectedAccountId, gameId);
+    if (!api) return;
+    const result = await api.games.removeFavorite(selectedAccountId, gameId);
     if (result.success) { notifications.show({ message: t('games.removedFromFavorites'), color: 'green' }); loadFavorites(); }
     else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
   };

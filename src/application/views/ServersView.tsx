@@ -23,6 +23,7 @@ interface RegionInfo {
 
 export function ServersView(): JSX.Element {
   const accounts = useAccountStore((s) => s.accounts);
+  const api = typeof window !== 'undefined' ? window.api : undefined;
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [placeId, setPlaceId] = useState('');
   const [servers, setServers] = useState<ServerInfo[]>([]);
@@ -30,13 +31,13 @@ export function ServersView(): JSX.Element {
   const [loading, setLoading] = useState(false);
 
   const searchServers = async () => {
-    if (!placeId || !selectedAccountId) return;
+    if (!placeId || !selectedAccountId || !api) return;
     setLoading(true);
     setRegion(null);
     try {
       const [serversResult, regionResult] = await Promise.all([
-        window.api.byAccount.serversList(placeId, selectedAccountId, 'Public'),
-        window.api.byAccount.serverRegion(placeId, selectedAccountId),
+        api.byAccount.serversList(placeId, selectedAccountId, 'Public'),
+        api.byAccount.serverRegion(placeId, selectedAccountId),
       ]);
       if (serversResult.success) setServers(Array.isArray(serversResult.data) ? serversResult.data : []);
       else { notifications.show({ message: serversResult.error ?? t('common.error'), color: 'red' }); setServers([]); }
@@ -49,8 +50,9 @@ export function ServersView(): JSX.Element {
   };
 
   const handleJoin = async (jobId: string) => {
+    if (!api) return;
     try {
-      const result = await window.api.roblox.serversJoin(selectedAccountId, placeId, jobId);
+      const result = await api.roblox.serversJoin(selectedAccountId, placeId, jobId);
       if (result.success) notifications.show({ message: t('servers.joining'), color: 'green' });
       else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
     } catch {

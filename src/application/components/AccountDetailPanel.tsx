@@ -24,6 +24,7 @@ interface AccountDetailPanelProps {
 }
 
 export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie, onLogoutAll }: AccountDetailPanelProps): JSX.Element {
+ const api = (typeof window !== 'undefined' && window.api) ? window.api : null;
  const [activeTab, setActiveTab] = useState<string>('outfits');
  const [outfits, setOutfits] = useState<Outfit[]>([]);
  const [loadingOutfits, setLoadingOutfits] = useState(false);
@@ -52,9 +53,10 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
  const [controlLoading, setControlLoading] = useState<string | null>(null);
 
  const loadOutfits = async () => {
+ if (!api) return;
  setLoadingOutfits(true);
  try {
- const result = await window.api.byAccount.outfits(account.id);
+ const result = await api!.byAccount.outfits(account.id);
  if (result.success) setOutfits(Array.isArray(result.data) ? result.data : []);
  else setOutfits([]);
  } catch { setOutfits([]); }
@@ -63,7 +65,7 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
 
  const loadProfile = async () => {
  try {
- const r = await window.api.account.profile.get(account.id);
+ const r = await api!.account.profile.get(account.id);
  // Note: byAccount returns profile data — we use the generic IPC
  if (r.success && r.data) {
  const p = r.data as { displayName?: string; description?: string };
@@ -76,7 +78,7 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
  const saveProfile = async () => {
  setSavingProfile(true);
  try {
- const r = await window.api.account.profile.update(account.id, { displayName, description });
+ const r = await api!.account.profile.update(account.id, { displayName, description });
  if (r.success) notifications.show({ message: t('detail.profileUpdated'), color: 'green' });
  else notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
  } catch {
@@ -88,16 +90,16 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
 
  const loadSecurity = async () => {
  try {
- const twoFA = await window.api.byAccount.twoFA(account.id);
+ const twoFA = await api!.byAccount.twoFA(account.id);
  if (twoFA.success && twoFA.data) setTwoFAEnabled(Boolean(twoFA.data));
- const sess = await window.api.byAccount.sessions(account.id);
+ const sess = await api!.byAccount.sessions(account.id);
  if (sess.success && Array.isArray(sess.data)) setSessions(sess.data as SessionInfo[]);
  } catch { /* silent — non-fatal load */ }
  };
 
  const toggle2FA = async (enable: boolean) => {
  try {
- const r = await window.api.byAccount.twoFAToggle(account.id, enable);
+ const r = await api!.byAccount.twoFAToggle(account.id, enable);
  if (r.success) { setTwoFAEnabled(enable); notifications.show({ message: enable ? t('detail.twoFAEnabled') : t('detail.twoFADisabled'), color: 'green' }); }
  else notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
  } catch {
@@ -109,7 +111,7 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
  if (!currentPassword || !newPassword) return;
  setChangingPassword(true);
  try {
- const r = await window.api.byAccount.password(account.id, currentPassword, newPassword);
+ const r = await api!.byAccount.password(account.id, currentPassword, newPassword);
  if (r.success) { notifications.show({ message: t('detail.passwordChanged'), color: 'green' }); setCurrentPassword(''); setNewPassword(''); }
  else notifications.show({ message: r.error ?? t('detail.passwordChangeError'), color: 'red' });
  } catch {
@@ -121,7 +123,7 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
 
  const logoutSession = async (sessionId: string) => {
  try {
- const r = await window.api.byAccount.logout(account.id, sessionId);
+ const r = await api!.byAccount.logout(account.id, sessionId);
  if (r.success) { notifications.show({ message: t('detail.sessionClosed'), color: 'green' }); loadSecurity(); }
  else notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
  } catch {
@@ -131,14 +133,14 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
 
  const loadPrivacy = async () => {
  try {
- const r = await window.api.byAccount.privacyGet(account.id);
+ const r = await api!.byAccount.privacyGet(account.id);
  if (r.success && r.data) setPrivacySettings(r.data as Record<string, boolean | string>);
  } catch { /* silent — non-fatal load */ }
  };
 
  const updatePrivacy = async (key: string, value: string | boolean) => {
  try {
- const r = await window.api.byAccount.privacyUpdate(account.id, key, value);
+ const r = await api!.byAccount.privacyUpdate(account.id, key, value);
  if (r.success) {
  setPrivacySettings(prev => ({ ...prev, [key]: value }));
  notifications.show({ message: t('detail.privacyUpdated'), color: 'green' });
@@ -150,14 +152,14 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
 
  const loadNotifSettings = async () => {
  try {
- const r = await window.api.byAccount.notificationsGet(account.id);
+ const r = await api!.byAccount.notificationsGet(account.id);
  if (r.success && r.data) setNotifSettings(r.data as Record<string, boolean>);
  } catch { /* silent — non-fatal load */ }
  };
 
  const updateNotif = async (key: string, value: boolean) => {
  try {
- const r = await window.api.byAccount.notificationsUpdate(account.id, key, value);
+ const r = await api!.byAccount.notificationsUpdate(account.id, key, value);
  if (r.success) {
  setNotifSettings(prev => ({ ...prev, [key]: value }));
  notifications.show({ message: t('detail.notificationUpdated'), color: 'green' });
@@ -170,7 +172,7 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
  const handleControlLaunch = async () => {
  setControlLoading('launch');
  try {
- const r = await window.api.byAccount.control(account.id, 'launch');
+ const r = await api!.byAccount.control(account.id, 'launch');
  if (r.success) {
  notifications.show({ message: t('detail.controlLaunchSuccess'), color: 'green' });
  setControlStatus('running');
@@ -187,7 +189,7 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
  const handleControlKill = async () => {
  setControlLoading('kill');
  try {
- const r = await window.api.byAccount.control(account.id, 'kill');
+ const r = await api!.byAccount.control(account.id, 'kill');
  if (r.success) {
  notifications.show({ message: t('detail.controlKillSuccess'), color: 'green' });
  setControlStatus('stopped');
@@ -205,7 +207,7 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
  setControlLoading('status');
  setControlStatus('checking');
  try {
- const r = await window.api.byAccount.control(account.id, 'status');
+ const r = await api!.byAccount.control(account.id, 'status');
  if (r.success && r.data) {
  const data = r.data as { running?: boolean };
  setControlStatus(data.running ? 'running' : 'stopped');
@@ -224,7 +226,7 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
  const handleControlRefreshCookie = async () => {
  setControlLoading('refresh-cookie');
  try {
- const r = await window.api.byAccount.control(account.id, 'refresh-cookie');
+ const r = await api!.byAccount.control(account.id, 'refresh-cookie');
  if (r.success) {
  notifications.show({ message: t('detail.controlRefreshSuccess'), color: 'green' });
  } else {

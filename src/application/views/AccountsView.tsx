@@ -22,6 +22,7 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
   const select = useAccountStore((s) => s.select);
   const update = useAccountStore((s) => s.update);
   const { removeAccount, loginBrowser } = useAccounts();
+  const api = typeof window !== 'undefined' ? window.api : undefined;
   const [placeId, setPlaceId] = useState('');
   const [jobId, setJobId] = useState('');
   const [shuffle, setShuffle] = useState(false);
@@ -51,14 +52,14 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
   }, [accounts, debouncedQuery]);
 
   const handleLaunch = async () => {
-    if (!selected) return;
+    if (!selected || !api) return;
     let finalJobId = jobId;
     if (shuffle && placeId) {
       finalJobId = Math.random().toString(36).substring(2, 18);
       setJobId(finalJobId);
     }
     try {
-      const result = await window.api.roblox.launch(selected.id, placeId || undefined, finalJobId || undefined);
+      const result = await api.roblox.launch(selected.id, placeId || undefined, finalJobId || undefined);
       if (result.success) notifications.show({ message: t('accounts.launched', { name: selected.username }), color: 'green' });
       else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
     } catch {
@@ -67,8 +68,9 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
   };
 
   const handleKillAll = async () => {
+    if (!api) return;
     try {
-      const result = await window.api.roblox.killAll();
+      const result = await api.roblox.killAll();
       if (result.success) notifications.show({ message: t('accounts.processesClosed'), color: 'green' });
       else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
     } catch {
@@ -77,10 +79,10 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
   };
 
   const handleSaveEdit = async () => {
-    if (!editAccount) return;
+    if (!editAccount || !api) return;
     try {
-      await window.api.account.fieldSet(editAccount.id, 'group', editGroup);
-      await window.api.account.fieldSet(editAccount.id, 'description', editDesc);
+      await api.account.fieldSet(editAccount.id, 'group', editGroup);
+      await api.account.fieldSet(editAccount.id, 'description', editDesc);
       update(editAccount.id, { group: editGroup, description: editDesc });
       notifications.show({ message: t('accounts.updated'), color: 'green' });
       setEditAccount(null);
@@ -131,7 +133,7 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
     setTogglingFavorites(new Set([...togglingFavorites, accountId]));
 
     try {
-      const result = await window.api.account.setFavorite(accountId, newFavoriteState);
+      const result = await api?.account.setFavorite(accountId, newFavoriteState);
       if (!result?.success) {
         // Revert on failure
         update(accountId, { isFavorite: account.isFavorite });
@@ -211,9 +213,9 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
               onClose={() => select(null)}
               onLaunch={handleLaunch}
               onRefreshCookie={async () => {
-                const result = await window.api.cookie.refresh(selected.id);
-                if (result.success) notifications.show({ message: t('accounts.cookieRefreshed'), color: 'green' });
-                else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+                const result = await api?.cookie.refresh(selected.id);
+                if (result?.success) notifications.show({ message: t('accounts.cookieRefreshed'), color: 'green' });
+                else notifications.show({ message: result?.error ?? t('common.error'), color: 'red' });
               }}
               onLogoutAll={() => notifications.show({ message: t('accounts.functionUnavailable'), color: 'orange' })}
             />
