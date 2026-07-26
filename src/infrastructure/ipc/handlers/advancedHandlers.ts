@@ -58,9 +58,17 @@ export function registerAdvancedHandlers(): void {
     try { getDb().exec('VACUUM'); return ok(null); } catch (e) { return err(String(e)); }
   });
 
+  // Developer Mode toggle — persisted to settings DB (key='devmode').
+  // Renderer reads it back on mount via settings:get('devmode'); this handler
+  // is the authoritative write path and is idempotent (INSERT OR REPLACE).
+  // Convention: every advanced handler logs + returns IpcResult; never throws.
   ipcMain.handle('advanced:devmode', async (_e, enable: boolean) => {
     try {
+      // Persist toggle to settings DB (boolean JSON-serialized by SettingsRepositoryImpl.set).
       await settingsRepo.set('devmode', enable);
+      // Best-effort log — useful for support handoffs and audit traceability.
+      // Wrapped so a logging failure never breaks the IPC contract.
+      try { console.log(`[advanced:devmode] devmode=${enable ? 'enabled' : 'disabled'}`); } catch { /* logging is best-effort */ }
       return ok(enable);
     } catch (e) { return err(errMsg(e)); } // F-009: err(errMsg(e)) no string crudo
   });

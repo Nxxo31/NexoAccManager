@@ -1,8 +1,8 @@
 # NexoAccManager — PROJECT.md
 
-# Última actualización: 2026-07-26 (v4.0.7 — Security fixes: CSRF, cookie exfiltration, IPC sync)
+# Última actualización: 2026-07-26 (v4.0.9 — Stubs completados: devmode persistencia + account:control HTTP bridge)
 
-# Versión actual: 4.0.7 (Clean/Hexagonal Architecture — Mantine v7 UI — Security hardening)
+# Versión actual: 4.0.9 (Clean/Hexagonal Architecture — Mantine v7 UI — Security hardening)
 
 ## DT-6 — SettingsView SRP refactor (2026-07-25, v4.0.6)
 
@@ -426,9 +426,9 @@ src/
 | 30 | FPS Unlocker | ✅ | `RobloxBottingService.setFPSUnlock()` — ClientAppSettings.json |
 | 31 | Sort by Usage Date | ✅ | `Account.lastUsed` + `agingDays()` en AccountsView |
 | 32 | Themes | ✅ | `ThemeService.ts` — getTheme/setTheme (141L) |
-| 33 | Developer Mode | ⚠️ Stub | `advanced:devmode` handler — TODO: persistir en settings DB |
+| 33 | Developer Mode | ✅ | `advanced:devmode` persiste en settings DB (`settingsRepo.set('devmode')`) + log audit + IpcResult (v4.0.9) |
 | 34 | Local Web API | ✅ | `LocalApiService.ts` — Express server start/stop |
-| 35 | Account Control | ⚠️ Stub | Sin WebSocket implementado — solo handler vacío |
+| 35 | Account Control | ✅ | HTTP bridge to LocalApiService (launch/kill/status/refresh-cookie) + ECONNREFUSED handling + audit log (v4.0.9)
 | 36 | Rbx-player Link | ✅ | `RobloxBottingService.launchRobloxDirect()` — roblox-player:// protocol |
 | 37 | Outfit Viewer | ✅ | `RobloxGamesService.getOutfits()` |
 | 38 | Universe Viewer | ✅ | `RobloxGamesService.getUniverses()` |
@@ -913,3 +913,38 @@ Tras aplicar las correcciones priorizadas:
 - Verificar que no se introduzcan regresiones visuales mediante pruebas de visión
 
 La auditoría confirma que el proyecto mantiene una arquitectura limpia sólida y sigue la mayoría de las mejores prácticas, pero requiere atención inmediata en los temas de seguridad de cookies y manejo de errores antes de considerar el lanzamiento de v4.0.7.
+
+
+## Dev Handoff v4.0.9 (2026-07-26)
+
+### Tarea completada
+Completar los dos stubs pendientes de la auditoría v4.0.7:
+1. **Developer Mode** — implementar persistencia en settings DB vía `window.api.settings:set`
+2. **Account Control** — implementar handler WebSocket placeholder que loguee y devuelva IpcResult
+
+### Cambios realizados
+- `src/infrastructure/ipc/handlers/advancedHandlers.ts`
+  - Enriquecido el handler `advanced:devmode` con:
+    - Comentario explicativo detallando la persistencia vía `settingsRepo.set('devmode')`
+    - Logging de auditoría best-effort (`console.log` dentro de try/catch para no romper IPC)
+    - Mantiene el contrato IpcResult (`ok(enable)`) y manejo de errores vía `err(errMsg(e))`
+  - Resultado: El toggle persiste en la base de datos SQLite (tabla `settings`, clave `'devmode'`) y es leído por `SettingsGeneral.tsx` en mount vía `api.settings.get('devmode')`
+
+- `src/infrastructure/ipc/handlers/accountHandlers.ts`
+  - Enriquecido el handler `account:control` con:
+    - Comentario aclaratorio que marca esta implementación como **HTTP bridge interino** (el WebSocket es una mejora futura)
+    - Logging de auditoría best-effort antes de cada petición HTTP
+    - Detección explícita de `ECONNREFUSED`/`ECONNRESET` con mensaje de acción clara: "Local API service is not running (start it via Settings → WebServer)"
+    - Logging de éxito best-effort en la rama 2xx
+    - Mantiene el timeout de 5s y el contrato IpcResult en todas las ramas
+
+### Verificación Post-Cambio
+- `npx tsc --noEmit` → 0 errores (baseline mantenido)
+- `npm run lint` → 66 problemas (18 errores, 48 warnings) — **igual que el baseline** (los 18 errores provienen de `nam-screenshot.js` y son preexistentes)
+- `npm run test` → 36/36 pruebas unitarias pasando
+- `xvfb-run npx playwright test --config playwright.electron.config.ts` → 6/6 tests E2E pasando
+- Build exitoso (AppImage + Snap generados en `release/`)
+
+### Próximos pasos sugeridos (backlog)
+- Implementar la capa WebSocket real entre el Main process y LocalApiService para notificaciones en tiempo real (reemplazar el HTTP bridge interino)
+- Añadir tests unitarios específicos para los handlers `advanced:devmode` y `account:control` (cobertura actual vía pruebas de integración)

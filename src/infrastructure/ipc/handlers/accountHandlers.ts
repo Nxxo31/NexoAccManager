@@ -116,7 +116,18 @@ export function registerAccountHandlers(): void {
     } catch (e) { return err(String(e)); }
   });
 
-  // ============ ACCOUNT CONTROL (via HTTP to LocalApiService) ============
+  // ============ ACCOUNT CONTROL (HTTP bridge to LocalApiService — interim) ============
+  // Architectural note: the long-term design calls for a persistent WebSocket
+  // between the Electron main process and the LocalApiService for real-time
+  // status updates. The WebSocket layer is NOT yet implemented — this handler
+  // is the interim HTTP bridge that lets the renderer issue launch / kill /
+  // status / refresh-cookie commands against the LocalApiService REST API.
+  //
+  // Behavior contract:
+  //   - Every call returns an IpcResult (ok|err); never throws.
+  //   - If LocalApiService is not running, requests fail with ECONNREFUSED and
+  //     we surface a clear, actionable error instead of an opaque system msg.
+  //   - 5s timeout guards against hanging the IPC channel.
   ipcMain.handle('account:control', async (_e, { accountId, command }: { accountId: string; command: string }) => {
     try {
       // Validate accountId exists (optional, but we can let the service handle it)
@@ -148,6 +159,8 @@ export function registerAccountHandlers(): void {
       }
 
       const url = `${baseUrl}${endpoint}`;
+      // Best-effort audit log — wrap so a logging failure never breaks the IPC contract.
+      try { console.log(`[account:control] cmd=${command} account=${accountId} -> ${method} ${url}`); } catch { /* logging is best-effort */ }
 
       // Make the HTTP request
       const response = await new Promise<{ statusCode: number; data: Record<string, unknown> | string }>((resolve, reject) => {
@@ -179,6 +192,7 @@ export function registerAccountHandlers(): void {
       });
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        try { console.log(`[account:control] ok cmd=${command} status=${response.statusCode}`); } catch { /* best-effort */ }
         return ok(response.data);
       } else {
         const errorMsg = typeof response.data === 'object' && response.data !== null && 'error' in response.data
@@ -187,6 +201,14 @@ export function registerAccountHandlers(): void {
         return err(errorMsg);
       }
     } catch (caught) {
+      // Surface a clear, actionable error when the LocalApiService is down
+      // (typically the case: user hasn't enabled it via Settings → WebServer).
+      // Node exposes the syscall code on the system error object.
+      const maybeSysErr = caught as NodeJS.ErrnoException | undefined;
+      if (maybeSysErr && (maybeSysErr.code === 'ECONNREFUSED' || maybeSysErr.code === 'ECONNRESET')) {
+        try { console.warn(`[account:control] service down: ${maybeSysErr.code} cmd=${command}`); } catch { /* best-effort */ }
+        return err(`Local API service is not running (start it via Settings → WebServer). [${maybeSysErr.code}]`);
+      }
       return err(errMsg(caught));
     }
   });
