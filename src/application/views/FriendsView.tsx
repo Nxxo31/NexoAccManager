@@ -33,62 +33,75 @@ export function FriendsView(): JSX.Element {
 
   useEffect(() => {
     if (selectedAccountId && api) loadData();
-  }, [selectedAccountId, activeTab]);
+  }, [selectedAccountId, api, activeTab]);
 
   const loadData = async () => {
-    if (!selectedAccountId || !api) return;
-    setLoading(true);
-    try {
-      if (activeTab === 'friends') {
-        const result = await api.byAccount.friendsList(selectedAccountId);
-        if (result.success) setFriends(Array.isArray(result.data) ? result.data : []);
-        else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
-      } else {
-        const result = await api.byAccount.friendsRequests(selectedAccountId);
-        if (result.success) setRequests(Array.isArray(result.data) ? result.data : []);
-        else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+      if (!selectedAccountId || !api) return;
+      setLoading(true);
+      try {
+        if (activeTab === 'friends') {
+          const result = await api.byAccount.friendsList(selectedAccountId);
+          if (result.success) setFriends(Array.isArray(result.data) ? result.data : []);
+          else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+        } else {
+          const result = await api.byAccount.friendsRequests(selectedAccountId);
+          if (result.success) setRequests(Array.isArray(result.data) ? result.data : []);
+          else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+        }
+      } catch {
+        notifications.show({ message: t('friends.loadError'), color: 'red' });
+      } finally {
+        setLoading(false);
       }
-    } catch {
-      notifications.show({ message: t('friends.loadError'), color: 'red' });
-    }
-    setLoading(false);
-  };
+    };
 
   const handleRespond = async (requestId: number, accept: boolean) => {
     if (!api) return;
-    const result = await api.byAccount.friendsRespond(requestId, accept, selectedAccountId);
-    if (result.success) {
-      notifications.show({ message: accept ? t('friends.requestAccepted') : t('friends.requestRejected'), color: 'green' });
-      setRequests(requests.filter((r) => r.id !== requestId));
-    } else {
-      notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+    try {
+      const result = await api.byAccount.friendsRespond(requestId, accept, selectedAccountId);
+      if (result.success) {
+        notifications.show({ message: accept ? t('friends.requestAccepted') : t('friends.requestRejected'), color: 'green' });
+        setRequests(requests.filter((r) => r.id !== requestId));
+      } else {
+        notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+      }
+    } catch {
+      notifications.show({ message: t('friends.loadError'), color: 'red' });
     }
   };
 
   const handleFollowToggle = async (userId: number, isFollowing: boolean) => {
     if (!api) return;
-    const fn = isFollowing ? api.byAccount.unfollow : api.byAccount.follow;
-    const result = await fn(userId, selectedAccountId);
-    if (result.success) {
-      notifications.show({ message: isFollowing ? t('friends.unfollowed') : t('friends.nowFollowing'), color: 'green' });
-    } else {
-      notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+    try {
+      const fn = isFollowing ? api.byAccount.unfollow : api.byAccount.follow;
+      const result = await fn(userId, selectedAccountId);
+      if (result.success) {
+        notifications.show({ message: isFollowing ? t('friends.unfollowed') : t('friends.nowFollowing'), color: 'green' });
+      } else {
+        notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+      }
+    } catch {
+      notifications.show({ message: t('friends.loadError'), color: 'red' });
     }
   };
 
   const handleSendRequest = async () => {
     if (!api) return;
-    const userIdNum = parseInt(searchUserId, 10);
-    if (!userIdNum || isNaN(userIdNum)) {
-      notifications.show({ message: t('friends.invalidUserId'), color: 'red' });
-      return;
-    }
-    const result = await api.byAccount.sendFriendRequest(userIdNum, selectedAccountId);
-    if (result.success) {
-      notifications.show({ message: t('friends.requestSent'), color: 'green' });
-      setSearchUserId('');
-    } else {
-      notifications.show({ message: result.error ?? t('friends.requestSendError'), color: 'red' });
+    try {
+      const userIdNum = parseInt(searchUserId, 10);
+      if (!userIdNum || isNaN(userIdNum)) {
+        notifications.show({ message: t('friends.invalidUserId'), color: 'red' });
+        return;
+      }
+      const result = await api.byAccount.sendFriendRequest(userIdNum, selectedAccountId);
+      if (result.success) {
+        notifications.show({ message: t('friends.requestSent'), color: 'green' });
+        setSearchUserId('');
+      } else {
+        notifications.show({ message: result.error ?? t('friends.requestSendError'), color: 'red' });
+      }
+    } catch {
+      notifications.show({ message: t('friends.loadError'), color: 'red' });
     }
   };
 

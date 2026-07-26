@@ -45,8 +45,9 @@ export function ServersView(): JSX.Element {
     } catch {
       notifications.show({ message: t('servers.searchError'), color: 'red' });
       setServers([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleJoin = async (jobId: string) => {

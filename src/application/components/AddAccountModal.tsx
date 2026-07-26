@@ -22,18 +22,24 @@ export function AddAccountModal({ open, onClose, onLoginBrowser }: Props): JSX.E
   const handleBrowser = async () => {
     setLoading(true);
     notifications.show({ message: t('modal.openingBrowser'), color: 'blue' });
-    await onLoginBrowser();
-    setLoading(false);
-    onClose();
+    try {
+      await onLoginBrowser();
+    } finally {
+      setLoading(false);
+      onClose();
+    }
   };
 
   const handleCookie = async () => {
-    if (!cookie.trim()) { notifications.show({ message: t('modal.pasteValidCookie'), color: 'red' }); return; }
-    setLoading(true);
-    const result = await addAccount(cookie.trim());
-    if (result.success) { setCookie(''); onClose(); }
-    setLoading(false);
-  };
+      if (!cookie.trim()) { notifications.show({ message: t('modal.pasteValidCookie'), color: 'red' }); return; }
+      setLoading(true);
+      try {
+        const result = await addAccount(cookie.trim());
+        if (result.success) { setCookie(''); onClose(); }
+      } finally {
+        setLoading(false);
+      }
+    };
 
   const handleBulk = async () => {
     if (!bulkText.trim()) return;

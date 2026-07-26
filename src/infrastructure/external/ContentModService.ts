@@ -4,6 +4,7 @@
 import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
+import { safeResolve } from '../../infrastructure/ipc/handlers/shared';
 
 /**
  * Obtiene el directorio de contenido de Roblox
@@ -55,11 +56,12 @@ export function backupContent(relativePath: string): boolean {
     const contentDir = getRobloxContentDir();
     if (!contentDir) return false;
 
-    const sourcePath = path.join(contentDir, relativePath);
-    if (!fs.existsSync(sourcePath)) return false;
+    const sourcePath = safeResolve(contentDir, relativePath);
+    if (sourcePath === null || !fs.existsSync(sourcePath)) return false;
 
     const backupDir = getBackupDir();
-    const backupPath = path.join(backupDir, relativePath);
+    const backupPath = safeResolve(backupDir, relativePath);
+    if (backupPath === null) return false;
 
     // Asegurar que el directorio de destino exista
     const backupDirPath = path.dirname(backupPath);
@@ -93,10 +95,11 @@ export function restoreContent(relativePath: string): boolean {
     if (!contentDir) return false;
 
     const backupDir = getBackupDir();
-    const backupPath = path.join(backupDir, relativePath);
-    if (!fs.existsSync(backupPath)) return false;
+    const backupPath = safeResolve(backupDir, relativePath);
+    if (backupPath === null || !fs.existsSync(backupPath)) return false;
 
-    const targetPath = path.join(contentDir, relativePath);
+    const targetPath = safeResolve(contentDir, relativePath);
+    if (targetPath === null) return false;
 
     // Eliminar el objetivo existente
     if (fs.existsSync(targetPath)) {
@@ -137,8 +140,8 @@ export function restoreContent(relativePath: string): boolean {
 export function deleteBackup(relativePath: string): boolean {
   try {
     const backupDir = getBackupDir();
-    const backupPath = path.join(backupDir, relativePath);
-    if (!fs.existsSync(backupPath)) return false;
+    const backupPath = safeResolve(backupDir, relativePath);
+    if (backupPath === null || !fs.existsSync(backupPath)) return false;
 
     const stats = fs.statSync(backupPath);
     if (stats.isDirectory()) {

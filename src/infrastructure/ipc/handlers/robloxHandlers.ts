@@ -116,8 +116,8 @@ export function registerRobloxHandlers(): void {
   // roblox:shuffle-jobid / roblox:vip-servers — REMOVIDOS (audit F-002/F-003):
   // aceptaban cookie: string cruda del renderer. Reemplazados por variantes
   // byAccount más abajo que resuelven la cookie internamente (accountRepo + decrypt).
-  ipcMain.handle('roblox:kill-instance', async (_e, accountId: string) => { try { await killInstance(accountId); return ok(null); } catch (e) { return errMsg(e); } });
-  ipcMain.handle('roblox:running-instances', async () => { try { return ok(getRunningInstances()); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('roblox:kill-instance', async (_e, accountId: string) => { try { await killInstance(accountId); return ok(null); } catch (e) { return err(errMsg(e)); } }); // F-004: err(errMsg(e)) no string crudo
+  ipcMain.handle('roblox:running-instances', async () => { try { return ok(getRunningInstances()); } catch (e) { return err(errMsg(e)); } }); // F-005
   // roblox:outfits, roblox:universes — ELIMINADOS: aceptaban cookie: string del renderer.
   // Usar roblox:outfitsByAccount que resuelve la cookie internamente.
 
@@ -218,7 +218,7 @@ export function registerRobloxHandlers(): void {
       if (!account) return err('Cuenta no encontrada');
       const cookie = decrypt(account.encryptedCookie);
       return ok(await getOutfits(account.robloxUserId, cookie));
-    } catch (e) { return errMsg(e); }
+    } catch (e) { return err(errMsg(e)); } // F-006: err(errMsg(e)) no string crudo
   });
 
   // Get server region by account (cookie not needed by getServerRegion)

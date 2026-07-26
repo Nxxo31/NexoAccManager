@@ -62,10 +62,10 @@ export function registerAdvancedHandlers(): void {
     try {
       await settingsRepo.set('devmode', enable);
       return ok(enable);
-    } catch (e) { return errMsg(e); }
+    } catch (e) { return err(errMsg(e)); } // F-009: err(errMsg(e)) no string crudo
   });
-  ipcMain.handle('advanced:local-api:start', async (_e, port: number) => { try { await startLocalApi(port); return ok(null); } catch (e) { return errMsg(e); } });
-  ipcMain.handle('advanced:local-api:stop', async () => { try { await stopLocalApi(); return ok(null); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('advanced:local-api:start', async (_e, port: number) => { try { await startLocalApi(port); return ok(null); } catch (e) { return err(errMsg(e)); } }); // F-010
+  ipcMain.handle('advanced:local-api:stop', async () => { try { await stopLocalApi(); return ok(null); } catch (e) { return err(errMsg(e)); } }); // F-011
 
   // ============ COOKIE ============
   ipcMain.handle('cookie:expiry', async (_e, { accountId }: { accountId: string }) => {
@@ -96,7 +96,7 @@ export function registerAdvancedHandlers(): void {
   // el usuario debe re-añadirla vía `account:add` o `account:login*`.
 
   // ============ CAPTCHA ============
-  ipcMain.handle('captcha:solve', async (_e, image: string) => { try { const solution = await solveCaptcha(image); return ok(solution); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('captcha:solve', async (_e, image: string) => { try { const solution = await solveCaptcha(image); return ok(solution); } catch (e) { return err(errMsg(e)); } }); // F-012: err(errMsg(e)) no string crudo
 
   // ===== NEW SERVICES IPC HANDLERS =====
 

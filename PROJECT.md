@@ -755,6 +755,94 @@ DT-7. **App: 6 views sin browser guard** — FriendsView, GamesView, ServersView
 - build: AppImage + Snap generados
 - E2E: 6/6 pasando en 8.7s
 - IPC sync: handlers restantes = canales preload (legacy eliminados ambos lados)
+
+## Auditoría v4.0.8 — Quality batch (Required + Optional + Nits) — Diseño (2026-07-26)
+
+Tras completar las **15 correcciones Críticas** de la auditoría v4.0.7 (EXT/F/R/TS2345 — ver Dev Handoff v4.0.7 abajo), se aborda ahora la **deuda técnica no crítica**: 20 hallazgos Required + 14 Optional + 6 Nits. Este batch prioriza los **4 items listados en PROJECT.md como Prioridad Alta** y los agrupa por categoría coherente para minimizar el riesgo de regresión:
+
+### Objetivo
+Cerrar los 4 items de Prioridad Alta con ataques quirúrgicos, dejar el resto documentado como backlog con prioridades medias/bajas en este mismo documento, sin tocar código fuera del alcance de cada item (Rule 0.5 de incremental-implementation).
+
+### Interfaces y contratos
+
+**A. Invariante IpcResult (cubre F-004 … F-015)**
+
+Todo handler `ipcMain.handle` debe retornar SIEMPRE un `IpcResult`. El helper `errMsg(e)` ya existe en `src/infrastructure/ipc/handlers/shared.ts` pero **es un string**, no un `IpcResult`. El error-pattern correcto en catch es:
+```ts
+} catch (e) { return err(errMsg(e)); }
+```
+**Bug F-004..F-015:** 9 handlers devuelven `errMsg(e)` (string) en el catch — el renderer recibe un string crudo en lugar de `{ success: false, error }` y rompe el contrato de tipos. Lugares:
+
+| # | Archivo:línea | Canal |
+|---|---|---|
+| F-004 | `robloxHandlers.ts:119` | `roblox:kill-instance` |
+| F-005 | `robloxHandlers.ts:120` | `roblox:running-instances` |
+| F-006 | `robloxHandlers.ts:221` | `roblox:outfitsByAccount` |
+| F-007 | `settingsHandlers.ts:24` | `theme:get` |
+| F-008 | `settingsHandlers.ts:25` | `theme:set` |
+| F-009 | `advancedHandlers.ts:65` | `advanced:devmode` |
+| F-010 | `advancedHandlers.ts:67` | `advanced:local-api:start` |
+| F-011 | `advancedHandlers.ts:68` | `advanced:local-api:stop` |
+| F-012 | `advancedHandlers.ts:99` | `captcha:solve` |
+
+**B. Path-traversal validator en ContentModService**
+
+`backupContent(relativePath)`, `restoreContent(relativePath)` y `deleteBackup(relativePath)` hacen `path.join(root, relativePath)` sin verificar que el resultado sigue dentro de `root`. Un `relativePath` malicioso con `..` escapa al directorio padre y permite arbitrary file overwrite/delete (escritura en `%APPDATA%`/sistema). Nuevos tipos:
+
+```ts
+// shared.ts (usado sólo desde handlers/main-process modules)
+/** Resolve `relativePath` against `root` and refuse escapes.
+ *  Returns the resolved absolute path on success, or null on escape attempt. */
+export function safeResolve(root: string, relativePath: string): string | null {
+  const resolved = path.resolve(root, relativePath);
+  const rootResolved = path.resolve(root);
+  if (resolved !== rootResolved && !resolved.startsWith(rootResolved + path.sep)) {
+    return null; // attempted path traversal
+  }
+  return resolved;
+}
+```
+`ContentModService` aplica `safeResolve` antes de cualquier `fs` op; si retorna `null`, las funciones devuelven `false` (sin lanzar — preserva la firma actual) y loguean. Las funciones que sólo construyen strings (`getContentPath`) no requieren validación porque no tocan el FS.
+
+**C. Contracto try/catch/finally para loading states**
+
+Cualquier handler async del renderer que llame `setLoading(true)` (o `setControlLoading`, `setSavingProfile`, etc.) debe:
+1. Hacer el `setLoading(true)` **antes** del try.
+2. Llamar `setLoading(false)` **dentro** del `finally` (no después del catch).
+3. Tener un `catch` no-fatal con `notifications.show` o comentario `/* silent */` intencional.
+
+AudsTargets:
+- `GamesView.tsx` `search` — `setLoading(false)` línea 47 está fuera del finally → mover a finally.
+- `ServersView.tsx` `searchServers` — idem línea 49.
+- `FriendsView.tsx` `loadData` — idem línea 54.
+- `AddAccountModal.tsx` `handleBrowser` (línea 22): si `await onLoginBrowser()` rechaza, **setLoading(false) nunca se llama** (spinner pegado). Mismo bug en `handleCookie` (línea 30) y `handleBulk` (línea 38). Wrap en try/finally.
+- `FriendsView.tsx` `handleRespond`/`handleFollowToggle`/`handleSendRequest`: **sin try/catch** — añadir catch con `notifications.show(t('common.error'))`.
+**D. Higiene de efectos React**
+
+- `useEffect` no debe omitir variables observadas (`eslint-plugin-react-hooks` no instalado, pero la regla sigue siendo buena práctica). Cachea referencias estables en lugar de omitir.
+- Para efectos que disparan fetch on-mount (`SettingsBotting`, `SettingsCache`, `SettingsContentMods`): mover la función `loadX` **dentro** del cuerpo del `useEffect` y añadir `[]` deps — elimina la lost-dep y el stale-closure risk.
+- Para `AccountDetailPanel` `loadOutfits` + tab-load effect: añadir guard de "stale closure" (unicidad de `account.id`+`activeTab` válida) y limpiar flags de cargando en cleanup si el panel se desmonta durante el await. Patrones:
+  - `let cancelled = false;` en cleanup set `cancelled = true`, después del await aplicar state solo si `!cancelled`.
+- `FriendsView.loadData` useeffect deps `[selectedAccountId, activeTab]` omite `loadData` + `api` → mover `loadData` dentro del efecto o añadir deps.
+- `GamesView` useffect deps `[selectedAccountId]` omite `loadFavorites` + `api` → idem.
+
+### Casos de error
+- `safeResolve` escape → ContentModService funcs retornan `false` (preserva la firma boolean), loguea `Path traversal attempt blocked: ${relativePath}`, NO crea/borra archivos.
+- `catch` en AddAccountModal setters de loading → `setLoading(false)` en finally, no se cierra el modal (mantiene la entrada del usuario para intentar de nuevo).
+- Race en AccountDetailPanel: si `account` cambia mientras LoadOutfits pende, el guard evita poblar state del account anterior.
+
+### Requisitos no funcionales
+- cero regresiones en las 4 puertas (tsc 0, lint 0 err / baseline 48 warnings, vitest 36/36, E2E 6/6, IPC sync 91↔91 drift=0).
+- commits tipo `refactor(v4.0.8): descripción` en español — un commit por batch coherente (1: IpcResult, 2: path-traversal, 3: loading + friends-catch, 4: effect-hygiene).
+- mantener invariantes de seguridad: `contextIsolation=true`, `nodeIntegration=false`, `sandbox=true`; cookies nunca abandonan la PC.
+- No añadir dependencias npm nuevas (validator implemented con `node:path`/`node:fs` estándar).
+- No crear archivos auxiliares .md — toda la doc vive en PROJECT.md.
+
+### Test cases esperados (verification-only, no nuevos tests automatizados en este batch — se reusan los existentes)
+- 36/36 vitest pasando (CryptoService 11 + Account 10 + DomainFactories 15).
+- 6/6 E2E pasando en particular `navegación a Settings → Apariencia visible` y `AccountsView AddAccountModal abre`.
+- Script IPC sync (custom extractor) → 91 handlers = 91 canales preload — drift 0.
+
 ## Auditoría Final v4.0.7 (2026-07-26)
 
 ## Dev Handoff v4.0.7 (2026-07-26)

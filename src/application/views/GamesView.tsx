@@ -43,8 +43,9 @@ export function GamesView(): JSX.Element {
       else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
     } catch {
       notifications.show({ message: t('games.searchError'), color: 'red' });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const loadFavorites = async () => {

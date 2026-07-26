@@ -21,8 +21,8 @@ export function registerSettingsHandlers(): void {
   });
 
   // ============ THEME ============
-  ipcMain.handle('theme:get', async () => { try { return ok(getTheme()); } catch (e) { return errMsg(e); } });
-  ipcMain.handle('theme:set', async (_e, name: string) => { try { setTheme(name as ThemeId); return ok(name); } catch (e) { return errMsg(e); } });
+  ipcMain.handle('theme:get', async () => { try { return ok(getTheme()); } catch (e) { return err(errMsg(e)); } }); // F-007: err(errMsg(e)) no string crudo
+  ipcMain.handle('theme:set', async (_e, name: string) => { try { setTheme(name as ThemeId); return ok(name); } catch (e) { return err(errMsg(e)); } }); // F-008
 
   // ============ SHELL ============
   ipcMain.handle('shell:open-external', async (_e, { url }: { url: string }) => {
