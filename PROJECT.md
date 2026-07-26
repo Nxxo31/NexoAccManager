@@ -744,7 +744,7 @@ DT-1. **Domain: Account.password: string** — mover a branded type `EncryptedSt
 DT-2. **Domain: RobloxApiPort god-interface** — segregar en RobloxAuthPort, RobloxGamesPort, RobloxSocialPort, RobloxSettingsPort, RobloxCookiePort [Critical ISP]
 DT-3. **Domain: Factories sin invariantes** — createAccount/createFastFlag/createPlaytimeEntry/createLaunchPreset deben validar: robloxUserId>0, username non-empty, cookieHash coherente con encryptedCookie, startTime<=endTime [Required]
 DT-4. **Infra: DIP violado** — 18 servicios external no implementan RobloxApiPort, IPCAdapter importa funciones concretas → inyectar interfaces [Required]
-DT-5. **Infra: IPCAdapter 748 líneas** — partir por namespace: handlers/account.ts, handlers/roblox.ts, handlers/advanced.ts, handlers/settings.ts [Required SRP]
+DT-5. **Infra: IPCAdapter 748 líneas** — partir por namespace: handlers/account.ts, handlers/roblox.ts, handlers/advanced.ts, handlers/settings.ts [Required SRP] — **✅ REPARADO 2026-07-26**
 DT-6. **App: SettingsView 713 líneas** — 11 concerns en un componente → extraer SettingsAppearance, SettingsBotting, SettingsFastFlags, etc. [Required SRP] — **✅ REPARADO 2026-07-25**
 DT-7. **App: 6 views sin browser guard** — FriendsView, GamesView, ServersView, AccountsView, AccountDetailPanel, AddAccountModal → patrón `const api = typeof window !== 'undefined' ? window.api : undefined` [Required]
 
