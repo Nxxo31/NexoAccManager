@@ -1,8 +1,8 @@
 # NexoAccManager — PROJECT.md
 
-# Última actualización: 2026-07-25 (v4.0.4 — Quality pipeline: ESLint fix, E2E estables, unit tests, visual QA)
+# Última actualización: 2026-07-25 (v4.0.5 — Refactor deuda técnica SOLID/seguridad)
 
-# Versión actual: 4.0.4 (Clean/Hexagonal Architecture — Mantine v7 UI — Quality pipeline completo)
+# Versión actual: 4.0.5 (Clean/Hexagonal Architecture — Mantine v7 UI — Refactor deuda técnica)
 
 ## Estado actual
 
@@ -671,7 +671,51 @@ Fix intermittent 'Cookie inválido o expirada' error during login by ensuring th
 - **Resultado**: tsc 0 errores, LSP 0 errores/0 warnings
 
 ### Historial de versiones
+- v4.0.5 (2026-07-25): Refactor deuda técnica SOLID/seguridad — ver "Refactor Deuda Técnica" abajo
 - v3.5.0 (2026-07-21): Clean Architecture refactor Step 1 — main.ts split + AccountSettingsService reduce
 - v3.4.0 (2026-07-20): Facade Pattern + 14 handlers migrados + auditoría LSP (reemplazado por v4)
 - v3.2.0 (2026-07-20): UI rework + NotificationBar + branding NX-Manager
 - v3.0.0 (2026-07-16): Release completo — 122 tests, 5 views, tag v3.0.0
+
+## Refactor Deuda Técnica v4.0.5 (2026-07-25)
+
+### Auditoría SOLID + Code Review completa
+3 subagentes auditaron 56 archivos en paralelo con skills: architecture-patterns, code-review-and-quality, security-and-hardening, electron-desktop-dev, nexoaccmanager-development-patterns.
+
+**64 findings total:** 10 Critical, 33 Required, 21 Optional, 10 Nit
+
+### Reparado en esta versión
+
+** Seguridad (Critical/Required) — 5 commits:**
+1. Command injection sanitizado en 7 sitios (MultiRobloxService, RobloxBottingService, LocalApiService) — jobId regex UUID v4, pid Number.isInteger + >0
+2. Session isolation: RobloxAuthService ahora usa `session.fromPartition('auth-<timestamp>')` + `clearStorageData()` en loginBrowser y loginUserPass
+3. Handlers legacy eliminados del IPCAdapter + preload: account:getPassword (exponía contraseñas descifradas), roblox:games:search, roblox:servers:*, roblox:multi-launch, roblox:join-group, roblox:outfits, roblox:universes, presence:get/recentGames/robuxBalance, account:friends:list/requests/respond, account:blocked:list/block/unblock, account:follow/unfollow — todos pasaban cookie: string al renderer
+4. Login handlers (account:login-browser, account:login) ahora retornan solo { userId, username } — la cookie se cifra y persiste dentro del main process
+5. LocalApiService: Content-Length cap 1MB + 413 Payload Too Large, shell:openExternal allowlist https, account:control timeout 5s, CacheCleanerService typo TEP→TEMP
+
+** React best practices (Critical/Required) — 1 commit:**
+6. P-001: AccountCard inline eliminado de AccountsView — ahora importa el componente memoizado de components/accounts/AccountCard
+7. P-003: GamesView removeFavorite ahora usa loadFavorites() en vez de setFavorites(filter)
+8. try/catch en 14 handlers de AccountDetailPanel + AccountsView + ServersView — loading states garantizados en finally
+9. i18n ErrorBoundary + AccountCard: textos hardcoded reemplazados por t() keys en ES/EN/PT
+
+** Dead code:**
+10. Eliminados 6 archivos legacy shadcn-ui (ModalShell, badge, button, card, input) + lib/utils.ts (cn helper) — 0 referencias en la app
+
+### Deuda técnica pendiente (refactor arquitectura mayor — decisión: reparar todos)
+
+DT-1. **Domain: Account.password: string** — mover a branded type `EncryptedString` o fuera de la entidad a `AccountCredentials` (boundary del main process) [Critical seguridad]
+DT-2. **Domain: RobloxApiPort god-interface** — segregar en RobloxAuthPort, RobloxGamesPort, RobloxSocialPort, RobloxSettingsPort, RobloxCookiePort [Critical ISP]
+DT-3. **Domain: Factories sin invariantes** — createAccount/createFastFlag/createPlaytimeEntry/createLaunchPreset deben validar: robloxUserId>0, username non-empty, cookieHash coherente con encryptedCookie, startTime<=endTime [Required]
+DT-4. **Infra: DIP violado** — 18 servicios external no implementan RobloxApiPort, IPCAdapter importa funciones concretas → inyectar interfaces [Required]
+DT-5. **Infra: IPCAdapter 748 líneas** — partir por namespace: handlers/account.ts, handlers/roblox.ts, handlers/advanced.ts, handlers/settings.ts [Required SRP]
+DT-6. **App: SettingsView 713 líneas** — 11 concerns en un componente → extraer SettingsAppearance, SettingsBotting, SettingsFastFlags, etc. [Required SRP]
+DT-7. **App: 6 views sin browser guard** — FriendsView, GamesView, ServersView, AccountsView, AccountDetailPanel, AddAccountModal → patrón `const api = typeof window !== 'undefined' ? window.api : undefined` [Required]
+
+### Verificación post-refactor seguridad
+- tsc --noEmit: 0 errores
+- vitest: 17/17 pasando
+- lint: 0 errores, 46 warnings baseline (−5 vs v4.0.4)
+- build: AppImage + Snap generados
+- E2E: 6/6 pasando en 8.7s
+- IPC sync: handlers restantes = canales preload (legacy eliminados ambos lados)
