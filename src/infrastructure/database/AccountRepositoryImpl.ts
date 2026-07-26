@@ -5,6 +5,7 @@ import type { AccountRepository } from '../../domain/repositories/RepositoryInte
 import type { Account, RecentGame, FavoriteGame } from '../../domain/entities/Account';
 import { getDb } from './DatabaseManager';
 import { createAccount } from '../../domain/entities/Account';
+import { makeEncryptedString } from '../../domain/types/EncryptedString';
 
 function rowToAccount(row: Record<string, unknown>): Account {
   return createAccount({
@@ -12,7 +13,7 @@ function rowToAccount(row: Record<string, unknown>): Account {
     robloxUserId: row.roblox_user_id as number,
     username: row.username as string,
     displayName: (row.display_name as string) || '',
-    encryptedCookie: (row.encrypted_cookie as string) || '',
+    encryptedCookie: makeEncryptedString((row.encrypted_cookie as string) || ''),
     cookieHash: (row.cookie_hash as string) || '',
     group: (row.group_name as string) || 'Default',
     description: (row.description as string) || '',
@@ -22,7 +23,7 @@ function rowToAccount(row: Record<string, unknown>): Account {
     cookieExpiresAt: row.cookie_expires_at ? new Date(row.cookie_expires_at as string) : null,
     savedPlaceId: (row.saved_place_id as string) || '',
     savedJobId: (row.saved_job_id as string) || '',
-    password: (row.password as string) || '',
+    password: makeEncryptedString((row.password as string) || ''),
     autoRelaunch: Boolean(row.auto_relaunch),
     isFavorite: Boolean(row.is_favorite),
     fields: JSON.parse((row.custom_fields as string) || '{}'),

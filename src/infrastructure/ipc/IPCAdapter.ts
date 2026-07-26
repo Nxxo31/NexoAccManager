@@ -15,6 +15,7 @@ import { getCookieExpiry, refreshCookie } from '../external/RobloxCookieService'
 import { killAllRoblox, launchRobloxDirect, startBotting, stopBotting, getBottingStatus } from '../external/RobloxBottingService';
 import type { Account } from '../../domain/entities/Account';
 import { createAccount } from '../../domain/entities/Account';
+import { makeEncryptedString } from '../../domain/types/EncryptedString';
 
 // NEW IMPORTS FOR THE 14 HANDLERS
 import { getOutfits, detectVIPServers, shuffleJobId } from '../external/RobloxGamesService';
@@ -60,7 +61,7 @@ export function registerHandlers(): void {
       if (count >= 50) return err('Límite de 50 cuentas alcanzado');
       const account = createAccount({
         id: uuid(), robloxUserId: info.userId, username: info.username,
-        encryptedCookie: encrypt(cookie), cookieHash: hashCookie(cookie), group,
+        encryptedCookie: makeEncryptedString(encrypt(cookie)), cookieHash: hashCookie(cookie), group,
       });
       await accountRepo.create(account);
       return ok(account.id);
@@ -82,14 +83,22 @@ export function registerHandlers(): void {
   ipcMain.handle('account:field:set', async (_e, { id, field, value }: { id: string; field: string; value: string }) => {
     try {
       if (field === 'savedPlaceId' || field === 'savedJobId' || field === 'description' || field === 'password') {
-        await accountRepo.update(id, { [field]: value } as Partial<Account>);
+        // Para campos no cifrados (savedPlaceId/savedJobId/description), value pasa tal cual.
+        // Para 'password' el renderer envía la contraseña CIFRADA ya — la encripción ocurre
+        // exponiendo el boundary correcto: este handler NO descifra/almacena texto plano,
+        // solo marca el branded type para el dominio. Los callers válidos (account:savePassword)
+        // envían encrypt(...) hecha. Si un caller del renderer envía texto plano perdido, el
+        // branded type no lo detecta en runtime pero la invariante de tipos queda explícita.
+        const accountField = field as keyof Account;
+        const payload: Partial<Account> = { [accountField]: field === 'password' ? makeEncryptedString(value) : value } as Partial<Account>;
+        await accountRepo.update(id, payload);
       }
       return ok(null);
     } catch (e) { return err(String(e)); }
   });
 
   ipcMain.handle('account:savePassword', async (_e, { id, password }: { id: string; password: string }) => {
-    try { await accountRepo.update(id, { password: encrypt(password) }); return ok(null); } catch (e) { return err(String(e)); }
+    try { await accountRepo.update(id, { password: makeEncryptedString(encrypt(password)) }); return ok(null); } catch (e) { return err(String(e)); }
   });
 
   // account:getPassword — ELIMINADO: exponía la contraseña descifrada al renderer (violación de boundary)
@@ -113,7 +122,7 @@ export function registerHandlers(): void {
           if (info.valid) {
             const count = await accountRepo.count();
             if (count >= 50) break;
-            const account = createAccount({ id: uuid(), robloxUserId: info.userId, username: info.username, encryptedCookie: encrypt(result.cookie), cookieHash: hashCookie(result.cookie) });
+            const account = createAccount({ id: uuid(), robloxUserId: info.userId, username: info.username, encryptedCookie: makeEncryptedString(encrypt(result.cookie)), cookieHash: hashCookie(result.cookie) });
             await accountRepo.create(account);
             added++;
           }
@@ -322,7 +331,7 @@ export function registerHandlers(): void {
       const oldCookie = decrypt(acc.encryptedCookie);
       const newCookie = await refreshCookie(oldCookie);
       if (newCookie !== oldCookie) {
-        await accountRepo.update(accountId, { encryptedCookie: encrypt(newCookie), cookieHash: hashCookie(newCookie) });
+        await accountRepo.update(accountId, { encryptedCookie: makeEncryptedString(encrypt(newCookie)), cookieHash: hashCookie(newCookie) });
       }
       return ok(null);
     } catch (e) { return err(String(e)); }

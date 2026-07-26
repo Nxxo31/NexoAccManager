@@ -6,6 +6,7 @@ import { startBotting, stopBotting, getBottingStatus } from '../external/RobloxB
 import { refreshCookie } from '../external/RobloxCookieService';
 import { decrypt, encrypt, hashCookie } from '../database/CryptoService';
 import { Account } from '../../domain/entities/Account';
+import { makeEncryptedString } from '../../domain/types/EncryptedString';
 
 const exec = require('node:child_process').exec;
 const execAsync = require('node:util').promisify(exec);
@@ -181,7 +182,7 @@ export function start(port: number = 31415): Promise<void> {
           const oldCookie = decrypt(account.encryptedCookie);
           const newCookie = await refreshCookie(oldCookie);
           if (newCookie !== oldCookie) {
-            await accountRepo.update(id, { encryptedCookie: encrypt(newCookie), cookieHash: hashCookie(newCookie) });
+            await accountRepo.update(id, { encryptedCookie: makeEncryptedString(encrypt(newCookie)), cookieHash: hashCookie(newCookie) });
           }
           res.end(JSON.stringify({ success: true }));
           return;

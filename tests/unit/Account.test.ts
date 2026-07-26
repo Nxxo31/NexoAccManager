@@ -6,6 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { createAccount, type Account } from '../../src/domain/entities/Account';
+import { makeEncryptedString } from '../../src/domain/types/EncryptedString';
 import { MAX_ACCOUNTS } from '../../src/config/constants';
 
 describe('Account entity — createAccount factory', () => {
@@ -14,7 +15,8 @@ describe('Account entity — createAccount factory', () => {
       id: 'acc-1',
       robloxUserId: 123456,
       username: 'testUser',
-      encryptedCookie: 'enc-cookie-data',
+      encryptedCookie: makeEncryptedString('enc-cookie-data'),
+      cookieHash: 'hash-12345',
     });
 
     expect(acc.id).toBe('acc-1');
@@ -37,7 +39,8 @@ describe('Account entity — createAccount factory', () => {
       id: 'acc-2',
       robloxUserId: 999,
       username: 'testname',
-      encryptedCookie: 'enc',
+      encryptedCookie: makeEncryptedString('enc'),
+      cookieHash: 'h',
       displayName: 'CustomDisplay',
       group: 'Premium',
       isFavorite: true,
@@ -56,7 +59,8 @@ describe('Account entity — createAccount factory', () => {
       id: 'acc-3',
       robloxUserId: 1,
       username: 'test',
-      encryptedCookie: 'enc',
+      encryptedCookie: makeEncryptedString('enc'),
+      cookieHash: 'h',
       lastUsed: fecha,
       createdAt: fecha,
       cookieExpiresAt: null,
@@ -68,13 +72,45 @@ describe('Account entity — createAccount factory', () => {
   });
 
   it('campos requeridos no pueden ser undefined (TS evita esto)', () => {
-    // createAccount exige Pick<Account, 'id' | 'robloxUserId' | 'username' | 'encryptedCookie'>
-    // TS lo evita en compile-time; verificamos runtime con cast
-    const bad = { id: 'x', robloxUserId: 1, username: 'u' } as unknown as Partial<Account> & Pick<Account, 'id' | 'robloxUserId' | 'username' | 'encryptedCookie'>;
-    // @ts-expect-error — encryptedCookie missing
+    // createAccount exige Pick<Account, 'id' | 'robloxUserId' | 'username' | 'encryptedCookie'>.
+    // TS lo evita en compile-time; aquí forzamos un cast a un Partial incompleto
+    // para simular runtime. El invariante cookie/cookieHash solo aplica cuando
+    // cookie es string non-empty — undefined cae en la rama permitida.
+    const bad = {
+      id: 'x',
+      robloxUserId: 1,
+      username: 'u',
+    } as unknown as Partial<Account> & Pick<Account, 'id' | 'robloxUserId' | 'username' | 'encryptedCookie'>;
     const acc = createAccount(bad);
-    // En runtime encryptedCookie sería undefined si pasara
+    // En runtime encryptedCookie sería undefined si pasara.
     expect(acc.encryptedCookie).toBeUndefined();
+  });
+
+  it('DT-3 invariante: robloxUserId > 0 — tira Error', () => {
+    expect(() => createAccount({ id: 'x', robloxUserId: 0, username: 'u', encryptedCookie: makeEncryptedString('') }))
+      .toThrow(/robloxUserId debe ser > 0/);
+    expect(() => createAccount({ id: 'x', robloxUserId: -1, username: 'u', encryptedCookie: makeEncryptedString('') }))
+      .toThrow(/robloxUserId debe ser > 0/);
+    expect(() => createAccount({ id: 'x', robloxUserId: NaN, username: 'u', encryptedCookie: makeEncryptedString('') }))
+      .toThrow(/robloxUserId debe ser > 0/);
+  });
+
+  it('DT-3 invariante: username non-empty — tira Error', () => {
+    expect(() => createAccount({ id: 'x', robloxUserId: 1, username: '', encryptedCookie: makeEncryptedString('') }))
+      .toThrow(/username debe ser un string no vacío/);
+    expect(() => createAccount({ id: 'x', robloxUserId: 1, username: '   ', encryptedCookie: makeEncryptedString('') }))
+      .toThrow(/username debe ser un string no vacío/);
+  });
+
+  it('DT-3 invariante: cookie non-empty sin cookieHash → Error (incoherente)', () => {
+    expect(() => createAccount({ id: 'x', robloxUserId: 1, username: 'u', encryptedCookie: makeEncryptedString('enc-data') }))
+      .toThrow(/cookieHash también debe serlo/);
+  });
+
+  it('DT-3 invariante: cookie === \'\' sin cookieHash → permitido (login antes de persistir)', () => {
+    const acc = createAccount({ id: 'x', robloxUserId: 1, username: 'u', encryptedCookie: makeEncryptedString('') });
+    expect(acc.encryptedCookie).toBe('');
+    expect(acc.cookieHash).toBe('');
   });
 });
 
