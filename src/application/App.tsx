@@ -35,18 +35,18 @@ export function App(): JSX.Element {
  useEffect(() => { loadAccounts(); }, [loadAccounts]);
 
  // Load persisted language on mount (only in Electron where preload is available)
-   useEffect(() => {
-     if (window?.api?.settings) {
-       window.api.settings.get('lang').then((r) => {
-         if (r.success && r.data) {
-           const stored = String(r.data) as LangId;
-           if (['es', 'en', 'pt'].includes(stored)) {
-             setLang(stored);
-           }
+ useEffect(() => {
+   if (window?.api?.settings) {
+     window.api.settings.get('lang').then((r) => {
+       if (r.success && r.data) {
+         const stored = String(r.data) as LangId;
+         if (['es', 'en', 'pt'].includes(stored)) {
+           setLang(stored);
          }
-       });
-     }
-   }, []);
+       }
+     }).catch(() => { /* IPC not ready — default lang remains */ });
+   }
+ }, []);
 
  // U-003: Reset selectedId when view changes away from accounts
  useEffect(() => {

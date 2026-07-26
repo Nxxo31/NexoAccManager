@@ -65,6 +65,9 @@ app.whenReady().then(() => {
       setMainWindow(mainWindow);
     }
   });
+}).catch((e) => {
+  console.error('Failed to initialize app:', e);
+  app.quit();
 });
 
 app.on('window-all-closed', () => {

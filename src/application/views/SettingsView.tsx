@@ -73,18 +73,27 @@ export function SettingsView(): JSX.Element {
  const [logEntries, setLogEntries] = useState<{ timestamp: string; level: string; message: string }[]>([]);
 
  useEffect(() => {
- window.api.settings.get('devmode').then((r) => { if (r.success) setDevmode(Boolean(r.data)); });
- window.api.settings.get('autoRejoin').then((r) => { if (r.success) setAutoRejoin(Boolean(r.data)); });
- window.api.settings.get('savePasswords').then((r) => { if (r.success) setSavePasswords(Boolean(r.data)); });
- window.api.settings.get('bottingEnabled').then((r) => { if (r.success) setBottingEnabled(Boolean(r.data)); });
- window.api.settings.get('bottingInterval').then((r) => { if (r.success && r.data) setBottingInterval(Number(r.data)); });
- window.api.settings.get('primaryColor').then((r) => { if (r.success && r.data) setPrimaryColor(String(r.data)); });
- window.api.settings.get('lang').then((r) => {
-   if (r.success && r.data) {
-     const stored = String(r.data) as LangId;
+ Promise.allSettled([
+   window.api.settings.get('devmode'),
+   window.api.settings.get('autoRejoin'),
+   window.api.settings.get('savePasswords'),
+   window.api.settings.get('bottingEnabled'),
+   window.api.settings.get('bottingInterval'),
+   window.api.settings.get('primaryColor'),
+   window.api.settings.get('lang'),
+ ]).then((results) => {
+   const [devmodeR, autoRejoinR, savePasswordsR, bottingEnabledR, bottingIntervalR, primaryColorR, langR] = results;
+   if (devmodeR.status === 'fulfilled' && devmodeR.value.success) setDevmode(Boolean(devmodeR.value.data));
+   if (autoRejoinR.status === 'fulfilled' && autoRejoinR.value.success) setAutoRejoin(Boolean(autoRejoinR.value.data));
+   if (savePasswordsR.status === 'fulfilled' && savePasswordsR.value.success) setSavePasswords(Boolean(savePasswordsR.value.data));
+   if (bottingEnabledR.status === 'fulfilled' && bottingEnabledR.value.success) setBottingEnabled(Boolean(bottingEnabledR.value.data));
+   if (bottingIntervalR.status === 'fulfilled' && bottingIntervalR.value.success && bottingIntervalR.value.data) setBottingInterval(Number(bottingIntervalR.value.data));
+   if (primaryColorR.status === 'fulfilled' && primaryColorR.value.success && primaryColorR.value.data) setPrimaryColor(String(primaryColorR.value.data));
+   if (langR.status === 'fulfilled' && langR.value.success && langR.value.data) {
+     const stored = String(langR.value.data) as LangId;
      if (['es', 'en', 'pt'].includes(stored)) applyLang(stored);
    }
- });
+ }).catch(() => { /* settings load failed — defaults remain */ });
  loadMods();
  loadPresets();
  loadCacheAnalysis();
