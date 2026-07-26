@@ -14,10 +14,27 @@ let server: http.Server | null = null;
 const accountRepo = new AccountRepositoryImpl();
 const runningInstances = new Map<string, number>(); // accountId -> PID
 
+// Maximum allowed body size for HTTP requests — 1 MiB
+const MAX_BODY_BYTES = 1048576;
+
 function parseBody(req: http.IncomingMessage): Promise<any> {
   return new Promise((resolve, reject) => {
     let body = '';
+    let bodyBytes = 0;
+    // Reject requests that declare a Content-Length above the cap up-front
+    const declaredLength = parseInt(req.headers['content-length'] ?? '', 10);
+    if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
+      reject(new Error('Payload too large'));
+      return;
+    }
     req.on('data', chunk => {
+      bodyBytes += chunk.length;
+      if (bodyBytes > MAX_BODY_BYTES) {
+        // Stream-pull guard — protects against transfer-encoding: chunked too
+        req.destroy();
+        reject(new Error('Payload too large'));
+        return;
+      }
       body += chunk.toString();
     });
     req.on('end', () => {
@@ -27,6 +44,7 @@ function parseBody(req: http.IncomingMessage): Promise<any> {
         reject(e);
       }
     });
+    req.on('error', (e) => reject(e));
   });
 }
 
@@ -133,7 +151,7 @@ export function start(port: number = 31415): Promise<void> {
           }
           const pid = runningInstances.get(id);
           let running = false;
-          if (pid !== undefined) {
+          if (pid !== undefined && Number.isInteger(pid) && pid > 0) {
             try {
               const output = await execAsync(`tasklist /FI \"PID eq ${pid}\" /FO CSV /NH`);
               const lines = output.trim().split('\n');
@@ -176,7 +194,19 @@ export function start(port: number = 31415): Promise<void> {
         }
 
         if (method === 'POST' && url === '/botting/start') {
-          const body = await parseBody(req);
+          let body: any;
+          try {
+            body = await parseBody(req);
+          } catch (parseErr: any) {
+            if (parseErr?.message === 'Payload too large') {
+              res.statusCode = 413;
+              res.end(JSON.stringify({ error: 'Payload too large' }));
+            } else {
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+            }
+            return;
+          }
           const { accountId, placeId, interval } = body;
           if (!accountId || !placeId || !interval) {
             res.statusCode = 400;

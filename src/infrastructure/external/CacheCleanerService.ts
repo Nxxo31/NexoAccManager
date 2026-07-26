@@ -13,7 +13,7 @@ import * as path from 'path';
  */
 function getRobloxTempDir(): string | null {
   try {
-    const tempDir = process.env.TEP || process.env.TMP || (process.env.HOME && `${process.env.HOME}/AppData/Local/Temp`);
+    const tempDir = process.env.TEMP || process.env.TMP || (process.env.HOME && `${process.env.HOME}/AppData/Local/Temp`);
     if (!tempDir) return null;
 
     const robloxTempDir = path.join(tempDir, 'Roblox');

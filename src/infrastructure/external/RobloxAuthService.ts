@@ -2,27 +2,34 @@
 // Login browser, login user:pass, verify cookie, import cookies
 
 import { BrowserWindow, session } from 'electron';
-import path from 'node:path';
 import { apiGet, apiPost, cookieHeader } from './RobloxHttp';
 
 export async function loginBrowser(): Promise<{ cookie: string; userId: number; username: string }> {
   return new Promise((resolve, reject) => {
+    // Use an isolated partition to avoid contaminating the default session cookies
+    const partitionName = `auth-${Date.now()}`;
+    const authSession = session.fromPartition(partitionName);
     const win = new BrowserWindow({
       width: 800, height: 600,
-      webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+      webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, partition: partitionName },
       title: 'Iniciar sesión en Roblox',
     });
 
     let resolved = false;
     const timeout = setTimeout(() => {
-      if (!resolved) { resolved = true; win.close(); reject(new Error('Timeout')); }
+      if (!resolved) {
+        resolved = true;
+        win.close();
+        try { authSession.clearStorageData(); } catch { /* ignore */ }
+        reject(new Error('Timeout'));
+      }
     }, 120_000);
 
     // Poll for cookie in session every 2s
     const pollInterval = setInterval(async () => {
       if (resolved) return;
       try {
-        const cookies = await session.defaultSession.cookies.get({ domain: '.roblox.com' });
+        const cookies = await authSession.cookies.get({ domain: '.roblox.com' });
         for (const c of cookies) {
           if (c.name === '.ROBLOSECURITY') {
             const cookie = c.value.trim();
@@ -33,6 +40,7 @@ export async function loginBrowser(): Promise<{ cookie: string; userId: number; 
               clearTimeout(timeout);
               clearInterval(pollInterval);
               win.close();
+              try { authSession.clearStorageData(); } catch { /* ignore */ }
               resolve({ cookie, userId: info.userId, username: info.username });
               return;
             }
@@ -42,14 +50,28 @@ export async function loginBrowser(): Promise<{ cookie: string; userId: number; 
     }, 2000);
 
     win.loadURL('https://www.roblox.com/login');
+
+    // Clean up partition storage if user closes the window manually
+    win.on('closed', () => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        clearInterval(pollInterval);
+        try { authSession.clearStorageData(); } catch { /* ignore */ }
+        reject(new Error('Window closed by user'));
+      }
+    });
   });
 }
 
 export async function loginUserPass(username: string, password: string): Promise<{ cookie: string; userId: number; username: string }> {
   return new Promise((resolve, reject) => {
+    // Use an isolated partition to avoid contaminating the default session cookies
+    const partitionName = `auth-${Date.now()}`;
+    const authSession = session.fromPartition(partitionName);
     const win = new BrowserWindow({
       width: 800, height: 600,
-      webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+      webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, partition: partitionName },
       title: 'Iniciar sesión en Roblox',
     });
 
@@ -59,6 +81,7 @@ export async function loginUserPass(username: string, password: string): Promise
       if (!resolved) {
         resolved = true;
         win.close();
+        try { authSession.clearStorageData(); } catch { /* ignore */ }
         reject(new Error('Timeout'));
       }
     }, 120_000);
@@ -87,7 +110,7 @@ export async function loginUserPass(username: string, password: string): Promise
         }
 
         // Check for cookie
-        const cookies = await session.defaultSession.cookies.get({ domain: '.roblox.com' });
+        const cookies = await authSession.cookies.get({ domain: '.roblox.com' });
         for (const c of cookies) {
           if (c.name === '.ROBLOSECURITY') {
             const cookie = c.value.trim();
@@ -98,6 +121,7 @@ export async function loginUserPass(username: string, password: string): Promise
               clearTimeout(timeout);
               clearInterval(pollInterval);
               win.close();
+              try { authSession.clearStorageData(); } catch { /* ignore */ }
               resolve({ cookie, userId: info.userId, username: info.username });
               return;
             }
@@ -105,10 +129,11 @@ export async function loginUserPass(username: string, password: string): Promise
         }
       } catch (err) {
         // If window is destroyed, break out
-        if (win === null) {
+        if (win === null || win.isDestroyed()) {
           resolved = true;
           clearTimeout(timeout);
           clearInterval(pollInterval);
+          try { authSession.clearStorageData(); } catch { /* ignore */ }
           reject(new Error('Window destroyed'));
           return;
         }
@@ -124,7 +149,7 @@ export async function loginUserPass(username: string, password: string): Promise
         resolved = true;
         clearTimeout(timeout);
         clearInterval(pollInterval);
-        win.close();
+        try { authSession.clearStorageData(); } catch { /* ignore */ }
         reject(new Error('Window closed by user'));
       }
     });

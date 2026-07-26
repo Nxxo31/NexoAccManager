@@ -17,6 +17,11 @@ export async function killAllRoblox(): Promise<void> {
 }
 
 export async function launchRobloxDirect(placeId: string, jobId: string, cookie: string): Promise<void> {
+  // Validate jobId to prevent command injection via the URL (UUID v4 hex+hyphens, 36 chars)
+  const JOB_ID_REGEX = /^[a-f0-9-]{36}$/;
+  if (jobId && !JOB_ID_REGEX.test(jobId)) {
+    return;
+  }
   // Launch Roblox using the protocol handler — needs MultiRobloxService for multi-instance
   const url = `roblox-player://1+launchmode=play+gameinfo=${jobId}+launchtime=${Date.now()}+placelauncherurl=https://assetgame.roblox.com/v1/placelauncher/placelauncher`;
   if (process.platform === 'win32') {
@@ -163,7 +168,7 @@ export function canLaunchWithCookieHash(cookieHash: string): boolean {
     return true;
   }
   const existingPid = duplicatePreventionMap.get(cookieHash);
-  if (existingPid !== undefined) {
+  if (existingPid !== undefined && Number.isInteger(existingPid) && existingPid > 0) {
     // Check if the process is still running
     try {
       if (process.platform === 'win32') {

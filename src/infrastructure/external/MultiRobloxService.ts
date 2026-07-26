@@ -3,7 +3,22 @@ import { promisify } from 'node:util';
 const execAsync = promisify(exec);
 const runningInstances = new Map<string, number>(); // accountId -> PID
 
+// Validate Roblox jobId format: UUID v4 (hex chars + hyphens, 36 chars total)
+const JOB_ID_REGEX = /^[a-f0-9-]{36}$/;
+
+function isValidJobId(jobId: string): boolean {
+  return typeof jobId === 'string' && JOB_ID_REGEX.test(jobId);
+}
+
+function isValidPid(pid: unknown): pid is number {
+  return typeof pid === 'number' && Number.isInteger(pid) && pid > 0;
+}
+
 export async function launchMulti(accountId: string, placeId: string, jobId: string, cookie: string): Promise<number> {
+  // Validate jobId to prevent command injection via the URL
+  if (!isValidJobId(jobId)) {
+    return 0;
+  }
   const url = `roblox-player://1+launchmode=play+gameinfo=${jobId}+launchtime=${Date.now()}+placelauncherurl=https://assetgame.roblox.com/v1/placelauncher/placelauncher`;
   if (process.platform === 'win32') {
     execSync(`start "" "${url}"`, { shell: 'cmd.exe' });
@@ -26,7 +41,7 @@ export async function launchMulti(accountId: string, placeId: string, jobId: str
 
 export async function killInstance(accountId: string): Promise<void> {
   const pid = runningInstances.get(accountId);
-  if (pid) {
+  if (pid !== undefined && isValidPid(pid)) {
     try {
       if (process.platform === 'win32') {
         await execAsync(`taskkill /F /PID ${pid}`);
