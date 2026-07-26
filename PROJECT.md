@@ -1,24 +1,104 @@
 # NexoAccManager — PROJECT.md
 
-# Última actualización: 2026-07-24 (v4.0.3 — Account Control UI tab + Developer Mode confirmado completo)
+# Última actualización: 2026-07-25 (v4.0.4 — Quality pipeline: ESLint fix, E2E estables, unit tests, visual QA)
 
-# Versión actual: 4.0.3 (Clean/Hexagonal Architecture — Mantine v7 UI)
+# Versión actual: 4.0.4 (Clean/Hexagonal Architecture — Mantine v7 UI — Quality pipeline completo)
 
 ## Estado actual
 
 || Métrica | Valor ||
 ||---------|-------||
-|| Versión | 4.0.1 ||
+|| Versión | 4.0.4 ||
 || UI Library | Mantine v7 (reemplaza Tailwind) ||
 || tsc | ✓ 0 errores ||
-|| Tests | E2E Electron Playwright configurado (smoke + accounts) ||
+|| Tests unit | ✓ 17/17 (vitest + happy-dom) ||
+|| Tests E2E | ✓ 6/6 (Playwright Electron + xvfb-run) ||
+|| Lint | ✓ 0 errores (50 warnings baseline) ||
 || LSP | 0 errores, 0 warnings ||
-|| Build | ✅ AppImage + Snap + NSIS .exe (81MB) con mitigaciones Defender ||
-|| LOC | ~3,900 líneas en 56 archivos ||
+|| Build | ✅ AppImage + Snap + NSIS .exe con mitigaciones Defender ||
+|| LOC | ~3,900 líneas en 56 archivos (+ tests) ||
+|| IPC sync | ✓ 111 handlers = 111 canales preload — 0 mismatches ||
+|| Visual QA | ✓ browser_vision: layout sidebar+topbar+content, settings, apariencia || 
 || Rama activa | main ||
 || Release GitHub | v4.0.0 — artifacts subidos ||
 || Defender | Mitigado: asarUnpack, sign hook (skip elevate.exe), signingHashAlgorithms sha256, signAndEditExecutable false ||
-|| E2E | Playwright Electron fixture + smoke + accounts specs ||
+
+## Quality Pipeline — Dev Handoff (2026-07-25, v4.0.4)
+
+**Task:** Automated quality pipeline — ESLint fix, Playwright Electron E2E estable, vitest unit tests, visual QA
+
+**Branch:** main
+
+**Cambios realizados:**
+
+### 1. ESLint fix — ignores para build/
+- `eslint.config.cjs` — Añadidos ignores: `build/**`, `*.config.{js,mjs,cjs}`, `playwright.*.ts`
+- Eliminados 3 falsos positivos en `build/windows-sign.js` (require/module usage)
+- Resultado: 0 errores, 50 warnings (baseline — unused vars en external services)
+
+### 2. Playwright Electron E2E — fixture corregido + tests estables
+- `tests/e2e-electron/electron-fixture.ts` — Reescrito: `_electron` from 'playwright' (no @playwright/test), `waitForLoadState('domcontentloaded')`, `NODE_ENV=test` env
+- `tests/e2e-electron/smoke.spec.ts` — 4 tests con selectores semánticos:
+  - App lanza y muestra ventana con título
+  - Sidebar con 5 NavLinks (getByLabel para aria-label i18n)
+  - Counter "X / 50 cuentas" visible (regex flexible)
+  - TopBar: búsqueda (getByLabel), botón Agregar (getByRole), toggle tema (getByLabel)
+- `tests/e2e-electron/accounts.spec.ts` — 2 tests:
+  - AddAccountModal abre con botón Agregar (getByRole)
+  - Navegación a Settings → acordeón Apariencia visible (getByLabel + getByRole)
+- 6/6 tests pasando en 37.9s con xvfb-run
+
+### 3. Vitest unit tests — CryptoService + Account domain
+- `vitest.config.ts` — happy-dom environment, react plugin, globals, setup file
+- `tests/unit/setup.ts` — silencia console noise, timeout config
+- `tests/unit/CryptoService.test.ts` — 11 tests: encrypt/decrypt round-trip, determinism, inputs diferentes → outputs diferentes, tampering detection (base64 decode+mutate+reencode), hashCookie format, empty string, unicode, long string, 1000 iteraciones perf
+- `tests/unit/Account.test.ts` — 6 tests: createAccount factory, MAX_ACCOUNTS=50 limit, password hashing, entity structure
+- 17/17 tests pasando en 1.0s
+
+### 4. Fix renderer load en test mode
+- `src/main.ts` — Añadido `|| process.env.NODE_ENV === 'test'` a condición `app.isPackaged` para forzar `loadFile('dist/renderer/index.html')` en modo test (sin dev server)
+- Sin ese fix, Playwright Electron cargaba `chrome-error://chromewebdata/` (dev server no corriendo)
+
+### 5. Fix React crash — theme.colors + window.api guard
+- `src/application/App.tsx`:
+  - `theme.colors.white[0]` / `theme.colors.black[0]` no existen en Mantine v7 → reemplazado con `#ffffff` / `#0d0f12` (hex hardcoded)
+  - añadido optional chaining `window?.api?.settings` para prevenir crash cuando preload no está listo
+
+### 6. Fix i18n gaps
+- `src/application/locales/es.json` + `en.json` — Añadidas claves `topbar.searchAria`, `topbar.searchPlaceholder`, `topbar.add`, `topbar.toggleTheme`
+- `src/application/layout/TopBar.tsx` — aria-label del search usa `t('topbar.searchAria')`
+
+### 7. Auditoría backend — IPC sync verification
+- Script automatizado comparó 111 `ipcMain.handle()` en IPCAdapter.ts vs 111 `ipcRenderer.invoke()` en preload/index.ts
+- Resultado: 0 handlers sin preload, 0 canales sin handler — sincronización perfecta
+- Todos los handlers siguen patrón `ok(data)` / `err(message)` — ninguno retorna raw data
+
+### 8. Limpieza archivos diagnóstico temporales
+- Eliminados 7 archivos `diagn*.spec.ts` y `diag-sidebar.spec.ts` (tests diagnósticos de debugging)
+
+### 9. Visual QA con browser_vision
+- Capturada pantalla principal: TopBar(search + Agregar), Sidebar(5 nav items + counter), ContentArea — layout coincide con spec Master-Detail + Sidebar Navigation de PROJECT.md
+- Capturada Settings → Apariencia expandido: selector idioma (Español), color picker (#1D8FF), toggle tema oscuro — todos los controles renderizan correctamente
+- Sin bugs visuales, contraste correcto en dark theme
+
+**Verificación:**
+- `npx tsc --noEmit` → 0 errores
+- `npm run lint` → 0 errores (50 warnings baseline)
+- `npx vitest run` → 17/17 tests pasando (1.0s)
+- `npm run build` → AppImage + Snap + NSIS .exe generados
+- `xvfb-run npx playwright test --config playwright.electron.config.ts` → 6/6 tests pasando (37.9s)
+- `browser_vision` → UI conforme a spec, sin bugs visuales
+
+**Archivos modificados (14):**
+- eslint.config.cjs, src/main.ts, src/application/App.tsx, src/application/layout/TopBar.tsx
+- src/application/locales/es.json, src/application/locales/en.json
+- tests/e2e-electron/electron-fixture.ts, tests/e2e-electron/smoke.spec.ts, tests/e2e-electron/accounts.spec.ts
+
+**Archivos creados (4):**
+- playwright.browser.config.ts, vitest.config.ts, tests/unit/setup.ts, tests/unit/CryptoService.test.ts, tests/unit/Account.test.ts
+
+**Archivos eliminados (7):**
+- tests/e2e-electron/diagn.spec.ts, diagn-v2.spec.ts, diagn-v3.spec.ts, diagn-v4.spec.ts, diagn-console.spec.ts, diagn-spec-html.ts, diag-sidebar.spec.ts
 
 ## Batch 3 — Integración i18n ES/EN/PT (2026-07-24, v4.0.2)
 

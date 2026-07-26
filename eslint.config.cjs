@@ -11,9 +11,11 @@ module.exports = [
       'node_modules/**',
       'tests/**',
       'coverage/**',
+      'build/**',
       '*.bak*',
-      '*.config.{js,mjs}',
+      '*.config.{js,mjs,cjs}',
       'playwright.*.ts',
+      'vitest.config.ts',
     ],
   },
   {

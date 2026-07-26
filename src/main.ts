@@ -23,8 +23,10 @@ function createWindow(): BrowserWindow {
     },
   });
 
-  // En desarrollo carga Vite, en producción carga el build
-  if (app.isPackaged) {
+  // En desarrollo carga Vite, en producción o test carga el build empaquetado
+  // NODE_ENV=test fuerza el archivo empaquetado aunque app.isPackaged sea false
+  // (necesario para Playwright Electron que lanza el bundle sin empaquetar AVR)
+  if (app.isPackaged || process.env.NODE_ENV === 'test') {
     win.loadFile(path.join(__dirname, '../renderer/index.html'));
   } else {
     win.loadURL('http://localhost:5173');

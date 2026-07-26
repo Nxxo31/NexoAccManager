@@ -26,22 +26,26 @@ export function App(): JSX.Element {
  const [searchQuery, setSearchQuery] = useState('');
  const [showAddModal, setShowAddModal] = useState(false);
 
- const bgColor = isDark ? theme.colors.black[0] : theme.colors.white[0];
- const textColor = isDark ? theme.colors.white[0] : theme.colors.black[0];
+ // Mantine v7 no expone theme.colors.white/black (Tailwind legacy).
+ // Usar el scheme del theme directamente via white/dark hex strings.
+ const bgColor = isDark ? '#0d0f12' : '#ffffff';
+ const textColor = isDark ? '#ffffff' : '#0d0f12';
 
  useEffect(() => { loadAccounts(); }, [loadAccounts]);
 
- // Load persisted language on mount
- useEffect(() => {
-   window.api.settings.get('lang').then((r) => {
-     if (r.success && r.data) {
-       const stored = String(r.data) as LangId;
-       if (['es', 'en', 'pt'].includes(stored)) {
-         setLang(stored);
-       }
+ // Load persisted language on mount (only in Electron where preload is available)
+   useEffect(() => {
+     if (window?.api?.settings) {
+       window.api.settings.get('lang').then((r) => {
+         if (r.success && r.data) {
+           const stored = String(r.data) as LangId;
+           if (['es', 'en', 'pt'].includes(stored)) {
+             setLang(stored);
+           }
+         }
+       });
      }
-   });
- }, []);
+   }, []);
 
  // U-003: Reset selectedId when view changes away from accounts
  useEffect(() => {
