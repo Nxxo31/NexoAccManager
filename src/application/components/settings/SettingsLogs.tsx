@@ -23,7 +23,6 @@ export function SettingsLogs(): JSX.Element | null {
   // Initial load
   useEffect(() => {
     loadRecentLogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const clearOldLogs = async () => {

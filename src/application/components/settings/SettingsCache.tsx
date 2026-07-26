@@ -24,7 +24,6 @@ export function SettingsCache(): JSX.Element | null {
   // Initial load
   useEffect(() => {
     loadCacheAnalysis();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const cleanCache = async () => {

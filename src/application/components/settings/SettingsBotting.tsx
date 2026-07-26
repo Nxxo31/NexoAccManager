@@ -23,7 +23,6 @@ export function SettingsBotting(): JSX.Element | null {
       if (enabledR.status === 'fulfilled' && enabledR.value.success) setBottingEnabled(Boolean(enabledR.value.data));
       if (intervalR.status === 'fulfilled' && intervalR.value.success && intervalR.value.data) setBottingInterval(Number(intervalR.value.data));
     }).catch(() => { /* defaults remain */ });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleToggleBotting = async (val: boolean) => {

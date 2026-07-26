@@ -26,7 +26,6 @@ export function SettingsGeneral(): JSX.Element | null {
       if (autoRejoinR.status === 'fulfilled' && autoRejoinR.value.success) setAutoRejoin(Boolean(autoRejoinR.value.data));
       if (savePasswordsR.status === 'fulfilled' && savePasswordsR.value.success) setSavePasswords(Boolean(savePasswordsR.value.data));
     }).catch(() => { /* defaults remain */ });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleToggleDevmode = async (val: boolean) => {

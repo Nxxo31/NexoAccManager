@@ -31,7 +31,6 @@ export function SettingsPlaytime(): JSX.Element | null {
   // Auto-load when account selected
   useEffect(() => {
     if (playtimeAccountId) loadPlaytime();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playtimeAccountId]);
 
   const clearPlaytime = async () => {

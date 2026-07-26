@@ -30,7 +30,7 @@ import {
 import type { Account } from '../../../domain/entities/Account';
 import { createAccount } from '../../../domain/entities/Account';
 import { makeEncryptedString } from '../../../domain/types/EncryptedString';
-import { ok, err, errMsg, type IpcResult } from './shared';
+import { ok, err, errMsg } from './shared';
 
 export function registerAccountHandlers(): void {
   // Reused repository instance (same lifecycle as the original IPCAdapter singleton).

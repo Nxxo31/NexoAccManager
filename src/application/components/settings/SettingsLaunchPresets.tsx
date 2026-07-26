@@ -29,7 +29,6 @@ export function SettingsLaunchPresets(): JSX.Element | null {
   // Initial load
   useEffect(() => {
     loadPresets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const savePreset = async () => {

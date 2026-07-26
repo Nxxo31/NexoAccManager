@@ -1,9 +1,7 @@
-// Application Component: SettingsAppearance — theme + language + color picker
-// DT-6: extraído de SettingsView.tsx (SRP)
+// SettingsAppearance.tsx — extraído de SettingsView.tsx (SRP)
 
 import { useState, useEffect } from 'react';
 import { useMantineColorScheme } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
 import {
   Group, Stack, Text, Switch, ColorPicker, ColorSwatch, Badge, Select,
 } from '@mantine/core';
@@ -50,10 +48,7 @@ export function SettingsAppearance(): JSX.Element | null {
         if (['es', 'en', 'pt'].includes(stored)) applyLang(stored);
       }
     }).catch(() => { /* defaults remain */ });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  void notifications; // reserved for future color-change toasts
 
   return (
     <Stack gap="md" p="xs">

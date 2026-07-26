@@ -30,7 +30,6 @@ export function SettingsContentMods(): JSX.Element | null {
   // Initial load
   useEffect(() => {
     loadMods();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const toggleMod = async (modName: string) => {

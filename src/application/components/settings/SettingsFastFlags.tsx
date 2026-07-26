@@ -31,7 +31,6 @@ export function SettingsFastFlags(): JSX.Element | null {
   // Auto-load fflags when account selected
   useEffect(() => {
     if (fflagsAccountId) loadFflags();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fflagsAccountId]);
 
   const setFflag = async () => {
