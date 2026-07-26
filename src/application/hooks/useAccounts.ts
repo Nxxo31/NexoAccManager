@@ -18,7 +18,7 @@ export function useAccounts() {
     try {
       const result = await api.account.list();
       if (result.success) setAccounts(result.data as never[]);
-      else notify('error', result.error);
+      else notify('error', result.error ?? 'Error desconocido');
     } catch (e) {
       notify('error', String(e));
     }
@@ -27,12 +27,12 @@ export function useAccounts() {
 
   const addAccount = useCallback(async (cookie: string, group?: string) => {
     if (!api) return { success: false, error: 'Electron API no disponible (modo browser)' };
-    const result = await api.account.add(cookie, group);
+    const result = await api.account.add(cookie, group ?? 'Default');
     if (result.success) {
       notify('success', 'Cuenta agregada');
       await loadAccounts();
     } else {
-      notify('error', result.error);
+      notify('error', result.error ?? 'Error desconocido');
     }
     return result;
   }, [notify, loadAccounts]);
@@ -44,7 +44,7 @@ export function useAccounts() {
       remove(id);
       notify('success', 'Cuenta eliminada');
     } else {
-      notify('error', result.error);
+      notify('error', result.error ?? 'Error desconocido');
     }
   }, [remove, notify]);
 
@@ -52,12 +52,13 @@ export function useAccounts() {
     if (!api) return { success: false, error: 'Electron API no disponible' };
     const result = await api.account.loginBrowser();
     if (result.success) {
-      await addAccount((result.data as { cookie: string }).cookie);
+      await loadAccounts(); // account was added internally by IPC handler
+      notify('success', 'Cuenta agregada');
     } else {
-      notify('error', result.error);
+      notify('error', result.error ?? 'Error desconocido');
     }
     return result;
-  }, [addAccount, notify]);
+  }, [loadAccounts, notify]);
 
   return {
     accounts, selectedId, loading,

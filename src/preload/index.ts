@@ -8,8 +8,10 @@ const api = {
   // Account
   account: {
     add: (cookie: string, group?: string) => ipcRenderer.invoke('account:add', { cookie, group }),
-    // loginBrowser: () => ipcRenderer.invoke('account:login-browser'),  // REMOVIDO: handler legacy, usar loginBrowser del hook useAccounts
-    // login: (username, password) => ipcRenderer.invoke('account:login', ...)  // REMOVIDO: handler legacy
+    // R-001: login-browser handler resolves cookie internally, returns only accountId
+    loginBrowser: () => ipcRenderer.invoke('account:login-browser'),
+    // R-002: login handler takes user/pass, runs server-side auth, returns only accountId
+    login: (username: string, password: string) => ipcRenderer.invoke('account:login', { username, password }),
     list: () => ipcRenderer.invoke('account:list'),
     remove: (id: string) => ipcRenderer.invoke('account:remove', { id }),
     move: (id: string, group: string) => ipcRenderer.invoke('account:move', { id, group }),
@@ -40,8 +42,10 @@ const api = {
     serversJoin: (accountId: string, placeId: string, jobId: string) => ipcRenderer.invoke('roblox:servers:join', { accountId, placeId, jobId }),
     killAll: () => ipcRenderer.invoke('roblox:kill-all'),
     serverRegion: (placeId: string) => ipcRenderer.invoke('roblox:server-region', { placeId }),
-    shuffleJobId: (placeId: string, cookie: string) => ipcRenderer.invoke('roblox:shuffle-jobid', { placeId, cookie }),
-    vipServers: (placeId: string, cookie: string) => ipcRenderer.invoke('roblox:vip-servers', { placeId, cookie }),
+    // audit F-002: byAccount variants resolve cookie server-side — no raw cookie crosses the bridge
+    shuffleJobIdByAccount: (placeId: string, accountId: string) => ipcRenderer.invoke('roblox:shuffleJobIdByAccount', { placeId, accountId }),
+    // audit F-003: VIP servers resolved by accountId — cookie never leaves main process
+    vipServersByAccount: (placeId: string, accountId: string) => ipcRenderer.invoke('roblox:vipServersByAccount', { placeId, accountId }),
   },
 
   // Presence
@@ -93,7 +97,7 @@ const api = {
   cookie: {
     expiry: (accountId: string) => ipcRenderer.invoke('cookie:expiry', { accountId }),
     refresh: (accountId: string) => ipcRenderer.invoke('cookie:refresh', { accountId }),
-    refreshReal: (cookie: string) => ipcRenderer.invoke('cookie:refresh-real', cookie),
+    // cookie:refresh-real — REMOVIDO (audit F-001): aceptaba cookie: string cruda del renderer
   },
 
   // Shell

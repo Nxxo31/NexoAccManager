@@ -12,7 +12,7 @@ import { v4 as uuid } from 'uuid';
 import * as http from 'node:http';
 import { AccountRepositoryImpl } from '../../database/AccountRepositoryImpl';
 import { encrypt, decrypt, hashCookie } from '../../database/CryptoService';
-import { loginUserPass, verifyCookie } from '../../external/RobloxAuthService';
+import { loginBrowser, loginUserPass, verifyCookie } from '../../external/RobloxAuthService';
 import {
   getProfile,
   updateProfile,
@@ -300,6 +300,54 @@ export function registerAccountHandlers(): void {
       const cookie = decrypt(account.encryptedCookie);
       await updateNotificationSetting(cookie, key, value);
       return ok(null);
+    } catch (e) { return err(String(e)); }
+  });
+
+  // ============ RESTORED LOGIN HANDLERS (R-001/R-002) ============
+  // R-001: account:login-browser — replaced legacy handler that accepted/returned raw cookie.
+  // Nuevo flujo seguro: render → invoca loginBrowser (muestra ventana Chromium aislada)
+  // → main procesa cookie, la cifra y guarda en base de datos → render recibe solo accountId.
+  // La cookie NUNCA abandona el main process (se cumple regla de seguridad "cookies nunca abandonan el PC").
+  ipcMain.handle('account:login-browser', async () => {
+    try {
+      const { cookie, userId, username } = await loginBrowser(); // usa Chromium aislado
+      // Validar y crear cuenta (mismo flujo que account:add)
+      const info = await verifyCookie(cookie);
+      if (!info.valid) return err('Cookie inválida');
+      const count = await accountRepo.count();
+      if (count >= 50) return err('Límite de 50 cuentas alcanzado');
+      const account = createAccount({
+        id: uuid(),
+        robloxUserId: info.userId,
+        username: info.username,
+        encryptedCookie: makeEncryptedString(encrypt(cookie)),
+        cookieHash: hashCookie(cookie),
+      });
+      await accountRepo.create(account);
+      return ok(account.id); // renderer recibe SOLO el id, nunca la cookie
+    } catch (e) { return err(String(e)); }
+  });
+
+  // R-002: account:login — replaced legacy handler that accepted user:pass + returned cookie.
+  // Nuevo flujo seguro: render → envía user:pass → main intenta loginUserPass
+  // → main cifra/guarda cookie → render recibe solo accountId.
+  // La cookie NUNCA abandona el main process.
+  ipcMain.handle('account:login', async (_e, { username, password }: { username: string; password: string }) => {
+    try {
+      const result = await loginUserPass(username, password); // usa Chromium aislado
+      const info = await verifyCookie(result.cookie);
+      if (!info.valid) return err('Cookie inválida');
+      const count = await accountRepo.count();
+      if (count >= 50) return err('Límite de 50 cuentas alcanzado');
+      const account = createAccount({
+        id: uuid(),
+        robloxUserId: info.userId,
+        username: info.username,
+        encryptedCookie: makeEncryptedString(encrypt(result.cookie)),
+        cookieHash: hashCookie(result.cookie),
+      });
+      await accountRepo.create(account);
+      return ok(account.id); // renderer recibe SOLO el id
     } catch (e) { return err(String(e)); }
   });
 }

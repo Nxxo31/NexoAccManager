@@ -90,7 +90,10 @@ export function registerAdvancedHandlers(): void {
     } catch (e) { return err(String(e)); }
   });
 
-  ipcMain.handle('cookie:refresh-real', async (_e, cookie: string) => { try { const refreshed = await refreshCookie(cookie); return ok(refreshed); } catch (e) { return errMsg(e); } });
+  // cookie:refresh-real — REMOVIDO (audit F-001): aceptaba cookie: string cruda
+  // del renderer. La única forma legítima de refrescar una cookie es por accountId,
+  // resuelta internamente en `cookie:refresh` (arriba). Si una cookie externa falla,
+  // el usuario debe re-añadirla vía `account:add` o `account:login*`.
 
   // ============ CAPTCHA ============
   ipcMain.handle('captcha:solve', async (_e, image: string) => { try { const solution = await solveCaptcha(image); return ok(solution); } catch (e) { return errMsg(e); } });

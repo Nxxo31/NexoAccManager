@@ -113,10 +113,11 @@ export function registerRobloxHandlers(): void {
   // Roblox multi-launch — ELIMINADO: acepaba cookie desde el renderer.
   // (no hay variante byAccount actualmente; el launcher multi usa accountId internamente
   // y no debería necesitar una cookie pasada por el renderer)
+  // roblox:shuffle-jobid / roblox:vip-servers — REMOVIDOS (audit F-002/F-003):
+  // aceptaban cookie: string cruda del renderer. Reemplazados por variantes
+  // byAccount más abajo que resuelven la cookie internamente (accountRepo + decrypt).
   ipcMain.handle('roblox:kill-instance', async (_e, accountId: string) => { try { await killInstance(accountId); return ok(null); } catch (e) { return errMsg(e); } });
   ipcMain.handle('roblox:running-instances', async () => { try { return ok(getRunningInstances()); } catch (e) { return errMsg(e); } });
-  ipcMain.handle('roblox:shuffle-jobid', async (_e, { placeId, cookie }) => { try { const jobId = await shuffleJobId(placeId, cookie); return ok(jobId); } catch (e) { return errMsg(e); } });
-  ipcMain.handle('roblox:vip-servers', async (_e, { placeId, cookie }) => { try { const servers = await detectVIPServers(placeId, cookie); return ok(servers); } catch (e) { return errMsg(e); } });
   // roblox:outfits, roblox:universes — ELIMINADOS: aceptaban cookie: string del renderer.
   // Usar roblox:outfitsByAccount que resuelve la cookie internamente.
 
@@ -224,6 +225,28 @@ export function registerRobloxHandlers(): void {
   ipcMain.handle('roblox:serverRegionByAccount', async (_e, { placeId, accountId: _accountId }: { placeId: string; accountId: string }) => {
     try {
       return ok(await getServerRegion(placeId));
+    } catch (e) { return err(String(e)); }
+  });
+
+  // Shuffle JobID by account (audit F-002): cookie resolved internally — renderer
+  // never receives the raw cookie. Replaces the removed `roblox:shuffle-jobid`.
+  ipcMain.handle('roblox:shuffleJobIdByAccount', async (_e, { placeId, accountId }: { placeId: string; accountId: string }) => {
+    try {
+      const acc = await accountRepo.getById(accountId);
+      if (!acc) return err('Cuenta no encontrada');
+      const cookie = decrypt(acc.encryptedCookie);
+      return ok(await shuffleJobId(placeId, cookie));
+    } catch (e) { return err(String(e)); }
+  });
+
+  // VIP servers by account (audit F-003): cookie resolved internally — renderer
+  // never receives the raw cookie. Replaces the removed `roblox:vip-servers`.
+  ipcMain.handle('roblox:vipServersByAccount', async (_e, { placeId, accountId }: { placeId: string; accountId: string }) => {
+    try {
+      const acc = await accountRepo.getById(accountId);
+      if (!acc) return err('Cuenta no encontrada');
+      const cookie = decrypt(acc.encryptedCookie);
+      return ok(await detectVIPServers(placeId, cookie));
     } catch (e) { return err(String(e)); }
   });
 }

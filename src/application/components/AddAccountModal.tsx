@@ -55,11 +55,8 @@ export function AddAccountModal({ open, onClose, onLoginBrowser }: Props): JSX.E
       try {
         const loginResult = await window.api.account.login(a.username, a.password);
         if (loginResult.success) {
-          const cookieResult = (loginResult as { data: { cookie: string } }).data?.cookie;
-          if (cookieResult) {
-            const addResult = await addAccount(cookieResult);
-            if (addResult.success) added++;
-          }
+          // login IPC handler already created and stored the account internally
+          added++;
         }
       } catch { /* skip */ }
     }

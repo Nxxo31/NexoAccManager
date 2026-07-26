@@ -14,27 +14,41 @@ export function cookieHeader(cookie: string): string {
   return `.ROBLOSECURITY=${cookie};`;
 }
 
-// Un solo lugar para obtener CSRF token
+// Un solo lugar para obtener CSRF token.
+//
+// EXT-001 (audit v4.0.7): el POST a /v2/logout usa `validateStatus: () => true`,
+// así que axios NO lanza — resuelve con el response en el path de éxito. La versión
+// previa solo buscaba el header dentro del catch block, por lo que NUNCA encontraba
+// el token. Roblox responde 403 con `x-csrf-token` cuando el token CSRF falta o es
+// inválido: ese response contiene el token justo en el camino de NO-error.
+//
+// EXT-002 (audit v4.0.7): se elimina `err.cookie = cookie` — el Error ya no arrastra
+// la cookie cruda, evitando que se filtre en mensajes de IPC hacia el renderer.
 const csrfCache = new Map<string, string>();
 
+function extractCsrfToken(res: { headers?: Record<string, unknown> | unknown }): string | undefined {
+  const headers = res.headers as Record<string, unknown> | undefined;
+  const raw = headers?.['x-csrf-token'];
+  if (Array.isArray(raw)) return typeof raw[0] === 'string' ? raw[0] : undefined;
+  return typeof raw === 'string' ? raw : undefined;
+}
+
 export async function getCsrfToken(cookie: string): Promise<string> {
-  if (csrfCache.has(cookie)) return csrfCache.get(cookie)!;
-  try {
-    await httpClient.post(`${AUTH_BASE}/v2/logout`, null, {
-      headers: { Cookie: cookieHeader(cookie) },
-      validateStatus: () => true,
-    });
-  } catch (err: unknown) {
-    const headers = (err as { response?: { headers?: Record<string, string> } }).response?.headers;
-    const token = headers?.['x-csrf-token'];
-    if (token) {
-      csrfCache.set(cookie, token);
-      return token;
-    }
+  const cached = csrfCache.get(cookie);
+  if (cached) return cached;
+
+  // validateStatus: () => true => axios never throws; the response (200, 403, etc.)
+  // is returned. Roblox returns 403 with `x-csrf-token` when CSRF is missing.
+  const res = await httpClient.post(`${AUTH_BASE}/v2/logout`, null, {
+    headers: { Cookie: cookieHeader(cookie) },
+    validateStatus: () => true,
+  });
+  const token = extractCsrfToken(res);
+  if (token) {
+    csrfCache.set(cookie, token);
+    return token;
   }
-  const err = new Error('No se pudo obtener CSRF token') as Error & { cookie?: string };
-  err.cookie = cookie;
-  throw err;
+  throw new Error('No se pudo obtener CSRF token');
 }
 
 // GET wrapper con manejo de 401/403 unificado
