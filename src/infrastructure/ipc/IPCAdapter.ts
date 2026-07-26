@@ -7,18 +7,18 @@ import { AccountRepositoryImpl } from '../database/AccountRepositoryImpl';
 import { SettingsRepositoryImpl } from '../database/SettingsRepositoryImpl';
 import { encrypt, decrypt, hashCookie } from '../database/CryptoService';
 import { getDb } from '../database/DatabaseManager';
-import { loginBrowser, loginUserPass, verifyCookie } from '../external/RobloxAuthService';
+import { loginUserPass, verifyCookie } from '../external/RobloxAuthService';
 import { searchGames, getGameServers, getServerUsers, getServerRegion } from '../external/RobloxGamesService';
-import { getPresence, getFriends, getFriendRequests, respondFriendRequest, getBlockedUsers, blockUser, unblockUser, followUser, unfollowUser, getRobuxBalance, getRecentGames, sendFriendRequest } from '../external/RobloxPresenceService';
+import { getFriends, getFriendRequests, respondFriendRequest, followUser, unfollowUser, sendFriendRequest } from '../external/RobloxPresenceService';
 import { getProfile, updateProfile, get2FAStatus, toggle2FA, getActiveSessions, logoutSession, logoutAllSessions, changePassword, getPrivacySettings, updatePrivacySetting, getNotificationSettings, updateNotificationSetting } from '../external/RobloxSettingsService';
 import { getCookieExpiry, refreshCookie } from '../external/RobloxCookieService';
-import { killAllRoblox, launchRobloxDirect, startBotting, stopBotting, getBottingStatus, joinGroup as joinGroupBot } from '../external/RobloxBottingService';
+import { killAllRoblox, launchRobloxDirect, startBotting, stopBotting, getBottingStatus } from '../external/RobloxBottingService';
 import type { Account } from '../../domain/entities/Account';
 import { createAccount } from '../../domain/entities/Account';
 
 // NEW IMPORTS FOR THE 14 HANDLERS
-import { getOutfits, getUniverses, detectVIPServers, shuffleJobId } from '../external/RobloxGamesService';
-import { launchMulti, killInstance, getRunningInstances } from '../external/MultiRobloxService';
+import { getOutfits, detectVIPServers, shuffleJobId } from '../external/RobloxGamesService';
+import { killInstance, getRunningInstances } from '../external/MultiRobloxService';
 import { solveCaptcha } from '../external/CaptchaService';
 import { start as startLocalApi, stop as stopLocalApi } from '../external/LocalApiService';
 import { getTheme, setTheme, type ThemeId } from '../external/ThemeService';
@@ -67,20 +67,6 @@ export function registerHandlers(): void {
     } catch (e) { return err(errMsg(e)); }
   });
 
-  ipcMain.handle('account:login-browser', async () => {
-    try {
-      const result = await loginBrowser();
-      return ok(result);
-    } catch (e) { return err(errMsg(e)); }
-  });
-
-  ipcMain.handle('account:login', async (_e, { username, password }: { username: string; password: string }) => {
-    try {
-      const result = await loginUserPass(username, password);
-      return ok(result);
-    } catch (e) { return err(errMsg(e)); }
-  });
-
   ipcMain.handle('account:list', async () => {
     try { return ok(await accountRepo.getAll()); } catch (e) { return err(String(e)); }
   });
@@ -106,13 +92,8 @@ export function registerHandlers(): void {
     try { await accountRepo.update(id, { password: encrypt(password) }); return ok(null); } catch (e) { return err(String(e)); }
   });
 
-  ipcMain.handle('account:getPassword', async (_e, { id }: { id: string }) => {
-    try {
-      const acc = await accountRepo.getById(id);
-      if (!acc?.password) return ok('');
-      return ok(decrypt(acc.password));
-    } catch (e) { return err(String(e)); }
-  });
+  // account:getPassword — ELIMINADO: exponía la contraseña descifrada al renderer (violación de boundary)
+  // Las contraseñas NUNCA salen descifradas del main process.
 
   ipcMain.handle('account:setFavorite', async (_e, { id, favorite }: { id: string; favorite: boolean }) => {
     try { await accountRepo.update(id, { isFavorite: favorite }); return ok(null); } catch (e) { return err(String(e)); }
@@ -140,38 +121,6 @@ export function registerHandlers(): void {
       }
       return ok({ added });
     } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('account:friends:list', async (_e, { userId, cookie }: { userId: number; cookie: string }) => {
-    try { return ok(await getFriends(userId, cookie)); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('account:friends:requests', async (_e, { cookie }: { cookie: string }) => {
-    try { return ok(await getFriendRequests(cookie)); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('account:friends:respond', async (_e, { requestId, accept, cookie }: { requestId: number; accept: boolean; cookie: string }) => {
-    try { await respondFriendRequest(requestId, accept, cookie); return ok(null); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('account:blocked:list', async (_e, { cookie }: { cookie: string }) => {
-    try { return ok(await getBlockedUsers(cookie)); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('account:block:user', async (_e, { userId, cookie }: { userId: number; cookie: string }) => {
-    try { await blockUser(userId, cookie); return ok(null); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('account:unblock:user', async (_e, { userId, cookie }: { userId: number; cookie: string }) => {
-    try { await unblockUser(userId, cookie); return ok(null); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('account:follow:user', async (_e, { userId, cookie }: { userId: number; cookie: string }) => {
-    try { await followUser(userId, cookie); return ok(null); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('account:unfollow:user', async (_e, { userId, cookie }: { userId: number; cookie: string }) => {
-    try { await unfollowUser(userId, cookie); return ok(null); } catch (e) { return err(String(e)); }
   });
 
   // ============ ACCOUNT CONTROL (via HTTP to LocalApiService) ============
@@ -224,6 +173,11 @@ export function registerHandlers(): void {
           });
         });
 
+        // Enforce a 5s timeout to avoid hanging the IPC handler indefinitely
+        req.setTimeout(5000, () => {
+          req.destroy(new Error('Request timeout'));
+        });
+
         req.on('error', (error: Error) => {
           reject(error);
         });
@@ -261,17 +215,9 @@ export function registerHandlers(): void {
     } catch (e) { return err(String(e)); }
   });
 
-  ipcMain.handle('roblox:games:search', async (_e, { query, cookie }: { query: string; cookie: string }) => {
-    try { return ok(await searchGames(query, cookie)); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('roblox:servers:list', async (_e, { placeId, cookie, serverType }: { placeId: string; cookie: string; serverType?: 'Public' | 'Private' }) => {
-    try { return ok(await getGameServers(placeId, cookie, serverType ?? 'Public')); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('roblox:servers:users', async (_e, { serverId, cookie }: { serverId: string; cookie: string }) => {
-    try { return ok(await getServerUsers(serverId, cookie)); } catch (e) { return err(String(e)); }
-  });
+  // roblox:games:search, roblox:servers:list, roblox:servers:users — ELIMINADOS:
+  // aceptaban cookie: string del renderer. Usar games:searchByAccount, servers:listByAccount,
+  // servers:usersByAccount que resuelven la cookie internamente.
 
   ipcMain.handle('roblox:servers:join', async (_e, { accountId, placeId, jobId }: { accountId: string; placeId: string; jobId: string }) => {
     try {
@@ -288,26 +234,17 @@ export function registerHandlers(): void {
     try { await killAllRoblox(); return ok(null); } catch (e) { return err(String(e)); }
   });
 
-  ipcMain.handle('roblox:join-group', async (_e, { groupId, cookie }: { groupId: number; cookie: string }) => {
-    try { await joinGroupBot(groupId, cookie); return ok(null); } catch (e) { return err(String(e)); }
-  });
+  // roblox:join-group — ELIMINADO: aceptaba cookie: string del renderer.
+  // (no hay variante byAccount actualmente; GroupService no está portado aún)
 
   ipcMain.handle('roblox:server-region', async (_e, { placeId }: { placeId: string }) => {
     try { return ok(await getServerRegion(placeId)); } catch (e) { return err(String(e)); }
   });
 
   // ============ PRESENCE ============
-  ipcMain.handle('presence:get', async (_e, { userIds, cookie }: { userIds: number[]; cookie: string }) => {
-    try { return ok(await getPresence(userIds, cookie)); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('presence:recent-games', async (_e, { userId, cookie }: { userId: number; cookie: string }) => {
-    try { return ok(await getRecentGames(userId, cookie)); } catch (e) { return err(String(e)); }
-  });
-
-  ipcMain.handle('presence:robux-balance', async (_e, { userId, cookie }: { userId: number; cookie: string }) => {
-    try { return ok(await getRobuxBalance(userId, cookie)); } catch (e) { return err(String(e)); }
-  });
+  // Legacy presence handlers — ELIMINADOS: presence:get, presence:recent-games,
+  // presence:robux-balance aceptaban cookie: string del renderer.
+  // (no hay variantes byAccount actualmente)
 
   // ============ SETTINGS ============
   ipcMain.handle('settings:get', async (_e, { key }: { key: string }) => {
@@ -394,6 +331,16 @@ export function registerHandlers(): void {
   // ============ SHELL ============
   ipcMain.handle('shell:open-external', async (_e, { url }: { url: string }) => {
     try {
+      // Validate protocol — only HTTPS allowed to mitigate file://, javascript:, smb:// attacks
+      let parsed: URL;
+      try {
+        parsed = new URL(url);
+      } catch {
+        return err('Invalid URL');
+      }
+      if (parsed.protocol !== 'https:') {
+        return err('Only https:// URLs are allowed');
+      }
       const { shell } = await import('electron');
       await shell.openExternal(url);
       return ok(null);
@@ -403,13 +350,15 @@ export function registerHandlers(): void {
   // NEW HANDLERS FOR THE 14 IPC
   ipcMain.handle('theme:get', async () => { try { return ok(getTheme()); } catch (e) { return errMsg(e); } });
   ipcMain.handle('theme:set', async (_e, name: string) => { try { setTheme(name as ThemeId); return ok(name); } catch (e) { return errMsg(e); } });
-  ipcMain.handle('roblox:multi-launch', async (_e, { accountId, placeId, jobId, cookie }) => { try { const pid = await launchMulti(accountId, placeId, jobId, cookie); return ok(pid); } catch (e) { return errMsg(e); } });
+  // Roblox multi-launch — ELIMINADO: acepaba cookie desde el renderer.
+  // (no hay variante byAccount actualmente; el launcher multi usa accountId internamente
+  // y no debería necesitar una cookie pasada por el renderer)
   ipcMain.handle('roblox:kill-instance', async (_e, accountId: string) => { try { await killInstance(accountId); return ok(null); } catch (e) { return errMsg(e); } });
   ipcMain.handle('roblox:running-instances', async () => { try { return ok(getRunningInstances()); } catch (e) { return errMsg(e); } });
   ipcMain.handle('roblox:shuffle-jobid', async (_e, { placeId, cookie }) => { try { const jobId = await shuffleJobId(placeId, cookie); return ok(jobId); } catch (e) { return errMsg(e); } });
   ipcMain.handle('roblox:vip-servers', async (_e, { placeId, cookie }) => { try { const servers = await detectVIPServers(placeId, cookie); return ok(servers); } catch (e) { return errMsg(e); } });
-  ipcMain.handle('roblox:outfits', async (_e, { userId, cookie }) => { try { const outfits = await getOutfits(userId, cookie); return ok(outfits); } catch (e) { return errMsg(e); } });
-  ipcMain.handle('roblox:universes', async (_e, { gameId, cookie }) => { try { const universes = await getUniverses(gameId, cookie); return ok(universes); } catch (e) { return errMsg(e); } });
+  // roblox:outfits, roblox:universes — ELIMINADOS: aceptaban cookie: string del renderer.
+  // Usar roblox:outfitsByAccount que resuelve la cookie internamente.
   ipcMain.handle('captcha:solve', async (_e, image: string) => { try { const solution = await solveCaptcha(image); return ok(solution); } catch (e) { return errMsg(e); } });
   ipcMain.handle('advanced:devmode', async (_e, enable: boolean) => {
     try {

@@ -8,29 +8,20 @@ const api = {
   // Account
   account: {
     add: (cookie: string, group?: string) => ipcRenderer.invoke('account:add', { cookie, group }),
-    loginBrowser: () => ipcRenderer.invoke('account:login-browser'),
-    login: (username: string, password: string) => ipcRenderer.invoke('account:login', { username, password }),
+    // loginBrowser: () => ipcRenderer.invoke('account:login-browser'),  // REMOVIDO: handler legacy, usar loginBrowser del hook useAccounts
+    // login: (username, password) => ipcRenderer.invoke('account:login', ...)  // REMOVIDO: handler legacy
     list: () => ipcRenderer.invoke('account:list'),
     remove: (id: string) => ipcRenderer.invoke('account:remove', { id }),
     move: (id: string, group: string) => ipcRenderer.invoke('account:move', { id, group }),
     fieldSet: (id: string, field: string, value: string) => ipcRenderer.invoke('account:field:set', { id, field, value }),
     savePassword: (id: string, password: string) => ipcRenderer.invoke('account:savePassword', { id, password }),
-    getPassword: (id: string) => ipcRenderer.invoke('account:getPassword', { id }),
+    // getPassword: ELIMINADO — las contraseñas descifradas nunca cruzan el boundary al renderer
     setFavorite: (id: string, favorite: boolean) => ipcRenderer.invoke('account:setFavorite', { id, favorite }),
     check: (cookie: string) => ipcRenderer.invoke('account:check', { cookie }),
     bulkImport: (accounts: { username: string; password: string }[]) => ipcRenderer.invoke('account:bulk-import', { accounts }),
-    friends: {
-      list: (userId: number, cookie: string) => ipcRenderer.invoke('account:friends:list', { userId, cookie }),
-      requests: (cookie: string) => ipcRenderer.invoke('account:friends:requests', { cookie }),
-      respond: (requestId: number, accept: boolean, cookie: string) => ipcRenderer.invoke('account:friends:respond', { requestId, accept, cookie }),
-    },
-    blocked: {
-      list: (cookie: string) => ipcRenderer.invoke('account:blocked:list', { cookie }),
-      block: (userId: number, cookie: string) => ipcRenderer.invoke('account:block:user', { userId, cookie }),
-      unblock: (userId: number, cookie: string) => ipcRenderer.invoke('account:unblock:user', { userId, cookie }),
-    },
-    follow: (userId: number, cookie: string) => ipcRenderer.invoke('account:follow:user', { userId, cookie }),
-    unfollow: (userId: number, cookie: string) => ipcRenderer.invoke('account:unfollow:user', { userId, cookie }),
+    // Legacy IPC handlers that expose cookies to renderer — REMOVED for security
+    // Use byAccount.* instead, which resolves cookie internally in main process
+    // friends.list, friends.requests, friends.respond, blocked.list, block, unblock, follow, unfollow → use byAccount
     profile: {
       get: (accountId: string) => ipcRenderer.invoke('account:profile:get', { accountId }),
       update: (accountId: string, updates: { displayName?: string; description?: string }) => ipcRenderer.invoke('account:profile:update', { accountId, updates }),
@@ -38,30 +29,24 @@ const api = {
   },
 
   // Roblox
+  // Legacy handlers that accept raw cookie from renderer — REMOVED for security.
+  // Use byAccount.* instead (cookie resolved internally in main process).
+  // Removed: gamesSearch, serversList, serversUsers, multiLaunch, joinGroup, outfits, universes
+  // (all accepted cookie: string from the renderer)
   roblox: {
     launch: (accountId: string, placeId?: string, jobId?: string) => ipcRenderer.invoke('roblox:launch', { accountId, placeId, jobId }),
-    multiLaunch: (accountId: string, placeId: string, jobId: string, cookie: string) => ipcRenderer.invoke('roblox:multi-launch', { accountId, placeId, jobId, cookie }),
     killInstance: (accountId: string) => ipcRenderer.invoke('roblox:kill-instance', accountId),
     runningInstances: () => ipcRenderer.invoke('roblox:running-instances'),
-    gamesSearch: (query: string, cookie: string) => ipcRenderer.invoke('roblox:games:search', { query, cookie }),
-    serversList: (placeId: string, cookie: string, serverType?: 'Public' | 'Private') => ipcRenderer.invoke('roblox:servers:list', { placeId, cookie, serverType }),
-    serversUsers: (serverId: string, cookie: string) => ipcRenderer.invoke('roblox:servers:users', { serverId, cookie }),
     serversJoin: (accountId: string, placeId: string, jobId: string) => ipcRenderer.invoke('roblox:servers:join', { accountId, placeId, jobId }),
     killAll: () => ipcRenderer.invoke('roblox:kill-all'),
-    joinGroup: (groupId: number, cookie: string) => ipcRenderer.invoke('roblox:join-group', { groupId, cookie }),
     serverRegion: (placeId: string) => ipcRenderer.invoke('roblox:server-region', { placeId }),
     shuffleJobId: (placeId: string, cookie: string) => ipcRenderer.invoke('roblox:shuffle-jobid', { placeId, cookie }),
     vipServers: (placeId: string, cookie: string) => ipcRenderer.invoke('roblox:vip-servers', { placeId, cookie }),
-    outfits: (userId: number, cookie: string) => ipcRenderer.invoke('roblox:outfits', { userId, cookie }),
-    universes: (gameId: number, cookie: string) => ipcRenderer.invoke('roblox:universes', { gameId, cookie }),
   },
 
   // Presence
-  presence: {
-    get: (userIds: number[], cookie: string) => ipcRenderer.invoke('presence:get', { userIds, cookie }),
-    recentGames: (userId: number, cookie: string) => ipcRenderer.invoke('presence:recent-games', { userId, cookie }),
-    robuxBalance: (userId: number, cookie: string) => ipcRenderer.invoke('presence:robux-balance', { userId, cookie }),
-  },
+  // Legacy handlers that accept raw cookie from renderer — REMOVED for security.
+  // Removed: get, recentGames, robuxBalance (all accepted cookie: string from the renderer)
 
   // Settings
   settings: {
