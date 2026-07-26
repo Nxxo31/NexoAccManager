@@ -263,6 +263,11 @@ export const translations: Record<LangId, Record<string, string>> = {
     'detail.controlKillSuccess': 'Instancia cerrada',
     'detail.controlRefreshSuccess': 'Cookie refrescada',
 
+    // Error boundary
+    'error.title': 'Algo salió mal',
+    'error.unknown': 'Error desconocido',
+    'error.retry': 'Reintentar',
+
     // Common
     'common.error': 'Error',
     'common.save': 'Guardar',
@@ -528,6 +533,11 @@ export const translations: Record<LangId, Record<string, string>> = {
     'detail.controlKillSuccess': 'Instance killed',
     'detail.controlRefreshSuccess': 'Cookie refreshed',
 
+    // Error boundary
+    'error.title': 'Something went wrong',
+    'error.unknown': 'Unknown error',
+    'error.retry': 'Retry',
+
     // Common
     'common.error': 'Error',
     'common.save': 'Save',
@@ -792,6 +802,11 @@ export const translations: Record<LangId, Record<string, string>> = {
     'detail.controlLaunchSuccess': 'Instância iniciada',
     'detail.controlKillSuccess': 'Instância encerrada',
     'detail.controlRefreshSuccess': 'Cookie atualizado',
+
+    // Error boundary
+    'error.title': 'Algo deu errado',
+    'error.unknown': 'Erro desconhecido',
+    'error.retry': 'Tentar novamente',
 
     // Common
     'common.error': 'Erro',

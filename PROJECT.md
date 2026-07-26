@@ -634,6 +634,31 @@ Fix intermittent 'Cookie inválido o expirada' error during login by ensuring th
 
 
 
+## v4.0.5 — React best-practices batch (2026-07-25)
+
+### Hallazgos reparados (7 findings — application layer only)
+- **P-001 CRITICAL** AccountsView: eliminada `AccountCard` inline (líneas 249–320) que sombreaba el `AccountCard` memoizado importado de `components/accounts/AccountCard.tsx`, derrotando `React.memo`. Importado el componente extraído. Limpiados imports huérfanos (Shuffle/Pencil/Star/Trash2/Card/Badge/ActionIcon/Avatar/Skeleton).
+- **P-001 props** AccountCard.tsx: añadidos props opcionales `isRemoving`/`isTogglingFavorite` con defaults `false`, i18n `t('accounts.cookieValid'/'cookieExpired')` en lugar de `'Valida'/'Expirada'` hardcoded, `aria-label` consistentes con el inline eliminado, `role=\"button\"`+`tabIndex`+`onKeyDown` para a11y.
+- **P-003 CRITICAL** GamesView.removeFavorite: reemplazado `setFavorites(favorites.filter(...))` (mutación de copia local tras IPC delete) con `loadFavorites()` para re-leer desde source of truth.
+- **R-5** AccountsView handleLaunch/handleKillAll envueltos en `try/catch` con `notifications.show(t('common.error'))`.
+- **R-6** ServersView handleJoin envuelto en `try/catch` con `notifications.show`.
+- **R-8** AccountDetailPanel: 14 handlers async envueltos en `try/catch/finally`. En `finally` se garantiza `setLoadingOutfits(false)`/`setSavingProfile(false)`/`setChangingPassword(false)`/`setControlLoading(null)`. Handlers de carga silenciosos (loadProfile/loadSecurity/loadPrivacy/loadNotifSettings) usan catch vacío (no-fatal).
+- **R-11** ErrorBoundary.tsx: importado `t` desde `'../../config/i18n'`; reemplazados `'Algo salió mal'/'Error desconocido'/'Reintentar'` con `t('error.title'/'error.unknown'/'error.retry')`.
+- **R-12** AccountCard.tsx (ver arriba): i18n `cookieValid`/`cookieExpired`.
+
+### i18n keys nuevas (en `src/config/i18n.ts` — NO en `src/application/locales/*.json`)
+- **es**: `error.title`='Algo salió mal', `error.unknown`='Error desconocido', `error.retry`='Reintentar'
+- **en**: `error.title`='Something went wrong', `error.unknown`='Unknown error', `error.retry`='Retry'
+- **pt**: `error.title`='Algo deu errado', `error.unknown`='Erro desconhecido', `error.retry`='Tentar novamente'
+
+> Nota: `src/config/i18n.ts` es la implementación custom de i18n que exportan `t` y que consumen las vistas (no i18next). `src/application/locales/*.json` solo alimenta la instancia i18next no usada por las vistas — añadir keys ahí no habría resuelto el finding.
+
+### Verificación
+- `npx tsc --noEmit` → 0 errores
+- `npm run lint` → 46 warnings, 0 errores (baseline previo: 51 warnings — delta **−5** warnings)
+- `npx vitest run` → 17/17 passing (CryptoService 11 + Account 6)
+
+
 ## v4.0.0 — Clean/Hexagonal Architecture (2026-07-22)
 
 ### Cambios en este paso

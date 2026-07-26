@@ -1,10 +1,12 @@
 // Application Component: AccountCard — individual account display (Mantine v7)
 // Extracted from AccountsView for performance — React.memo prevents unnecessary re-renders.
+// P-001: extracted to its own file so React.memo works; parent passes memoized callbacks.
 
 import { memo } from 'react';
 import { Star, Pencil, Trash2 } from 'lucide-react';
 import { Card, Group, Stack, Text, Badge, Avatar, ActionIcon } from '@mantine/core';
 import type { Account } from '../../../domain/entities/Account';
+import { t } from '../../../config/i18n';
 
 interface AccountCardProps {
   account: Account;
@@ -13,9 +15,20 @@ interface AccountCardProps {
   onRemove: () => void;
   onToggleFavorite: () => void;
   onEdit: () => void;
+  isRemoving?: boolean;
+  isTogglingFavorite?: boolean;
 }
 
-function AccountCardComponent({ account, selected, onSelect, onRemove, onToggleFavorite, onEdit }: AccountCardProps): JSX.Element {
+function AccountCardComponent({
+  account,
+  selected,
+  onSelect,
+  onRemove,
+  onToggleFavorite,
+  onEdit,
+  isRemoving = false,
+  isTogglingFavorite = false,
+}: AccountCardProps): JSX.Element {
   return (
     <Card
       withBorder
@@ -27,6 +40,14 @@ function AccountCardComponent({ account, selected, onSelect, onRemove, onToggleF
         borderWidth: selected ? 2 : 1,
       }}
       onClick={onSelect}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
     >
       <Group justify="space-between" align="center">
         <Group gap="sm" align="center">
@@ -40,16 +61,34 @@ function AccountCardComponent({ account, selected, onSelect, onRemove, onToggleF
           </Stack>
         </Group>
         <Group gap="xs">
+          {/* A-003: Color como unico indicador - anadir texto a badge cookie */}
           <Badge size="xs" variant="light" color={account.cookieExpiresAt ? 'green' : 'red'}>
-            {account.cookieExpiresAt ? 'Valida' : 'Expirada'}
+            {account.cookieExpiresAt ? t('accounts.cookieValid') : t('accounts.cookieExpired')}
           </Badge>
-          <ActionIcon variant="subtle" color={account.isFavorite ? 'yellow' : 'gray'} onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}>
+          <ActionIcon
+            variant="subtle"
+            color={account.isFavorite ? 'yellow' : 'gray'}
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+            disabled={isTogglingFavorite}
+            aria-label={account.isFavorite ? t('accounts.removeFavorite') : t('accounts.addFavorite')}
+          >
             <Star size={14} fill={account.isFavorite ? 'currentColor' : 'none'} />
           </ActionIcon>
-          <ActionIcon variant="subtle" color="gray" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            aria-label={t('accounts.editAccount')}
+          >
             <Pencil size={14} />
           </ActionIcon>
-          <ActionIcon variant="subtle" color="gray" onClick={(e) => { e.stopPropagation(); onRemove(); }}>
+          <ActionIcon
+            variant="subtle"
+            color="red"
+            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            disabled={isRemoving}
+            aria-label={t('accounts.deleteAccount')}
+          >
             <Trash2 size={14} />
           </ActionIcon>
         </Group>

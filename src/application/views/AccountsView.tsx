@@ -1,11 +1,12 @@
 // Application View: AccountsView — account grid with groups + editable description — Mantine v7
 
 import { useState, useMemo, useEffect } from 'react';
-import { Shuffle, Plus, Users, LogOut, Tag, Pencil, Star, Trash2, Check, X } from 'lucide-react';
+import { Plus, Users, LogOut, Tag } from 'lucide-react';
 import { useAccountStore } from '../store/accountStore';
 import { useAccounts } from '../hooks/useAccounts';
+import { AccountCard } from '../components/accounts/AccountCard';
 import { AccountDetailPanel } from '../components/AccountDetailPanel';
-import { Group, Stack, Text, Button, TextInput, ScrollArea, Skeleton, Tooltip, Checkbox, Badge, Card, ActionIcon, Avatar, Modal, Textarea } from '@mantine/core';
+import { Group, Stack, Text, Button, TextInput, ScrollArea, Tooltip, Checkbox, Modal, Textarea } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { modals } from '@mantine/modals';
 import type { Account } from '../../domain/entities/Account';
@@ -56,15 +57,23 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
       finalJobId = Math.random().toString(36).substring(2, 18);
       setJobId(finalJobId);
     }
-    const result = await window.api.roblox.launch(selected.id, placeId || undefined, finalJobId || undefined);
-    if (result.success) notifications.show({ message: t('accounts.launched', { name: selected.username }), color: 'green' });
-    else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+    try {
+      const result = await window.api.roblox.launch(selected.id, placeId || undefined, finalJobId || undefined);
+      if (result.success) notifications.show({ message: t('accounts.launched', { name: selected.username }), color: 'green' });
+      else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+    } catch {
+      notifications.show({ message: t('common.error'), color: 'red' });
+    }
   };
 
   const handleKillAll = async () => {
-    const result = await window.api.roblox.killAll();
-    if (result.success) notifications.show({ message: t('accounts.processesClosed'), color: 'green' });
-    else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+    try {
+      const result = await window.api.roblox.killAll();
+      if (result.success) notifications.show({ message: t('accounts.processesClosed'), color: 'green' });
+      else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+    } catch {
+      notifications.show({ message: t('common.error'), color: 'red' });
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -240,82 +249,4 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
       </Modal>
     </div>
   );
-
-  function handleSaveRequest() {
-    handleSaveEdit();
-  }
-
-  // Inline AccountCard — minimalist with Mantine
-  function AccountCard({ account, selected, onSelect, onRemove, onToggleFavorite, onEdit, isRemoving, isTogglingFavorite }: {
-    account: Account;
-    selected: boolean;
-    onSelect: () => void;
-    onRemove: () => void;
-    onToggleFavorite: () => void;
-    onEdit: () => void;
-    isRemoving: boolean;
-    isTogglingFavorite: boolean;
-  }): JSX.Element {
-    return (
-      <Card
-        withBorder
-        radius="md"
-        padding="sm"
-        style={{
-          cursor: 'pointer',
-          borderColor: selected ? 'var(--mantine-color-primary-5)' : undefined,
-          borderWidth: selected ? 2 : 1,
-        }}
-        onClick={onSelect}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onSelect();
-          }
-        }}
-      >
-        <Group justify="space-between" align="center">
-          <Group gap="sm" align="center">
-            <Avatar size="sm" radius="xl" style={{ backgroundColor: 'var(--mantine-color-gray-4)' }}>
-              {account.username.charAt(0).toUpperCase()}
-            </Avatar>
-            <Stack gap={2}>
-              <Text size="sm" fw={500}>{account.username}</Text>
-              {account.group && <Badge size="xs" variant="light" color="blue">{account.group}</Badge>}
-              {account.description && <Text size="xs" c="dimmed" lineClamp={1}>{account.description}</Text>}
-            </Stack>
-          </Group>
-          <Group gap="xs">
-            {/* A-003: Color como unico indicador - anadir texto a badge cookie */}
-            <Badge size="xs" variant="light" color={account.cookieExpiresAt ? 'green' : 'red'}>
-              {account.cookieExpiresAt ? t('accounts.cookieValid') : t('accounts.cookieExpired')}
-            </Badge>
-            <ActionIcon
-              variant="subtle"
-              color={account.isFavorite ? 'yellow' : 'gray'}
-              onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
-              disabled={isTogglingFavorite}
-              aria-label={account.isFavorite ? t('accounts.removeFavorite') : t('accounts.addFavorite')}
-            >
-              <Star size={14} fill={account.isFavorite ? 'currentColor' : 'none'} />
-            </ActionIcon>
-            <ActionIcon variant="subtle" color="gray" onClick={(e) => { e.stopPropagation(); onEdit(); }} aria-label={t('accounts.editAccount')}>
-              <Pencil size={14} />
-            </ActionIcon>
-            <ActionIcon
-              variant="subtle"
-              color="red"
-              onClick={(e) => { e.stopPropagation(); onRemove(); }}
-              disabled={isRemoving}
-              aria-label={t('accounts.deleteAccount')}
-            >
-              <Trash2 size={14} />
-            </ActionIcon>
-          </Group>
-        </Group>
-      </Card>
-    );
-  }
 }

@@ -64,7 +64,7 @@ export function GamesView(): JSX.Element {
 
   const removeFavorite = async (gameId: number) => {
     const result = await window.api.games.removeFavorite(selectedAccountId, gameId);
-    if (result.success) { notifications.show({ message: t('games.removedFromFavorites'), color: 'green' }); setFavorites(favorites.filter((f) => f.gameId !== gameId)); }
+    if (result.success) { notifications.show({ message: t('games.removedFromFavorites'), color: 'green' }); loadFavorites(); }
     else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
   };
 

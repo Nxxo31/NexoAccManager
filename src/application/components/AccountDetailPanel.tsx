@@ -58,10 +58,11 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
  if (result.success) setOutfits(Array.isArray(result.data) ? result.data : []);
  else setOutfits([]);
  } catch { setOutfits([]); }
- setLoadingOutfits(false);
+ finally { setLoadingOutfits(false); }
  };
 
  const loadProfile = async () => {
+ try {
  const r = await window.api.account.profile.get(account.id);
  // Note: byAccount returns profile data — we use the generic IPC
  if (r.success && r.data) {
@@ -69,72 +70,106 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
  setDisplayName(p.displayName ?? account.username);
  setDescription(p.description ?? '');
  }
+ } catch { /* silent — non-fatal load */ }
  };
 
  const saveProfile = async () => {
  setSavingProfile(true);
+ try {
  const r = await window.api.account.profile.update(account.id, { displayName, description });
  if (r.success) notifications.show({ message: t('detail.profileUpdated'), color: 'green' });
  else notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
+ } catch {
+ notifications.show({ message: t('common.error'), color: 'red' });
+ } finally {
  setSavingProfile(false);
+ }
  };
 
  const loadSecurity = async () => {
+ try {
  const twoFA = await window.api.byAccount.twoFA(account.id);
  if (twoFA.success && twoFA.data) setTwoFAEnabled(Boolean(twoFA.data));
  const sess = await window.api.byAccount.sessions(account.id);
  if (sess.success && Array.isArray(sess.data)) setSessions(sess.data as SessionInfo[]);
+ } catch { /* silent — non-fatal load */ }
  };
 
  const toggle2FA = async (enable: boolean) => {
+ try {
  const r = await window.api.byAccount.twoFAToggle(account.id, enable);
  if (r.success) { setTwoFAEnabled(enable); notifications.show({ message: enable ? t('detail.twoFAEnabled') : t('detail.twoFADisabled'), color: 'green' }); }
  else notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
+ } catch {
+ notifications.show({ message: t('common.error'), color: 'red' });
+ }
  };
 
  const changePassword = async () => {
  if (!currentPassword || !newPassword) return;
  setChangingPassword(true);
+ try {
  const r = await window.api.byAccount.password(account.id, currentPassword, newPassword);
  if (r.success) { notifications.show({ message: t('detail.passwordChanged'), color: 'green' }); setCurrentPassword(''); setNewPassword(''); }
  else notifications.show({ message: r.error ?? t('detail.passwordChangeError'), color: 'red' });
+ } catch {
+ notifications.show({ message: t('common.error'), color: 'red' });
+ } finally {
  setChangingPassword(false);
+ }
  };
 
  const logoutSession = async (sessionId: string) => {
+ try {
  const r = await window.api.byAccount.logout(account.id, sessionId);
  if (r.success) { notifications.show({ message: t('detail.sessionClosed'), color: 'green' }); loadSecurity(); }
  else notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
+ } catch {
+ notifications.show({ message: t('common.error'), color: 'red' });
+ }
  };
 
  const loadPrivacy = async () => {
+ try {
  const r = await window.api.byAccount.privacyGet(account.id);
  if (r.success && r.data) setPrivacySettings(r.data as Record<string, boolean | string>);
+ } catch { /* silent — non-fatal load */ }
  };
 
  const updatePrivacy = async (key: string, value: string | boolean) => {
+ try {
  const r = await window.api.byAccount.privacyUpdate(account.id, key, value);
  if (r.success) {
  setPrivacySettings(prev => ({ ...prev, [key]: value }));
  notifications.show({ message: t('detail.privacyUpdated'), color: 'green' });
  } else notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
+ } catch {
+ notifications.show({ message: t('common.error'), color: 'red' });
+ }
  };
 
  const loadNotifSettings = async () => {
+ try {
  const r = await window.api.byAccount.notificationsGet(account.id);
  if (r.success && r.data) setNotifSettings(r.data as Record<string, boolean>);
+ } catch { /* silent — non-fatal load */ }
  };
 
  const updateNotif = async (key: string, value: boolean) => {
+ try {
  const r = await window.api.byAccount.notificationsUpdate(account.id, key, value);
  if (r.success) {
  setNotifSettings(prev => ({ ...prev, [key]: value }));
  notifications.show({ message: t('detail.notificationUpdated'), color: 'green' });
  } else notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
+ } catch {
+ notifications.show({ message: t('common.error'), color: 'red' });
+ }
  };
 
  const handleControlLaunch = async () => {
  setControlLoading('launch');
+ try {
  const r = await window.api.byAccount.control(account.id, 'launch');
  if (r.success) {
  notifications.show({ message: t('detail.controlLaunchSuccess'), color: 'green' });
@@ -142,11 +177,16 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
  } else {
  notifications.show({ message: r.error ?? t('detail.controlNoResponse'), color: 'red' });
  }
+ } catch {
+ notifications.show({ message: t('common.error'), color: 'red' });
+ } finally {
  setControlLoading(null);
+ }
  };
 
  const handleControlKill = async () => {
  setControlLoading('kill');
+ try {
  const r = await window.api.byAccount.control(account.id, 'kill');
  if (r.success) {
  notifications.show({ message: t('detail.controlKillSuccess'), color: 'green' });
@@ -154,12 +194,17 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
  } else {
  notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
  }
+ } catch {
+ notifications.show({ message: t('common.error'), color: 'red' });
+ } finally {
  setControlLoading(null);
+ }
  };
 
  const handleControlStatus = async () => {
  setControlLoading('status');
  setControlStatus('checking');
+ try {
  const r = await window.api.byAccount.control(account.id, 'status');
  if (r.success && r.data) {
  const data = r.data as { running?: boolean };
@@ -168,18 +213,28 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
  setControlStatus('idle');
  notifications.show({ message: t('detail.controlNoResponse'), color: 'orange' });
  }
+ } catch {
+ setControlStatus('idle');
+ notifications.show({ message: t('common.error'), color: 'red' });
+ } finally {
  setControlLoading(null);
+ }
  };
 
  const handleControlRefreshCookie = async () => {
  setControlLoading('refresh-cookie');
+ try {
  const r = await window.api.byAccount.control(account.id, 'refresh-cookie');
  if (r.success) {
  notifications.show({ message: t('detail.controlRefreshSuccess'), color: 'green' });
  } else {
  notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
  }
+ } catch {
+ notifications.show({ message: t('common.error'), color: 'red' });
+ } finally {
  setControlLoading(null);
+ }
  };
 
  useEffect(() => { loadOutfits(); }, [account.id]);

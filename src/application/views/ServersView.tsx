@@ -49,9 +49,13 @@ export function ServersView(): JSX.Element {
   };
 
   const handleJoin = async (jobId: string) => {
-    const result = await window.api.roblox.serversJoin(selectedAccountId, placeId, jobId);
-    if (result.success) notifications.show({ message: t('servers.joining'), color: 'green' });
-    else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+    try {
+      const result = await window.api.roblox.serversJoin(selectedAccountId, placeId, jobId);
+      if (result.success) notifications.show({ message: t('servers.joining'), color: 'green' });
+      else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+    } catch {
+      notifications.show({ message: t('common.error'), color: 'red' });
+    }
   };
 
   if (accounts.length === 0) {
