@@ -11,10 +11,10 @@ import { t } from '../../../config/i18n';
 interface AccountCardProps {
   account: Account;
   selected: boolean;
-  onSelect: () => void;
-  onRemove: () => void;
-  onToggleFavorite: () => void;
-  onEdit: () => void;
+  onSelect: (account: Account) => void;
+  onRemove: (account: Account) => void;
+  onToggleFavorite: (account: Account) => void;
+  onEdit: (account: Account) => void;
   isRemoving?: boolean;
   isTogglingFavorite?: boolean;
 }
@@ -39,13 +39,13 @@ function AccountCardComponent({
         borderColor: selected ? 'var(--mantine-color-primary-5)' : undefined,
         borderWidth: selected ? 2 : 1,
       }}
-      onClick={onSelect}
+      onClick={() => onSelect(account)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onSelect();
+          onSelect(account);
         }
       }}
     >
@@ -68,7 +68,7 @@ function AccountCardComponent({
           <ActionIcon
             variant="subtle"
             color={account.isFavorite ? 'yellow' : 'gray'}
-            onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(account); }}
             disabled={isTogglingFavorite}
             aria-label={account.isFavorite ? t('accounts.removeFavorite') : t('accounts.addFavorite')}
           >
@@ -77,7 +77,7 @@ function AccountCardComponent({
           <ActionIcon
             variant="subtle"
             color="gray"
-            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            onClick={(e) => { e.stopPropagation(); onEdit(account); }}
             aria-label={t('accounts.editAccount')}
           >
             <Pencil size={14} />
@@ -85,7 +85,7 @@ function AccountCardComponent({
           <ActionIcon
             variant="subtle"
             color="red"
-            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            onClick={(e) => { e.stopPropagation(); onRemove(account); }}
             disabled={isRemoving}
             aria-label={t('accounts.deleteAccount')}
           >

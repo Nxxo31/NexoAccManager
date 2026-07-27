@@ -1,6 +1,6 @@
 // Application View: AccountsView — account grid with groups + editable description — Mantine v7
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Plus, Users, LogOut, Tag } from 'lucide-react';
 import { useAccountStore } from '../store/accountStore';
 import { useAccounts } from '../hooks/useAccounts';
@@ -51,7 +51,7 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
     );
   }, [accounts, debouncedQuery]);
 
-  const handleLaunch = async () => {
+  const handleLaunch = useCallback(async () => {
     if (!selected || !api) return;
     let finalJobId = jobId;
     if (shuffle && placeId) {
@@ -65,9 +65,9 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
     } catch {
       notifications.show({ message: t('common.error'), color: 'red' });
     }
-  };
+  }, [selected, api, shuffle, placeId, jobId]);
 
-  const handleKillAll = async () => {
+  const handleKillAll = useCallback(async () => {
     if (!api) return;
     try {
       const result = await api.roblox.killAll();
@@ -76,9 +76,9 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
     } catch {
       notifications.show({ message: t('common.error'), color: 'red' });
     }
-  };
+  }, [api]);
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = useCallback(async () => {
     if (!editAccount || !api) return;
     try {
       await api.account.fieldSet(editAccount.id, 'group', editGroup);
@@ -89,27 +89,27 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
     } catch {
       notifications.show({ message: t('accounts.updateError'), color: 'red' });
     }
-  };
+  }, [editAccount, api, editGroup, editDesc, update]);
 
-  const openEdit = (account: Account) => {
+  const openEdit = useCallback((account: Account) => {
     setEditAccount(account);
     setEditGroup(account.group ?? '');
     setEditDesc(account.description ?? '');
-  };
+  }, []);
 
   // U-002: Confirmation dialog for account deletion
-  const handleRemoveAccount = async (accountId: string, account: Account) => {
-    setRemovingIds(new Set([...removingIds, accountId]));
+  const handleRemoveAccount = useCallback(async (accountId: string) => {
+    setRemovingIds((prev) => new Set([...prev, accountId]));
     try {
       await removeAccount(accountId);
     } catch {
       notifications.show({ message: t('accounts.deleteError'), color: 'red' });
     } finally {
-      setRemovingIds(new Set([...removingIds].filter(id => id !== accountId)));
+      setRemovingIds((prev) => new Set([...prev].filter((id) => id !== accountId)));
     }
-  };
+  }, [removeAccount]);
 
-  const confirmRemoveAccount = (account: Account) => {
+  const confirmRemoveAccount = useCallback((account: Account) => {
     modals.openConfirmModal({
       title: t('accounts.deleteConfirmTitle'),
       children: (
@@ -119,18 +119,18 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
       ),
       labels: { confirm: t('accounts.delete'), cancel: t('accounts.cancel') },
       confirmProps: { color: 'red' },
-      onConfirm: () => handleRemoveAccount(account.id, account),
+      onConfirm: () => handleRemoveAccount(account.id),
     });
-  };
+  }, [handleRemoveAccount]);
 
   // U-006: Handle favorite toggle with error handling
-  const handleToggleFavorite = async (account: Account) => {
+  const handleToggleFavorite = useCallback(async (account: Account) => {
     const newFavoriteState = !account.isFavorite;
     const accountId = account.id;
 
     // Optimistic update
     update(accountId, { isFavorite: newFavoriteState });
-    setTogglingFavorites(new Set([...togglingFavorites, accountId]));
+    setTogglingFavorites((prev) => new Set([...prev, accountId]));
 
     try {
       const result = await api?.account.setFavorite(accountId, newFavoriteState);
@@ -144,9 +144,13 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
       update(accountId, { isFavorite: account.isFavorite });
       notifications.show({ message: t('accounts.favoriteToggleError'), color: 'red' });
     } finally {
-      setTogglingFavorites(new Set([...togglingFavorites].filter(id => id !== accountId)));
+      setTogglingFavorites((prev) => new Set([...prev].filter((id) => id !== accountId)));
     }
-  };
+  }, [api, update]);
+
+  // Stable callbacks passed to AccountCard (account arg) so React.memo works.
+  const handleCardSelect = useCallback((account: Account) => select(account.id), [select]);
+  const handleCardRemove = useCallback((account: Account) => confirmRemoveAccount(account), [confirmRemoveAccount]);
 
   if (accounts.length === 0) {
     return (
@@ -187,10 +191,10 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
                   key={account.id}
                   account={account}
                   selected={account.id === selectedId}
-                  onSelect={() => select(account.id)}
-                  onRemove={() => confirmRemoveAccount(account)}
-                  onToggleFavorite={() => handleToggleFavorite(account)}
-                  onEdit={() => openEdit(account)}
+                  onSelect={handleCardSelect}
+                  onRemove={handleCardRemove}
+                  onToggleFavorite={handleToggleFavorite}
+                  onEdit={openEdit}
                   isRemoving={removingIds.has(account.id)}
                   isTogglingFavorite={togglingFavorites.has(account.id)}
                 />
