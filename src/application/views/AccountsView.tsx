@@ -6,7 +6,7 @@ import { useAccountStore } from '../store/accountStore';
 import { useAccounts } from '../hooks/useAccounts';
 import { AccountCard } from '../components/accounts/AccountCard';
 import { AccountDetailPanel } from '../components/AccountDetailPanel';
-import { Group, Stack, Text, Button, TextInput, ScrollArea, Tooltip, Checkbox, Modal, Textarea } from '@mantine/core';
+import { Group, Stack, Text, Button, TextInput, ScrollArea, Tooltip, Checkbox, Modal, Textarea, FocusTrap } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { modals } from '@mantine/modals';
 import type { Account } from '../../domain/entities/Account';
@@ -68,14 +68,26 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
   }, [selected, api, shuffle, placeId, jobId]);
 
   const handleKillAll = useCallback(async () => {
-    if (!api) return;
-    try {
-      const result = await api.roblox.killAll();
-      if (result.success) notifications.show({ message: t('accounts.processesClosed'), color: 'green' });
-      else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
-    } catch {
-      notifications.show({ message: t('common.error'), color: 'red' });
-    }
+    modals.openConfirmModal({
+      title: t('accounts.killAllConfirmTitle'),
+      children: (
+        <Text size="sm">
+          {t('accounts.killAllConfirmBody')}
+        </Text>
+      ),
+      labels: { confirm: t('accounts.killAll'), cancel: t('accounts.cancel') },
+      confirmProps: { color: 'red' },
+      onConfirm: async () => {
+        if (!api) return;
+        try {
+          const result = await api.roblox.killAll();
+          if (result.success) notifications.show({ message: t('accounts.processesClosed'), color: 'green' });
+          else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+        } catch {
+          notifications.show({ message: t('common.error'), color: 'red' });
+        }
+      },
+    });
   }, [api]);
 
   const handleSaveEdit = useCallback(async () => {
@@ -228,31 +240,33 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
       </div>
 
       {/* Edit modal — group + description */}
-      <Modal opened={editAccount !== null} onClose={() => setEditAccount(null)} title={t('accounts.editTitle')} size="sm">
-        <Stack gap="md">
-          <TextInput
-            label={t('accounts.group')}
-            placeholder={t('accounts.groupPlaceholder')}
-            value={editGroup}
-            onChange={(e) => setEditGroup(e.currentTarget.value)}
-            leftSection={<Tag size={14} />}
-            size="sm"
-          />
-          <Textarea
-            label={t('accounts.description')}
-            placeholder={t('accounts.descriptionPlaceholder')}
-            value={editDesc}
-            onChange={(e) => setEditDesc(e.currentTarget.value)}
-            autosize
-            minRows={2}
-            maxRows={4}
-            size="sm"
-          />
-          <Button variant="filled" color="primary" size="sm" onClick={handleSaveEdit} fullWidth>
-            {t('accounts.save')}
-          </Button>
-        </Stack>
-      </Modal>
+        <Modal opened={editAccount !== null} onClose={() => setEditAccount(null)} title={t('accounts.editTitle')} size="sm">
+          <FocusTrap>
+            <Stack gap="md">
+              <TextInput
+                label={t('accounts.group')}
+                placeholder={t('accounts.groupPlaceholder')}
+                value={editGroup}
+                onChange={(e) => setEditGroup(e.currentTarget.value)}
+                leftSection={<Tag size={14} />}
+                size="sm"
+              />
+              <Textarea
+                label={t('accounts.description')}
+                placeholder={t('accounts.descriptionPlaceholder')}
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.currentTarget.value)}
+                autosize
+                minRows={2}
+                maxRows={4}
+                size="sm"
+              />
+              <Button variant="filled" color="primary" size="sm" onClick={handleSaveEdit} fullWidth>
+                {t('accounts.save')}
+              </Button>
+            </Stack>
+          </FocusTrap>
+        </Modal>
     </div>
   );
 }

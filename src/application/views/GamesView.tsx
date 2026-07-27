@@ -1,6 +1,6 @@
 // Application View: GamesView — search games + favorites — Mantine v7
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAccountStore } from '../store/accountStore';
 import { notifications } from '@mantine/notifications';
 import { Group, Stack, Text, Button, Select, TextInput, Card, Badge, ScrollArea, ActionIcon, Skeleton } from '@mantine/core';
@@ -34,45 +34,64 @@ export function GamesView(): JSX.Element {
     if (selectedAccountId && api) loadFavorites();
   }, [selectedAccountId]);
 
-  const search = async () => {
-    if (!query.trim() || !selectedAccountId || !api) return;
-    setLoading(true);
-    try {
-      const result = await api.byAccount.gamesSearch(query, selectedAccountId);
-      if (result.success) setResults(Array.isArray(result.data) ? result.data : []);
-      else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
-    } catch {
-      notifications.show({ message: t('games.searchError'), color: 'red' });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const search = useCallback(async () => {
+      if (!query.trim() || !selectedAccountId || !api) return;
+      setLoading(true);
+      try {
+        const result = await api.byAccount.gamesSearch(query, selectedAccountId);
+        if (result.success) setResults(Array.isArray(result.data) ? result.data : []);
+        else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+      } catch {
+        notifications.show({ message: t('games.searchError'), color: 'red' });
+      } finally {
+        setLoading(false);
+      }
+    }, [api, query, selectedAccountId]);
 
-  const loadFavorites = async () => {
-    if (!selectedAccountId || !api) return;
-    try {
-      const result = await api.games.getFavorites(selectedAccountId);
-      if (result.success) setFavorites(Array.isArray(result.data) ? result.data : []);
-    } catch { /* silent */ }
-  };
+    const loadFavorites = useCallback(async () => {
+      if (!selectedAccountId || !api) return;
+      try {
+        const result = await api.games.getFavorites(selectedAccountId);
+        if (result.success) setFavorites(Array.isArray(result.data) ? result.data : []);
+      } catch { /* silent */ }
+    }, [api, selectedAccountId]);
 
-  const addFavorite = async (game: GameResult) => {
-    if (!api) return;
-    const result = await api.games.addFavorite(selectedAccountId, {
-      id: String(game.id), gameId: game.id, name: game.name, icon: game.thumbnail ?? '',
-    });
-    if (result.success) { notifications.show({ message: t('games.addedToFavorites'), color: 'green' }); loadFavorites(); }
-    else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
-  };
+    const addFavorite = useCallback(async (game: GameResult) => {
+      if (!api) return;
+      try {
+        const result = await api.games.addFavorite(selectedAccountId, {
+          id: String(game.id),
+          gameId: game.id,
+          name: game.name,
+          icon: game.thumbnail ?? '',
+        });
+        if (result.success) {
+          notifications.show({ message: t('games.addedToFavorites'), color: 'green' });
+          loadFavorites();
+        } else {
+          notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+        }
+      } catch {
+        notifications.show({ message: t('common.error'), color: 'red' });
+      }
+    }, [api, selectedAccountId, loadFavorites]);
 
-  const removeFavorite = async (gameId: number) => {
-    if (!api) return;
-    const result = await api.games.removeFavorite(selectedAccountId, gameId);
-    if (result.success) { notifications.show({ message: t('games.removedFromFavorites'), color: 'green' }); loadFavorites(); }
-    else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
-  };
+    const removeFavorite = useCallback(async (gameId: number) => {
+      if (!api) return;
+      try {
+        const result = await api.games.removeFavorite(selectedAccountId, gameId);
+        if (result.success) {
+          notifications.show({ message: t('games.removedFromFavorites'), color: 'green' });
+          loadFavorites();
+        } else {
+          notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+        }
+      } catch {
+        notifications.show({ message: t('common.error'), color: 'red' });
+      }
+    }, [api, selectedAccountId, loadFavorites]);
 
-  if (accounts.length === 0) {
+    if (accounts.length === 0) {
     return (
       <Stack align="center" justify="center" h="100%">
         <Text c="dimmed">{t('games.addAccountFirst')}</Text>
