@@ -11,8 +11,10 @@ pnpm-lock.yaml
 *.tsbuildinfo
 
 # Build outputs
+# Note: build/ is NOT a build output — it's electron-builder's asset
+# directory (icon.png, windows-sign.js). dist/ holds vite output,
+# release/ holds electron-builder packaging output.
 dist/
-build/
 out/
 release/
 *.tgz
