@@ -948,3 +948,18 @@ Completar los dos stubs pendientes de la auditoría v4.0.7:
 ### Próximos pasos sugeridos (backlog)
 - Implementar la capa WebSocket real entre el Main process y LocalApiService para notificaciones en tiempo real (reemplazar el HTTP bridge interino)
 - Añadir tests unitarios específicos para los handlers `advanced:devmode` y `account:control` (cobertura actual vía pruebas de integración)
+## Orchestrator Review — 2026-07-27
+**Project:** NexoAccManager
+**Verdict:** ✅ Approved
+**Blockers:** none
+**Feedback to dev:**
+  + useCallback + stable callbacks in AccountsView/AccountCard — React.memo now effective
+  + aria-labels on icon-only buttons — accessibility compliance
+  + i18n duplicate keys fixed — tsc clean
+  + All 55 RUX findings addressed (12 High + 28 Medium + 15 Low)
+  - package.json version still 4.0.0 while PROJECT.md tracks 4.0.9 — needs bump
+  - nam-screenshot.js triggers 18 lint errors outside src/ — add to eslint ignores
+  → Pattern to adopt: version bump in package.json with every PROJECT.md version update
+**Deploy decision:** ✅ production
+**Release:** https://github.com/Nxxo31/NexoAccManager/releases/tag/v4.0.9
+**Next action:** Bump package.json to 4.0.9, add nam-screenshot.js to eslint ignores
