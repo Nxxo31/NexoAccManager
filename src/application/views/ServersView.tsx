@@ -1,6 +1,6 @@
 // Application View: ServersView — server browser with region + ping, no Job ID — Mantine v7
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useAccountStore } from '../store/accountStore';
 import { notifications } from '@mantine/notifications';
 import { Group, Stack, Text, Badge, Button, Select, TextInput, Card, Progress, ScrollArea, Skeleton } from '@mantine/core';
@@ -30,7 +30,7 @@ export function ServersView(): JSX.Element {
   const [region, setRegion] = useState<RegionInfo | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const searchServers = async () => {
+  const searchServers = useCallback(async () => {
     if (!placeId || !selectedAccountId || !api) return;
     setLoading(true);
     setRegion(null);
@@ -48,9 +48,9 @@ export function ServersView(): JSX.Element {
     } finally {
       setLoading(false);
     }
-  };
+  }, [placeId, selectedAccountId, api]);
 
-  const handleJoin = async (jobId: string) => {
+  const handleJoin = useCallback(async (jobId: string) => {
     if (!api) return;
     try {
       const result = await api.roblox.serversJoin(selectedAccountId, placeId, jobId);
@@ -59,7 +59,7 @@ export function ServersView(): JSX.Element {
     } catch {
       notifications.show({ message: t('common.error'), color: 'red' });
     }
-  };
+  }, [selectedAccountId, placeId, api]);
 
   if (accounts.length === 0) {
     return (
@@ -80,6 +80,7 @@ export function ServersView(): JSX.Element {
         data={accounts.map((acc) => ({ value: acc.id, label: acc.username }))}
         size="sm"
         searchable
+        aria-label={t('servers.selectAccount')}
       />
 
       <Group gap="sm">
