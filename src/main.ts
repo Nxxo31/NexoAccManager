@@ -1,7 +1,7 @@
 // Main Process: App bootstrap
 // Un solo archivo — crea ventana, inicializa DB, registra handlers
 
-import { app, BrowserWindow, Menu, shell } from 'electron';
+import { app, BrowserWindow, Menu, shell, session } from 'electron';
 import path from 'node:path';
 import { getDb, closeDb } from './infrastructure/database/DatabaseManager';
 import { registerHandlers, setMainWindow } from './infrastructure/ipc/IPCAdapter';
@@ -46,6 +46,18 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
+  // CSP: bloquear inline scripts y conexiones externas no autorizadas
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.roblox.com;",
+        ],
+      },
+    });
+  });
+
   // Inicializar DB
   getDb();
 
@@ -75,5 +87,11 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  // Cleanup: stop all botting intervals to prevent memory leaks on exit
+  try {
+    // Import dynamically to avoid circular dependency at module load time
+    const { stopBotting } = require('./infrastructure/external/RobloxBottingService');
+    stopBotting();
+  } catch { /* best-effort cleanup */ }
   closeDb();
 });

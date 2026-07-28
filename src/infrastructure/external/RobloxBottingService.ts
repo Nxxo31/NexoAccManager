@@ -306,6 +306,19 @@ export async function stopBotting(): Promise<void> {
     bottingInterval = null;
   }
   bottingAccounts.clear();
+
+  // Cleanup: clear all auto-relaunch and connection watcher intervals
+  // to prevent memory leaks when botting stops
+  for (const [, interval] of autoRelaunchIntervals) {
+    clearInterval(interval);
+  }
+  autoRelaunchIntervals.clear();
+
+  for (const [, interval] of connectionWatchers) {
+    clearInterval(interval);
+  }
+  connectionWatchers.clear();
+  connectionFailureTimes.clear();
 }
 
 export function getBottingStatus(): { running: boolean; accounts: string[] } {

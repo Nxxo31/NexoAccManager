@@ -97,7 +97,8 @@
     ],
     "win": {
       "target": [
-        "nsis"
+        "nsis",
+        "msix"
       ],
       "icon": "build/icon.png",
       "asarUnpack": [
@@ -122,6 +123,14 @@
       "oneClick": false,
       "perMachine": false,
       "runAfterFinish": true
+    },
+    "msix": {
+      "applicationName": "NexoAccManager",
+      "backgroundColor": "#0D0D0D",
+      "publisher": "CN=Nxxo31",
+      "publisherDisplayName": "Sebastian Velasco",
+      "identityName": "Nxxo31.NexoAccManager",
+      "languages": ["es-ES", "en-US", "pt-BR"]
     }
   }
 }

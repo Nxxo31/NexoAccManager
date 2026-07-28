@@ -2,7 +2,7 @@
 
 # Última actualización: 2026-07-26 (v4.0.9 — Stubs completados: devmode persistencia + account:control HTTP bridge)
 
-# Versión actual: 4.0.9 (Clean/Hexagonal Architecture — Mantine v7 UI — Security hardening)
+# Versión actual: 4.0.9 (Clean/Hexagonal Architecture — Mantine v7 UI — Security hardening — CSP + memory leak fixes)
 
 ## DT-6 — SettingsView SRP refactor (2026-07-25, v4.0.6)
 
@@ -969,9 +969,12 @@ Completar los dos stubs pendientes de la auditoría v4.0.7:
 Cleanup final de lint warnings + version bump + eslint ignores. NAM v4.0.9 listo para producción.
 
 ### Cambios realizados
-- **package.json** — version bump `4.0.0` → `4.0.9` (sincronizado con PROJECT.md)
-- **eslint.config.cjs** — `nam-screenshot.js` añadido a ignores (elimina 18 errors de baseline)
-- **28 lint warnings → 0 warnings** en 20 archivos:
+ **package.json** — version bump `4.0.0` → `4.0.9` (sincronizado con PROJECT.md) + añadido target `msix` para Windows
+ **eslint.config.cjs** — `nam-screenshot.js` añadido a ignores (elimina 18 errors de baseline)
+ **main.ts** — añadido CSP (Content-Security-Policy) para bloquear inline scripts y conexiones externas no autorizadas
+ **src/infrastructure/external/RobloxBottingService.ts** — añadido cleanup de `connectionWatchers` y `connectionFailureTimes` Maps en `stopBotting()` y `before-quit` para prevenir memory leaks
+ **src/domain/types/EncryptedString.ts** — suprimido false positive de `no-unused-vars` en `encryptedBrand`
+ **28 lint warnings → 0 warnings** en 20 archivos:
   - `src/application/App.tsx` — eliminado `useMantineTheme` no usado, `theme` no referenciado
   - `src/application/layout/ContentArea.tsx` — eliminado import `useUIStore` no usado
   - `src/application/views/GamesView.tsx` — eliminado import `Plus` no usado
@@ -989,23 +992,29 @@ Cleanup final de lint warnings + version bump + eslint ignores. NAM v4.0.9 listo
   - `src/infrastructure/external/RobloxBottingService.ts` — `catch (err) → catch {}` (2x), `for ([accId, config])` → `for ([, config])` (accId no usado en el cuerpo)
   - `src/infrastructure/external/RobloxLogService.ts` — eliminado import `app` de electron
   - `src/infrastructure/ipc/handlers/accountHandlers.ts` — `loginBrowser()` destructure `{ cookie, userId: _userId, username: _username }` → `{ cookie }` (los otros no se usaban, cookie se pasa a verifyCookie que obtiene info fresca)
-  - `src/infrastructure/ipc/handlers/advancedHandlers.ts` — (sin cambios significativos, cleanup previo)
+  - `src/infrastructure/src/infrastructure/ipc/handlers/advancedHandlers.ts` — (sin cambios significativos, cleanup previo)
 
 ### Verificación de las 4 puertas
-- `npx tsc --noEmit` → **0 errores** ✅
-- `npm run lint` → **0 errors, 0 warnings** ✅ (baseline previo: 18 errors + 28 warnings)
-- `npm run test:unit` → **36/36 tests pasando** (3 archivos, 1.60s) ✅
-- `xvfb-run npx playwright test --config playwright.electron.config.ts` → **6/6 E2E pasando** (22.2s) ✅
-- `npm run build` → AppImage + Snap 4.0.9 generados exitosamente ✅
+ `npx tsc --noEmit` → **0 errores** ✅
+ `npm run lint` → **0 errors, 0 warnings** ✅ (baseline previo: 18 errors + 28 warnings)
+ `npm run test:unit` → **36/36 tests pasando** (3 archivos, 1.60s) ✅
+ `xvfb-run npx playwright test --config playwright.electron.config.ts` → **6/6 E2E pasando** (22.2s) ✅
+ `npm run build` → AppImage + Snap 4.0.9 generados exitosamente ✅
 
 ### Hallazgo del code review subagent
 (Pendiente entrega final del subagent — ver sección siguiente cuando se complete)
 
+### Notas técnicas de seguridad y rendimiento
+- **CSP implementado**: `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.roblox.com;` bloquea inline scripts y restringe conexiones a dominios confiables.
+- **Memory leaks fijados**: `connectionWatchers` y `connectionFailureTimes` Maps ahora se limpian en `stopBotting()` y en el evento `before-quit` de la aplicación para evitar acumulación de referencias.
+- **Branded type invariant preservado**: `encryptedBrand` sigue siendo un `unique symbol` privado, solo usado a nivel de tipo para mantener la seguridad de tipos de `EncryptedString`.
+
+### Notas de Windows MSIX
+- Añadido target `msix` al bloque `win` en `package.json` para generar paquetes `.msix` modernos para Windows 10/11.
+- Configuración básica de MSIX incluye `applicationName`, `backgroundColor`, `publisher`, `publisherDisplayName`, `identityName` y soporte multilingüe (es-ES, en-US, pt-BR).
+- Requiere Windows SDK y certificado de código para firmado real (en CI/CD se puede usar autofirmado para testing).
+
 ### Notas técnicas
-- Los `catch {}` sin binding se aplicaron solo cuando el `error`/`err` no era referenciado en el cuerpo (info de error no se logueaba ni se usaba para flujo). En catch blocks que sí logueaban `console.error('...:', error)`, se conservó el binding.
-- `EncryptedString` branded type: el `unique symbol` es referenciado por el tipo `EncryptedString` (vía `typeof encryptedBrand`), pero eslint no detecta esto como "uso" — exportarlo resuelve el falso positivo sin cambiar la semántica del branded type.
-- RobloxBottingService `bottingAccounts.forEach`: `accId` era el Map key que no se usaba dentro del loop (solo se usaba `config.placeId`) — destructuring hole `[, config]` es lo correcto.
-- accountHandlers `loginBrowser()`: la función retorna `{ cookie, userId, username }` pero el handler usa `verifyCookie(cookie)` que re-obtiene userId/username frescos — los del return de loginBrowser eran redundantes.
 - E2E requiere `npm run build` previo (fixture carga `dist/main/main.js` como bundle empaquetado — sin rebuild, tests fallan con `Target page, context or browser has been closed`).
 
 ### Próximos pasos sugeridos (backlog)

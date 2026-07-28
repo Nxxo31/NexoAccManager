@@ -11,6 +11,10 @@
 //
 // DO NOT use in domain code or renderer — the renderer must never hold
 // encrypted or decrypted credentials.
+// Brand declaration — the symbol exists only at the type level.
+// eslint doesn't see `typeof encryptedBrand` in the EncryptedString type as a "use",
+// so we suppress the false positive here. The symbol is deliberately NOT exported.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 declare const encryptedBrand: unique symbol;
 
 export type EncryptedString = string & { readonly _brand: typeof encryptedBrand };
