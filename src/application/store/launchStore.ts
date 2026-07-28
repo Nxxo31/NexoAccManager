@@ -77,6 +77,15 @@ export const useLaunchStore = create<LaunchState>()(
         selectedPlaceId: state.selectedPlaceId,
         shuffle: state.shuffle,
       }),
+      // Re-derive launchStatus on rehydrate so it's consistent with persisted placeId (O-1)
+      merge: (persisted, current) => {
+        const p = persisted as Partial<LaunchState>;
+        return {
+          ...current,
+          ...p,
+          launchStatus: p?.selectedPlaceId ? 'ready' : 'idle',
+        };
+      },
     }
   )
 );
