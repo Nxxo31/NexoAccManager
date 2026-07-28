@@ -3,7 +3,6 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-# package-lock.json commiteado para builds reproducibles
 yarn.lock
 pnpm-lock.yaml
 
@@ -11,9 +10,8 @@ pnpm-lock.yaml
 *.tsbuildinfo
 
 # Build outputs
-# Note: build/ is NOT a build output — it's electron-builder's asset
-# directory (icon.png, windows-sign.js). dist/ holds vite output,
-# release/ holds electron-builder packaging output.
+# build/ is NOT a build output — it's electron-builder's asset directory
+# (icon.png, windows-sign.js). dist/ holds vite output, release/ holds packaging.
 dist/
 out/
 release/
@@ -36,6 +34,7 @@ release/
 # OS files
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # IDE
 .vscode/
@@ -55,7 +54,50 @@ electron-builder.yml
 # Test coverage
 coverage/
 
-# AppImage extraction artifacts
-squashfs-root/
+# Test artifacts
 playwright-report/
 test-results/
+
+# AppImage extraction artifacts
+squashfs-root/
+
+# Sprint/kanban internal docs (not for public repo)
+.sprint/
+
+# Hermes agent internal files (not for public repo)
+.codereview.yml
+
+# Internal review docs (not for public repo)
+ORCHESTRATOR-REVIEW-*.md
+audit-react-ux.md
+research-lua-executor.md
+PDR.md
+
+# Design sketches (internal, not for public repo)
+sketches/
+
+# Screenshot scripts (dev only)
+nam-screenshot.js
+
+# Duplicated locale files (canonical path is src/application/locales/)
+en.json
+pt.json
+es.json
+
+# CLAUDE.md (internal sprint agent file)
+CLAUDE.md
+
+# Sprint agent internals
+.sprint/
+
+# Hermes agent internals
+.codereview.yml
+
+# Internal review/audit docs
+ORCHESTRATOR-REVIEW-*.md
+audit-react-ux.md
+research-lua-executor.md
+PDR.md
+
+# Design sketches (internal)
+sketches/

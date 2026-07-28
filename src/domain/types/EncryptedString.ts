@@ -38,5 +38,5 @@ export function isEncryptedString(s: string): s is EncryptedString {
 }
 
 // The unique symbol is private by design — see comment block above.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _encryptedBrandRef = encryptedBrand;
+// `declare const` is compile-time only; no runtime reference needed.
+export {};

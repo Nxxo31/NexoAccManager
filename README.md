@@ -1,15 +1,26 @@
-# NexoAccManager
+<div align="center">
 
-[![codecov](https://codecov.io/gh/Nxxo31/NexoAccManager/graph/badge.svg?token=NEXOACC_TOKEN)](https://codecov.io/gh/Nxxo31/NexoAccManager)
+# 🎮 NexoAccManager
 
-Open-source multi-account manager for gaming platforms.
-Built for Windows. Modern, secure, 100% local — no servers, no cloud, no tracking.
+### Open-source multi-account manager for gaming platforms
 
-Inspired by [Roblox Account Manager (RAM)](https://github.com/ic3w0lf22/Roblox-Account-Manager) by ic3w0lf22, rebuilt from scratch with Electron + React + TypeScript.
+Built for privacy. Modern, secure, 100% local — no servers, no cloud, no tracking.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Electron](https://img.shields.io/badge/Electron-30-47848F.svg)](https://www.electronjs.org/)
+[![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6.svg)](https://www.typescriptlang.org/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+**[Features](#-features) · [Install](#-installation) · [Architecture](#-architecture) · [Security](#-security) · [Contributing](#-contributing)**
+
+</div>
 
 ---
 
-## Features
+Inspired by [Roblox Account Manager (RAM)](https://github.com/ic3w0lf22/Roblox-Account-Manager) by ic3w0lf22, rebuilt from scratch with **Clean Architecture** — Electron + React + TypeScript + Zustand.
+
+## 📦 Features
 
 ### Account Management
 - **Multi-account support** — Add, organize, and switch between up to 50 accounts
@@ -21,13 +32,15 @@ Inspired by [Roblox Account Manager (RAM)](https://github.com/ic3w0lf22/Roblox-A
 - **Aging alerts** — Visual color-coded dots (green/yellow/red) based on cookie expiry
 - **Account aliases** — Set custom aliases and descriptions per account
 
-### Advanced Instance Management (v3.0)
+### Advanced Instance Management
 - **Auto Relaunch** — Automatically relaunch accounts that disconnect
 - **Connection Watcher** — Monitor active Roblox connections in real-time
 - **Prevent Duplicate Instances** — Block launching the same account twice
 - **Quick Log In** — Instant login without browser navigation
 - **Join Group** — Join Roblox groups with any of your accounts
 - **VIP Server Links** — Paste VIP server links to auto-extract Place ID and access code
+- **FPS Unlocker** — Unlock FPS via ClientAppSettings.json
+- **Close Roblox Beta** — Automatically close beta client
 
 ### Account Control Panel
 - **Profile** — View and edit display name, description, and avatar
@@ -81,30 +94,29 @@ Inspired by [Roblox Account Manager (RAM)](https://github.com/ic3w0lf22/Roblox-A
 - **REST endpoints** — Optional local API for external control
 - **Configurable port** — Custom port assignment
 - **Auth tokens** — Secure API access
+- **External account control** — Launch, kill, status, refresh-cookie via HTTP
 
 ---
 
-## Installation
+## 🚀 Installation
 
 ### Option 1 — Download the installer (recommended)
 
 1. Go to the [Releases page](https://github.com/Nxxo31/NexoAccManager/releases)
-2. Download `NexoAccManager-Setup-x.y.z.exe` — NSIS installer for Windows
+2. Download the installer for your platform:
+   - **Windows**: `NexoAccManager-Setup-x.y.z.exe` (NSIS installer)
+   - **Linux**: `NX-Manager-x.y.z.AppImage` or `.snap`
 3. Run the installer and follow the steps
 4. Open NexoAccManager from your Start menu or desktop shortcut
 
 ### Option 2 — Portable version
 
-1. Download `NexoAccManager-x.y.z.exe` (portable) from Releases
+1. Download the portable version from Releases
 2. Run it directly — no installation needed
 
 ### Option 3 — Build from source (developers)
 
-**Prerequisites:**
-- Node.js 18+
-- npm 9+
-- Git
-- Windows: Windows 10/11 with build tools
+**Prerequisites:** Node.js 18+, npm 9+, Git
 
 ```bash
 git clone https://github.com/Nxxo31/NexoAccManager.git
@@ -114,9 +126,6 @@ npm install
 # Production build (generates installer in /release)
 npm run build
 ```
-
-The installer is generated in `release/`:
-- Windows: `.exe` (NSIS installer)
 
 ### Option 4 — Development mode
 
@@ -131,7 +140,7 @@ Opens Electron with Vite hot-reload for the renderer.
 
 ---
 
-## Usage Guide
+## 📖 Usage Guide
 
 ### Adding an account
 
@@ -150,7 +159,7 @@ Opens Electron with Vite hot-reload for the renderer.
 5. Copy its value (starts with `_|WARNING:-DO-NOT-SHARE|_`)
 6. Paste it into NexoAccManager
 
-> **Warning:** Never share your cookie. It is equivalent to your session password.
+> ⚠️ **Warning:** Never share your cookie. It is equivalent to your session password.
 
 ### Using the Server Browser
 
@@ -172,84 +181,122 @@ Opens Electron with Vite hot-reload for the renderer.
 ### Monitoring with Presence Dashboard
 
 1. Navigate to the **Presence** tab
-2. View real-time 5-state status of all accounts (Offline/Online/In-Game/In-Studio/Invisible)
+2. View real-time 5-state status of all accounts
 3. Status auto-refreshes every 30 seconds
 4. Animated indicators show active states
 
-### Managing Account Settings
-
-From the Account Detail Panel you can:
-- **Profile**: Update display name and description
-- **Security**: View active sessions, change password, manage 2FA, logout other sessions
-- **Privacy**: Control who can message, invite, or find you
-- **Friends**: Send, accept, or decline friend requests
-- **Utilities**: Quick access to browser profile, outfit viewer, join group, quick login
-
 ---
 
-## Tech Stack
+## 🏗️ Architecture
 
-| Component       | Technology                     |
-|------------------|-------------------------------|
-| App              | Electron 30 + React 18 + TypeScript |
-| State            | Zustand 5                     |
-| Database         | SQLite + better-sqlite3       |
-| Encryption       | AES-256-GCM (hardware-derived) |
-| IPC Security     | contextBridge + sandbox        |
-| i18n             | i18next + react-i18next       |
-| Animations       | framer-motion 12              |
-| Build            | Vite 5 + electron-builder 24  |
-| Testing          | Vitest (122 tests)             |
-| Linting          | ESLint                        |
-
----
-
-## Architecture
+NAM v4.0.9 uses **Clean Architecture / Hexagonal Architecture** (Ports & Adapters). The codebase went from 18K+ lines (v3.5.0 Facade Pattern) to ~3,900 lines in 56 files (−79%). The dependency rule points always inward — the domain knows nothing about infrastructure or UI.
 
 ```
 src/
-  main/                        → Electron main process
-    main.ts                    → Entry point, IPC handlers
-    core/
-      AccountManager.ts        → Account CRUD + AES-256-GCM encryption
-      CryptoService.ts         → Hardware-derived key, encrypt/decrypt
-      ThemeService.ts          → CSS theme system
-      AccountSettingsService.ts → Roblox account settings API
-      MultiRobloxService.ts    → Multiple Roblox instances
-    services/
-      CookieExpiryService.ts   → Auto cookie refresh (24h before expiry)
-      GamesService.ts          → Game search, server list, join
-      PresenceService.ts       → Real-time presence polling (30s, 5 states)
-      RobloxAuthService.ts     → Cookie verification
-      LoginBrowserService.ts   → BrowserWindow login (captures .ROBLOSECURITY)
-    storage/
-      DatabaseManager.ts       → SQLite local storage
-  renderer/                    → React UI
-    App.tsx                    → Root component with 5 views
+  domain/                          ← Core — no external dependencies
+    entities/
+      Account.ts                   ← createAccount() factory + Account interface
+      ServerInfo.ts                ← Roblox server entity
+      PresenceData.ts             ← Presence entity (5 states)
+      GameData.ts                  ← Favorite/recent game entity
+    repositories/
+      RepositoryInterfaces.ts      ← AccountRepository, SettingsRepository, CacheRepository
+      RobloxApiPort.ts             ← Port with 35 Roblox API methods
+    types/
+      EncryptedString.ts           ← Branded type — encryption invariant
+
+  infrastructure/                  ← External adapters — implements domain ports
+    database/
+      DatabaseManager.ts           ← SQLite with better-sqlite3
+      AccountRepositoryImpl.ts     ← AccountRepository implementation (CRUD + mappers)
+      SettingsRepositoryImpl.ts    ← SettingsRepository implementation
+      CryptoService               ← AES-256-GCM encrypt/decrypt/hashCookie
+      LRUCache.ts                  ← LRU cache with eviction
+    external/
+      RobloxHttp.ts                ← Shared HTTP: CSRF, cookie header, 401/403 handling
+      RobloxAuthService.ts         ← loginBrowser, loginUserPass, verifyCookie, importCookies
+      RobloxGamesService.ts        ← searchGames, getGameServers, getServerUsers, detectVIPServers
+      RobloxPresenceService.ts     ← getPresence, getFriends, getRobuxBalance, getRecentGames
+      RobloxSettingsService.ts     ← getProfile, updateProfile, 2FA, sessions, privacy, notifications
+      RobloxCookieService.ts       ← getCookieExpiry, refreshCookie
+      RobloxBottingService.ts      ← launchRobloxDirect, startBotting, autoRelaunch, connectionWatcher, FPSUnlock
+      MultiRobloxService.ts        ← launchMulti, killInstance, getRunningInstances
+      CaptchaService.ts            ← solveCaptcha (Nopecha API)
+      LocalApiService.ts           ← Express HTTP server (local Web API)
+      ThemeService.ts              ← getTheme, setTheme — CSS variables
+      CacheCleanerService.ts        ← Cache and log cleanup
+      ContentModService.ts         ← Content mod backup/restore
+      FastFlagsService.ts          ← FastFlags read/write
+      PlaytimeService.ts           ← Playtime tracking
+    ipc/
+      IPCAdapter.ts                ← All ipcMain.handle (75+ handlers)
+      handlers/
+        accountHandlers.ts         ← account:* handlers
+        advancedHandlers.ts        ← advanced:* handlers
+
+  application/                     ← UI — React + Zustand
+    App.tsx                        ← Root: Sidebar + TopBar + ContentArea
+    views/
+      AccountsView.tsx             ← Hub: grid + Reorder drag-drop + JoinBar
+      ServersView.tsx              ← Server browser
+      GamesView.tsx                ← Search + favorites
+      FriendsView.tsx              ← Friends list + presence
+      SettingsView.tsx             ← 12 settings sub-components (Accordion)
     components/
-      accounts/
-        AccountGrid.tsx        → Grid with groups, drag-drop, aging dots
-        AccountDetailPanel.tsx → Slide-in panel with utilities
-        JoinBar.tsx            → Place ID, Job ID, VIP, Shuffle
-      views/
-        ServerView.tsx         → Server browser + Player Finder
-        GamesView.tsx          → 3-tab games browser
-        PresenceView.tsx       → Auto-polling presence dashboard
-        SettingsView.tsx       → Security + Advanced + Instance Management
-      layout/
-        Sidebar.tsx            → Navigation
-        TopBar.tsx             → Search, counters, actions
-        AppLayout.tsx          → Layout shell
-      server-browser/
-        ServerBrowser.tsx      → Server search and list
+      accounts/                    ← AccountCard, AccountDetailPanel, AddAccountModal
+      settings/                     ← 12 settings sub-components
+      layout/                       ← Sidebar, TopBar, ContentArea
+      ui/                           ← shadcn-ui primitives
     store/
-      useAccountStore.ts       → Zustand account state
-      useUIStore.ts            → Zustand UI state (5 global toggles)
-    locales/                   → es.json, en.json, pt.json
+      accountStore.ts              ← Zustand: accounts, selectedId, CRUD
+      uiStore.ts                   ← Zustand: activeView, activeModal, notifications
+    hooks/
+      useAccounts.ts               ← loadAccounts, addAccount, removeAccount, loginBrowser
+
+  config/
+    constants.ts                   ← MAX_ACCOUNTS=50, PAGES, PageKey
+    i18n.ts                        ← i18next setup (ES/EN/PT)
+
   preload/
-    preload.ts                 → contextBridge with IPC channel whitelist
-  types/
-    Account.ts                 → Shared types (22+ attributes)
+    index.ts                       ← contextBridge: account, roblox, settings, botting, games, advanced, theme
+
+  main.ts                          ← Electron: createWindow + registerHandlers + quit
+  renderer.tsx                     ← React root entrypoint
+```
+
+### Information Flow (Clean Architecture)
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Application Layer (React + Zustand)                │
+│  App.tsx → Sidebar/TopBar/ContentArea → Views      │
+│  useAccounts hook → window.api.* → preload          │
+└──────────────────────┬──────────────────────────────┘
+                       │ invoke/handle (IPC)
+                       ▼
+┌─────────────────────────────────────────────────────┐
+│  Infrastructure: IPCAdapter.ts                      │
+│  Validates input → calls service → returns IpcResult │
+│  ok(data) / err(message) — never throws             │
+└──────────────────────┬──────────────────────────────┘
+                       │
+            ┌──────────┼──────────┐
+            ▼          ▼          ▼
+┌──────────────┐ ┌──────────┐ ┌──────────────────┐
+│ Repositories │ │ RobloxHttp│ │ Roblox Services  │
+│ (database/)  │ │ apiGet/   │ │ (external/)       │
+│ Account/     │ │ apiPost   │ │ Auth, Games,     │
+│ Settings/    │ │ CSRF      │ │ Presence, Botting│
+│ Crypto/LRU   │ │           │ │ Cookie, etc.     │
+└──────────────┘ └──────────┘ └──────────────────┘
+            │          │          │
+            ▼          ▼          ▼
+┌─────────────────────────────────────────────────────┐
+│  Domain Layer (pure — no external dependencies)      │
+│  entities: Account, ServerInfo, PresenceData, GameData│
+│  repositories: AccountRepository, SettingsRepository  │
+│  ports: RobloxApiPort (35 Roblox API methods)        │
+└─────────────────────────────────────────────────────┘
 ```
 
 ### IPC Namespacing
@@ -260,11 +307,6 @@ roblox:*          → Platform API calls (launch, search, join, quick-login)
 settings:*        → Local preferences, config, Web API
 theme:*           → Theme system
 advanced:*        → Cache, export, data management
-security:*        → Sessions, password, 2FA
-privacy:*         → Privacy settings
-friends:*         → Friends, requests, blocks
-notifications:*   → Notification toggles
-presence:*        → Online status polling (5 states)
 ```
 
 Pattern: `invoke/handle` (Promise-based) — never `send/on` for request-response.
@@ -272,26 +314,30 @@ Result pattern: `{ success, data }` or `{ success: false, error }` — never thr
 
 ---
 
-## Security
+## 🔒 Security
 
 - **100% Local** — Your data never leaves your device
 - **No servers** — No backend, no cloud, no tracking
 - **No data collection** — No analytics, no telemetry
 - **AES-256-GCM encryption** — Cookies encrypted locally with hardware-derived key
+- **Branded type invariant** — `EncryptedString` branded type ensures only `CryptoService` can create encrypted values
 - **Sandbox active** — `contextIsolation: true` + `sandbox: true` + `nodeIntegration: false`
 - **CSP enforced** — Content Security Policy restricts connections to `*.roblox.com` only
 - **IPC security** — `contextBridge` with explicit channel whitelist, type validation on both sides
 - **Auditable code** — All code is public and reviewable
 
+See [SECURITY.md](SECURITY.md) for vulnerability reporting.
+
 ---
 
-## NAM vs RAM — Feature Comparison
+## 📊 NAM vs RAM — Feature Comparison
 
 | Feature | RAM | NAM |
 |---------|-----|-----|
 | Multi-account | ✅ | ✅ |
 | AES-256-GCM encryption | ❌ | ✅ |
 | Cross-platform | ❌ (Windows only) | ✅ (Electron) |
+| Clean Architecture | ❌ | ✅ (Hexagonal) |
 | i18n (ES/EN/PT) | ❌ | ✅ |
 | Aging alerts | ❌ | ✅ (color-coded) |
 | 5-state presence | ✅ | ✅ |
@@ -301,19 +347,36 @@ Result pattern: `{ success, data }` or `{ success: false, error }` — never thr
 | VIP server links | ✅ | ✅ |
 | Player Finder | ✅ | ✅ |
 | Outfit Viewer | ❌ | ✅ |
-| Quick Login | ✅ | ✅ |
-| Join Group | ✅ | ✅ |
+| FPS Unlocker | ✅ | ✅ |
 | Local Web API | ✅ | ✅ (configurable) |
 | Auto Relaunch | ✅ | ✅ |
 | Connection Watcher | ✅ | ✅ |
-| Prevent Duplicate Instances | ✅ | ✅ |
 | Open source | ✅ | ✅ (MIT) |
 
 ---
 
-## Contributing
+## 🛠️ Tech Stack
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+| Component       | Technology                     |
+|------------------|-------------------------------|
+| App              | Electron 30 + React 18 + TypeScript 5 |
+| State            | Zustand 5                     |
+| UI               | Mantine v7 + Tailwind CSS     |
+| Database         | SQLite + better-sqlite3       |
+| Encryption       | AES-256-GCM (hardware-derived) |
+| IPC Security     | contextBridge + sandbox        |
+| i18n             | i18next + react-i18next       |
+| Animations       | framer-motion 12              |
+| Build            | Vite 5 + electron-builder 24  |
+| Testing          | Vitest + Playwright + axe-core|
+| Linting          | ESLint                        |
+| Architecture     | Clean / Hexagonal (Ports & Adapters) |
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 - Report bugs in [Issues](https://github.com/Nxxo31/NexoAccManager/issues)
 - Submit PRs following the project's style guidelines
@@ -326,21 +389,20 @@ git clone https://github.com/Nxxo31/NexoAccManager.git
 cd NexoAccManager
 npm install
 npm run dev          # Development with hot-reload
-npx tsc --noEmit     # Type check
-npx vitest run       # Run 122 tests
-npm run lint         # ESLint
+npx tsc --noEmit     # Type check (0 errors required)
+npx vitest run       # Run unit tests
+npm run lint         # ESLint (0 warnings required)
 npm run build        # Production build
 ```
 
 ---
 
-## Troubleshooting
+## 🔍 Troubleshooting
 
 ### App won't start
 - Run `npx tsc --noEmit` to check for type errors first
 - Ensure all dependencies are installed: `npm install`
 - If the installer fails, try the portable version
-- Check that your Windows version is 10 or later
 
 ### Cookie validation fails
 - Make sure the cookie starts with `_|WARNING:-DO-NOT-SHARE|_`
@@ -353,35 +415,37 @@ npm run build        # Production build
 - For Linux builds, make sure build tools are installed
 
 ### Multi-Roblox not working
-- On Windows, ensure no other Roblox multi-instance tool is running
+- Ensure no other Roblox multi-instance tool is running
 - The app uses the `roblox-player://` protocol directly
-
-### Blank screen on launch
-- This usually means the renderer failed to load
-- Try running from terminal: `npm run dev` to see error output
-- Check that your GPU drivers are up to date (Electron uses GPU rendering)
 
 ---
 
-## License
+## 📄 License
 
 MIT License — See [LICENSE](LICENSE) for full details.
 
 This software is provided "as is", without warranty of any kind.
-Use of this software is at your own risk.
 
-**Disclaimer:** This project is not affiliated with, endorsed by, or sponsored
-by Roblox Corporation or any other company mentioned. The use of this software
-is the sole responsibility of the end user, who must ensure compliance with the
-terms of service of any platform they interact with.
+**Disclaimer:** This project is not affiliated with, endorsed by, or sponsored by Roblox Corporation or any other company mentioned. The use of this software is the sole responsibility of the end user, who must ensure compliance with the terms of service of any platform they interact with.
 
 ---
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
 - [ic3w0lf22](https://github.com/ic3w0lf22) — Original Roblox Account Manager inspiration
 - [Electron](https://www.electronjs.org/) — Cross-platform desktop framework
 - [React](https://react.dev/) — UI library
-- [i18next](https://www.i18next.com/) — Internationalization
-- [framer-motion](https://www.framer.com/motion/) — Animations
 - [Zustand](https://github.com/pmndrs/zustand) — State management
+- [framer-motion](https://www.framer.com/motion/) — Animations
+- [i18next](https://www.i18next.com/) — Internationalization
+- [Mantine](https://mantine.dev/) — UI components
+
+---
+
+<div align="center">
+
+**[⬆ Back to top](#-nexoaccmanager)**
+
+Made with 🔒 for privacy.
+
+</div>
