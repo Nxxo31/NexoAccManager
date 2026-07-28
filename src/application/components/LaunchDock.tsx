@@ -6,6 +6,7 @@
 // No Job ID field — shuffle generates it internally via API.
 
 import { useCallback } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Group, TextInput, Button, Select, Stack, Tooltip, Checkbox, Text, ActionIcon } from '@mantine/core';
 import { Rocket, Gamepad2, X, Loader2 } from 'lucide-react';
 import { useLaunchStore, type LaunchStatus } from '../store/launchStore';
@@ -91,17 +92,29 @@ export function LaunchDock(): JSX.Element {
   // Sync selectedAccountId with accountStore.selectedId
   const accountSelectedId = useAccountStore((s) => s.selectedId);
   const effectiveAccountId = selectedAccountId ?? accountSelectedId;
+  const reducedMotion = useReducedMotion();
 
   return (
-    <Group
-      gap="sm"
-      align="flex-end"
-      p="sm"
+    <motion.div
+      initial={false}
+      animate={
+        reducedMotion
+          ? undefined
+          : placeId
+            ? { boxShadow: '0 0 0 1px rgba(59,130,246,0.3)' }
+            : {}
+      }
+      transition={{ duration: 0.3, ease: 'easeOut' }}
       style={{
         borderTop: '1px solid var(--mantine-color-dark-4)',
         background: 'var(--mantine-color-dark-7)',
         minHeight: 64,
       }}
+    >
+    <Group
+      gap="sm"
+      align="flex-end"
+      p="sm"
     >
       {/* Place ID — readonly when propagated from GamesView */}
       <Stack gap={2} style={{ flex: 1, minWidth: 160, maxWidth: 280 }}>
@@ -189,5 +202,6 @@ export function LaunchDock(): JSX.Element {
         </Text>
       )}
     </Group>
+    </motion.div>
   );
 }
