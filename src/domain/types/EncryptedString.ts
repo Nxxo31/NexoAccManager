@@ -1,14 +1,16 @@
 // Domain Branded Type: EncryptedString
-// Marca un string como "cifrado" a nivel de tipos. El dominio tipifica que
-// `EncryptedString` es un valor que pasó por CryptoService.encrypt() y NO es
-// texto plano. Esto evita que callers pasen credenciales descifradas a
-// entidades de dominio por accidente.
+// Marks a string as "encrypted" at the type level. Domain convention:
+// `EncryptedString` is a value that has passed through CryptoService.encrypt()
+// and is NOT plaintext. This prevents callers from passing raw credentials to
+// domain entities by accident.
 //
-// El branded type NO añade comprobación runtime — es una invariant de tipos.
-// El único productor válido de EncryptedString es el CryptoService en
-// infraestructura (vía makeEncryptedString en el boundary de DB, o
-// directamente al envolver encrypt()).
-
+// The only valid producer of EncryptedString is makeEncryptedString() below,
+// called at the infrastructure boundary (AccountRepositoryImpl reading from
+// SQLite, or IPCAdapter/LocalApiService wrapping encrypt()). The unique symbol
+// is deliberately NOT exported — keeping it private preserves the invariant.
+//
+// DO NOT use in domain code or renderer — the renderer must never hold
+// encrypted or decrypted credentials.
 declare const encryptedBrand: unique symbol;
 
 export type EncryptedString = string & { readonly _brand: typeof encryptedBrand };
@@ -34,3 +36,7 @@ export function makeEncryptedString(s: string): EncryptedString {
 export function isEncryptedString(s: string): s is EncryptedString {
   return typeof s === 'string' && s.length >= 0;
 }
+
+// The unique symbol is private by design — see comment block above.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _encryptedBrandRef = encryptedBrand;

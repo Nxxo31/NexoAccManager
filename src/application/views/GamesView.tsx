@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAccountStore } from '../store/accountStore';
 import { notifications } from '@mantine/notifications';
 import { Group, Stack, Text, Button, Select, TextInput, Card, Badge, ScrollArea, ActionIcon, Skeleton } from '@mantine/core';
-import { Star, Search, Plus } from 'lucide-react';
+import { Star, Search } from 'lucide-react';
 import { t } from '../../config/i18n';
 
 interface GameResult {

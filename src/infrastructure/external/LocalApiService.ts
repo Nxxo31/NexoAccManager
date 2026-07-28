@@ -1,11 +1,11 @@
 import http from 'node:http';
 import { AccountRepositoryImpl } from '../database/AccountRepositoryImpl';
 import { launchRobloxDirect } from '../external/RobloxBottingService';
-import { launchMulti, killInstance, getRunningInstances } from '../external/MultiRobloxService';
+import { killInstance } from '../external/MultiRobloxService';
 import { startBotting, stopBotting, getBottingStatus } from '../external/RobloxBottingService';
 import { refreshCookie } from '../external/RobloxCookieService';
 import { decrypt, encrypt, hashCookie } from '../database/CryptoService';
-import { Account } from '../../domain/entities/Account';
+
 import { makeEncryptedString } from '../../domain/types/EncryptedString';
 
 const exec = require('node:child_process').exec;
@@ -18,7 +18,7 @@ const runningInstances = new Map<string, number>(); // accountId -> PID
 // Maximum allowed body size for HTTP requests — 1 MiB
 const MAX_BODY_BYTES = 1048576;
 
-function parseBody(req: http.IncomingMessage): Promise<any> {
+function parseBody(req: http.IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
     let body = '';
     let bodyBytes = 0;
@@ -154,10 +154,10 @@ export function start(port: number = 31415): Promise<void> {
           let running = false;
           if (pid !== undefined && Number.isInteger(pid) && pid > 0) {
             try {
-              const output = await execAsync(`tasklist /FI \"PID eq ${pid}\" /FO CSV /NH`);
+              const output = await execAsync(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`);
               const lines = output.trim().split('\n');
               running = lines.length > 0 && !lines[0].includes('INFO: No tasks are running');
-            } catch (_) {
+            } catch {
               running = false;
             }
           }
@@ -195,11 +195,11 @@ export function start(port: number = 31415): Promise<void> {
         }
 
         if (method === 'POST' && url === '/botting/start') {
-          let body: any;
+          let body: Record<string, unknown>;
           try {
-            body = await parseBody(req);
-          } catch (parseErr: any) {
-            if (parseErr?.message === 'Payload too large') {
+            body = await parseBody(req) as Record<string, unknown>;
+          } catch (parseErr: unknown) {
+            if ((parseErr as Error)?.message === 'Payload too large') {
               res.statusCode = 413;
               res.end(JSON.stringify({ error: 'Payload too large' }));
             } else {
@@ -208,7 +208,7 @@ export function start(port: number = 31415): Promise<void> {
             }
             return;
           }
-          const { accountId, placeId, interval } = body;
+          const { accountId, placeId, interval } = body as { accountId: string; placeId: string; interval: number };
           if (!accountId || !placeId || !interval) {
             res.statusCode = 400;
             res.end(JSON.stringify({ error: 'Missing required fields: accountId, placeId, interval' }));

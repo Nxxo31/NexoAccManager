@@ -7,8 +7,6 @@ import { ServersView } from '../views/ServersView';
 import { GamesView } from '../views/GamesView';
 import { FriendsView } from '../views/FriendsView';
 import { SettingsView } from '../views/SettingsView';
-import { useUIStore } from '../store/uiStore';
-
 export interface ViewContext {
   searchQuery: string;
   accounts: Account[];

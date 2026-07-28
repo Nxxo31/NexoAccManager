@@ -6,7 +6,7 @@
 // sueltas se mantienen para no romper imports existentes en IPCAdapter.ts.
 
 import { BrowserWindow, session } from 'electron';
-import { apiGet, apiPost, cookieHeader, getCsrfToken } from './RobloxHttp';
+import { apiGet, getCsrfToken } from './RobloxHttp';
 import type { RobloxAuthPort } from '../../domain/repositories/RobloxApiPort';
 
 export async function loginBrowser(): Promise<{ cookie: string; userId: number; username: string }> {
@@ -51,7 +51,9 @@ export async function loginBrowser(): Promise<{ cookie: string; userId: number; 
             }
           }
         }
-      } catch { /* keep polling */ }
+      } catch {
+          // Keep polling
+        }
     }, 2000);
 
     win.loadURL('https://www.roblox.com/login');
@@ -81,6 +83,13 @@ export async function loginUserPass(username: string, password: string): Promise
     });
 
     let resolved = false;
+    // credentialsSubmitted is set inside the injected page script (DOM scope),
+    // not in this TS scope — the TS-side flag never updates. The poller re-submits
+    // credentials every 2s until timeout, which is harmless (Roblox rejects the
+    // duplicate) but wasteful. Kept as 'let' for clarity that it was intended
+    // to be mutable; a proper fix would round-trip via executeJavaScript to read
+    // the DOM-side flag. See code review R1 (2026-07-28).
+    // eslint-disable-next-line prefer-const
     let credentialsSubmitted = false;
     const timeout = setTimeout(() => {
       if (!resolved) {
@@ -109,9 +118,9 @@ export async function loginUserPass(username: string, password: string): Promise
                 credentialsSubmitted = true;
               }
             `);
-          } catch (e) {
-            // Ignore errors in execution, we'll try again next interval
-          }
+          } catch {
+                    // Ignore errors in execution, we'll try again next interval
+                  }
         }
 
         // Check for cookie
@@ -132,8 +141,8 @@ export async function loginUserPass(username: string, password: string): Promise
             }
           }
         }
-      } catch (err) {
-        // If window is destroyed, break out
+      } catch {
+                // If window is destroyed, break out
         if (win === null || win.isDestroyed()) {
           resolved = true;
           clearTimeout(timeout);

@@ -1,7 +1,6 @@
 // Infrastructure: ContentModService — Copia/restaura archivos de contenido de Roblox
 // Soporta backup/restore de death sounds, mouse cursors, fonts, textures
 
-import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { safeResolve } from '../../infrastructure/ipc/handlers/shared';
@@ -40,7 +39,7 @@ function getBackupDir(): string {
       fs.mkdirSync(backupDir, { recursive: true });
     }
     return backupDir;
-  } catch (error) {
+  } catch {
     // Fallback a temp directory
     return path.join(process.env.TMPDIR || '/tmp', 'nexoaccmanager-content-backup');
   }
@@ -166,7 +165,6 @@ export function listAvailableBackups(): string[] {
     const backupDir = getBackupDir();
     if (!fs.existsSync(backupDir)) return [];
 
-    const items = fs.readdirSync(backupDir);
     const backups: string[] = [];
 
     function scanDirectory(dir: string, relativePath: string = '') {

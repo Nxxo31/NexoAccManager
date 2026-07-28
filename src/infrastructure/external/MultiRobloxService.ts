@@ -1,5 +1,5 @@
-import { exec, execSync } from 'node:child_process';
-import { promisify } from 'node:util';
+const { exec, execSync } = require('node:child_process');
+const { promisify } = require('node:util');
 const execAsync = promisify(exec);
 const runningInstances = new Map<string, number>(); // accountId -> PID
 
@@ -14,7 +14,7 @@ function isValidPid(pid: unknown): pid is number {
   return typeof pid === 'number' && Number.isInteger(pid) && pid > 0;
 }
 
-export async function launchMulti(accountId: string, placeId: string, jobId: string, cookie: string): Promise<number> {
+export async function launchMulti(accountId: string, placeId: string, jobId: string, _cookie: string): Promise<number> {
   // Validate jobId to prevent command injection via the URL
   if (!isValidJobId(jobId)) {
     return 0;

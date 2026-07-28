@@ -1,14 +1,12 @@
 // Infrastructure: CacheCleanerService — Limpia archivos de caché y temporales de Roblox
-// Limpia: %temp%\Roblox\*, %localappdata%\Roblox\temp\*, archivos de log antiguos
+// Limpia: %temp%\\Roblox\\*, %localappdata%\\Roblox\\temp\\*, archivos de log antiguos
 // Devuelve el espacio liberado en bytes
-
-import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 
 /**
  * Obtiene el directorio de TEMP de Windows
- * %temp%\Roblox
+ * %temp%\\Roblox
  * @returns Ruta al directorio de temp de Roblox o null si no se encuentra
  */
 function getRobloxTempDir(): string | null {
@@ -27,7 +25,7 @@ function getRobloxTempDir(): string | null {
 
 /**
  * Obtiene el directorio de temp interno de Roblox
- * %localappdata%\Roblox\temp
+ * %localappdata%\\Roblox\\temp
  * @returns Ruta al directorio de temp interno o null si no se encuentra
  */
 function getRobloxInternalTempDir(): string | null {
@@ -46,7 +44,7 @@ function getRobloxInternalTempDir(): string | null {
 
 /**
  * Obtiene el directorio de logs de Roblox
- * %localappdata%\Roblox\logs
+ * %localappdata%\\Roblox\\logs
  * @returns Ruta al directorio de logs o null si no se encuentra
  */
 function getRobloxLogsDir(): string | null {
@@ -72,10 +70,10 @@ function getDirectorySize(dirPath: string): number {
   let size = 0;
   try {
     const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       const fullPath = path.join(dirPath, entry.name);
-      
+
       if (entry.isDirectory()) {
         size += getDirectorySize(fullPath);
       } else if (entry.isFile()) {
@@ -87,7 +85,7 @@ function getDirectorySize(dirPath: string): number {
     // Si no podemos leer el directorio, asumir tamaño 0
     console.warn(`Could not calculate size for ${dirPath}:`, error);
   }
-  
+
   return size;
 }
 
@@ -98,24 +96,24 @@ function getDirectorySize(dirPath: string): number {
  */
 function deleteDirectoryAndGetSize(dirPath: string): number {
   const sizeBefore = getDirectorySize(dirPath);
-  
+
   try {
     function removeDirRecursive(currentPath: string) {
       const entries = fs.readdirSync(currentPath, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         const fullPath = path.join(currentPath, entry.name);
-        
+
         if (entry.isDirectory()) {
           removeDirRecursive(fullPath);
         } else if (entry.isFile()) {
           fs.unlinkSync(fullPath);
         }
       }
-      
+
       fs.rmdirSync(currentPath);
     }
-    
+
     removeDirRecursive(dirPath);
     return sizeBefore;
   } catch (error) {
@@ -133,14 +131,14 @@ function deleteDirectoryAndGetSize(dirPath: string): number {
 function deleteOldFilesInDirectory(dirPath: string, daysOld: number): number {
   let spaceFreed = 0;
   const cutoffTime = Date.now() - (daysOld * 24 * 60 * 60 * 1000);
-  
+
   try {
     function processDirectory(currentPath: string) {
       const entries = fs.readdirSync(currentPath, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         const fullPath = path.join(currentPath, entry.name);
-        
+
         if (entry.isDirectory()) {
           processDirectory(fullPath);
         } else if (entry.isFile()) {
@@ -150,52 +148,52 @@ function deleteOldFilesInDirectory(dirPath: string, daysOld: number): number {
               spaceFreed += stats.size;
               fs.unlinkSync(fullPath);
             }
-          } catch (error) {
+          } catch {
             // Ignorar errores individuales de archivos
           }
         }
       }
     }
-    
+
     processDirectory(dirPath);
   } catch (error) {
     console.error(`Error processing directory ${dirPath}:`, error);
   }
-  
+
   return spaceFreed;
 }
 
 /**
- * Limpia el directorio temp de Roblox (%temp%\Roblox\*)
+ * Limpia el directorio temp de Roblox (%temp%\\Roblox\\*)
  * @returns Espacio liberado en bytes
  */
 export function cleanRobloxTemp(): number {
   const tempDir = getRobloxTempDir();
   if (!tempDir) return 0;
-  
+
   return deleteDirectoryAndGetSize(tempDir);
 }
 
 /**
- * Limpia el directorio temp interno de Roblox (%localappdata%\Roblox\temp\*)
+ * Limpia el directorio temp interno de Roblox (%localappdata%\\Roblox\\temp\\*)
  * @returns Espacio liberado en bytes
  */
 export function cleanRobloxInternalTemp(): number {
   const tempDir = getRobloxInternalTempDir();
   if (!tempDir) return 0;
-  
+
   return deleteDirectoryAndGetSize(tempDir);
 }
 
 /**
- * Limpia archivos de log antiguos (más de 7 días) en %localappdata%\Roblox\logs\*
+ * Limpia archivos de log antiguos (más de X días) en %localappdata%\\Roblox\\logs\\*
+ * @param days Número de días para mantener (los más antiguos se eliminan)
  * @returns Espacio liberado en bytes
  */
-export function cleanOldLogs(): number {
+export function cleanOldLogs(days: number = 7): number {
   const logsDir = getRobloxLogsDir();
   if (!logsDir) return 0;
-  
-  return deleteOldFilesInDirectory(logsDir, 7); // Mantener logs de los últimos 7 días
+  return deleteOldFilesInDirectory(logsDir, days); // Mantener logs de los últimos 'days' días
 }
 
 /**
@@ -212,7 +210,7 @@ export function cleanRobloxCache(): {
   const internalTemp = cleanRobloxInternalTemp();
   const oldLogs = cleanOldLogs();
   const total = temp + internalTemp + oldLogs;
-  
+
   return {
     temp,
     internalTemp,
@@ -234,22 +232,22 @@ export function getRobloxCacheSize(): {
   let tempSize = 0;
   let internalTempSize = 0;
   let logsSize = 0;
-  
+
   const tempDir = getRobloxTempDir();
   if (tempDir) {
     tempSize = getDirectorySize(tempDir);
   }
-  
+
   const internalTempDir = getRobloxInternalTempDir();
   if (internalTempDir) {
     internalTempSize = getDirectorySize(internalTempDir);
   }
-  
+
   const logsDir = getRobloxLogsDir();
   if (logsDir) {
     logsSize = getDirectorySize(logsDir);
   }
-  
+
   return {
     temp: tempSize,
     internalTemp: internalTempSize,

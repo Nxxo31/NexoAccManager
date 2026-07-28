@@ -2,9 +2,6 @@
 // Pure contracts — no implementation, no DB knowledge, no Electron
 
 import type { Account, RecentGame, FavoriteGame } from '../entities/Account';
-import type { ServerInfo, ServerUser } from '../entities/ServerInfo';
-import type { PresenceData, RobuxBalance, Friend, FriendRequest, BlockedUser } from '../entities/PresenceData';
-import type { OutfitData, UniverseData } from '../entities/GameData';
 
 export interface AccountRepository {
   getAll(): Promise<Account[]>;

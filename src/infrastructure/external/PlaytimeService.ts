@@ -2,14 +2,7 @@
 import { getDb } from '../database/DatabaseManager';
 import { randomUUID } from 'crypto';
 
-interface PlaytimeSession {
-  id: string;
-  accountId: string;
-  placeId: string;
-  startTime: string;
-  endTime: string | null;
-  duration: number | null;
-}
+
 
 const activeTimers = new Map<string, { placeId: string; startTime: number }>();
 

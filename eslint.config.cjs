@@ -16,6 +16,7 @@ module.exports = [
       '*.config.{js,mjs,cjs}',
       'playwright.*.ts',
       'vitest.config.ts',
+      'nam-screenshot.js',
     ],
   },
   {

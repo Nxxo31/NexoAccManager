@@ -16,7 +16,7 @@ export async function killAllRoblox(): Promise<void> {
   }
 }
 
-export async function launchRobloxDirect(placeId: string, jobId: string, cookie: string): Promise<void> {
+export async function launchRobloxDirect(placeId: string, jobId: string, _cookie: string): Promise<void> {
   // Validate jobId to prevent command injection via the URL (UUID v4 hex+hyphens, 36 chars)
   const JOB_ID_REGEX = /^[a-f0-9-]{36}$/;
   if (jobId && !JOB_ID_REGEX.test(jobId)) {
@@ -113,7 +113,7 @@ export async function setConnectionWatcher(accountId: string, enable: boolean, m
           // No data returned
           handleOffline(accountId, maxInactivity);
         }
-      } catch (err) {
+      } catch {
         // Request failed
         handleOffline(accountId, maxInactivity);
       }
@@ -178,7 +178,7 @@ export function canLaunchWithCookieHash(cookieHash: string): boolean {
         const output = execSync(`ps -p ${existingPid}`, { encoding: 'utf8' });
         return output.trim() === ''; // If no output, process not running
       }
-    } catch (err) {
+    } catch {
       // Process not found, consider it not running
       return true;
     }
@@ -291,7 +291,7 @@ export async function startBotting(accountId: string, placeId: string, intervalM
       minInterval = Math.min(...Array.from(bottingAccounts.values()).map(v => v.interval));
     }
     bottingInterval = setInterval(async () => {
-      for (const [accId, config] of bottingAccounts) {
+      for (const [, config] of bottingAccounts) {
         try {
           await launchRobloxDirect(config.placeId, '', ''); // jobId and cookie empty - not ideal but existing
         } catch { /* ignore individual failures */ }

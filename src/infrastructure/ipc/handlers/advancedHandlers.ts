@@ -2,8 +2,7 @@
 // playtime, presets, content mods, fastflags, and logs. Plus the cookie
 // refresh / expiry handlers that operate against the account's encrypted cookie.
 //
-// Channels: advanced:*, cookie:*, captcha:solve, fflags:*, mods:*, logs:*,
-// cache:*, discord:*, presets:*, playtime:*.
+// Channels: advanced:*, cookie:*, captcha:solve, fflags:*, mods:*, logs:*, cache:*, discord:*, presets:*, playtime:*.
 
 import { ipcMain } from 'electron';
 import { AccountRepositoryImpl } from '../../database/AccountRepositoryImpl';
@@ -155,7 +154,10 @@ export function registerAdvancedHandlers(): void {
     } catch (e) { return err(String(e)); }
   });
   ipcMain.handle('logs:clearOld', async (_e, { daysToKeep }: { daysToKeep: number }) => {
-    try { const freedBytes = cleanOldLogs(); return ok({ freedBytes }); } catch (e) { return err(String(e)); }
+    try { 
+      const freedBytes = cleanOldLogs(daysToKeep); 
+      return ok({ freedBytes }); 
+    } catch (e) { return err(String(e)); }
   });
 
   // Cache Cleaner

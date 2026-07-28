@@ -7,7 +7,6 @@ import crypto from 'node:crypto';
 const ALGO = 'aes-256-gcm';
 const KEY_LEN = 32;
 const IV_LEN = 16;
-const TAG_LEN = 16;
 const PBKDF2_ITERATIONS = 100_000;
 
 function deriveKey(salt: Buffer): Buffer {

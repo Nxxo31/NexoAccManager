@@ -10,7 +10,7 @@ import { TopBar } from './layout/TopBar';
 import { ContentArea, type ViewContext } from './layout/ContentArea';
 import { AddAccountModal } from './components/AddAccountModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { useMantineColorScheme, useMantineTheme } from '@mantine/core';
+import { useMantineColorScheme } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { setLang, type LangId } from '../config/i18n';
 import './i18n';
@@ -20,8 +20,8 @@ export function App(): JSX.Element {
  const accounts = useAccountStore((state) => state.accounts);
  const select = useAccountStore((state) => state.select);
  const { loadAccounts, loginBrowser } = useAccounts();
- const { colorScheme, toggleColorScheme } = useMantineColorScheme();
- const theme = useMantineTheme();
+ const { colorScheme } = useMantineColorScheme();
+ 
  const isDark = colorScheme === 'dark' || (colorScheme === 'auto' && useMediaQuery('(prefers-color-scheme: dark)'));
  const reducedMotion = useReducedMotion();
  const [searchQuery, setSearchQuery] = useState('');

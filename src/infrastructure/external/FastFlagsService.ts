@@ -2,7 +2,6 @@
 // Soporta get/set/delete flags, import/export JSON
 // Flags comunes: DFIntTaskSchedulerTargetFps (FPS unlock), FIntDebugForceFlagValue, etc.
 
-import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { FastFlag } from '../../domain/entities/FastFlag';
@@ -207,7 +206,7 @@ export function getFreeSpaceInRobloxDir(): number {
 
     const stats = fs.statfsSync(versionDir);
     return stats.bfree * stats.bsize;
-  } catch (error) {
+  } catch {
     // statfs no está disponible en todos los sistemas
     return 0;
   }

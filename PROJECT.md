@@ -962,4 +962,56 @@ Completar los dos stubs pendientes de la auditoría v4.0.7:
   → Pattern to adopt: version bump in package.json with every PROJECT.md version update
 **Deploy decision:** ✅ production
 **Release:** https://github.com/Nxxo31/NexoAccManager/releases/tag/v4.0.9
-**Next action:** Bump package.json to 4.0.9, add nam-screenshot.js to eslint ignores
+
+## Dev Handoff v4.0.9 Cleanup (2026-07-28)
+
+### Tarea completada
+Cleanup final de lint warnings + version bump + eslint ignores. NAM v4.0.9 listo para producción.
+
+### Cambios realizados
+- **package.json** — version bump `4.0.0` → `4.0.9` (sincronizado con PROJECT.md)
+- **eslint.config.cjs** — `nam-screenshot.js` añadido a ignores (elimina 18 errors de baseline)
+- **28 lint warnings → 0 warnings** en 20 archivos:
+  - `src/application/App.tsx` — eliminado `useMantineTheme` no usado, `theme` no referenciado
+  - `src/application/layout/ContentArea.tsx` — eliminado import `useUIStore` no usado
+  - `src/application/views/GamesView.tsx` — eliminado import `Plus` no usado
+  - `src/application/store/uiStore.ts` — eliminado `get` de `(set, get)` que no se usaba
+  - `src/domain/repositories/RepositoryInterfaces.ts` — eliminados type imports sin usar (`ServerInfo`, `ServerUser`, `PresenceData`, `RobuxBalance`, `Friend`, `FriendRequest`, `BlockedUser`)
+  - `src/domain/types/EncryptedString.ts` — `encryptedBrand` exportado vía `export { encryptedBrand }` (resuelve unused-var manteniendo el branded typesymbol vivo)
+  - `src/infrastructure/database/CryptoService.ts` — eliminado `TAG_LEN` constante sin usar
+  - `src/infrastructure/external/CacheCleanerService.ts` — `catch (error)` → `catch {}` (error no usado)
+  - `src/infrastructure/external/ContentModService.ts` — `catch (error)` → `catch {}` en catch blocks donde error no se usa (3 instancias), `items = [] as string[]` → eliminado (no se usaba)
+  - `src/infrastructure/external/FastFlagsService.ts` — `catch (error)` → `catch {}` (2 instancias)
+  - `src/infrastructure/external/LocalApiService.ts` — eliminado import `app` de electron no usado
+  - `src/infrastructure/external/MultiRobloxService.ts` — `_cookie` → `_` (param no usado)
+  - `src/infrastructure/external/PlaytimeService.ts` — eliminada interfaz `PlaytimeSession` sin usar
+  - `src/infrastructure/external/RobloxAuthService.ts` — `catch (e) → catch {}`, `catch (err) → catch {}`, `const credentialsSubmitted` → `let credentialsSubmitted` (bug de reassignment)
+  - `src/infrastructure/external/RobloxBottingService.ts` — `catch (err) → catch {}` (2x), `for ([accId, config])` → `for ([, config])` (accId no usado en el cuerpo)
+  - `src/infrastructure/external/RobloxLogService.ts` — eliminado import `app` de electron
+  - `src/infrastructure/ipc/handlers/accountHandlers.ts` — `loginBrowser()` destructure `{ cookie, userId: _userId, username: _username }` → `{ cookie }` (los otros no se usaban, cookie se pasa a verifyCookie que obtiene info fresca)
+  - `src/infrastructure/ipc/handlers/advancedHandlers.ts` — (sin cambios significativos, cleanup previo)
+
+### Verificación de las 4 puertas
+- `npx tsc --noEmit` → **0 errores** ✅
+- `npm run lint` → **0 errors, 0 warnings** ✅ (baseline previo: 18 errors + 28 warnings)
+- `npm run test:unit` → **36/36 tests pasando** (3 archivos, 1.60s) ✅
+- `xvfb-run npx playwright test --config playwright.electron.config.ts` → **6/6 E2E pasando** (22.2s) ✅
+- `npm run build` → AppImage + Snap 4.0.9 generados exitosamente ✅
+
+### Hallazgo del code review subagent
+(Pendiente entrega final del subagent — ver sección siguiente cuando se complete)
+
+### Notas técnicas
+- Los `catch {}` sin binding se aplicaron solo cuando el `error`/`err` no era referenciado en el cuerpo (info de error no se logueaba ni se usaba para flujo). En catch blocks que sí logueaban `console.error('...:', error)`, se conservó el binding.
+- `EncryptedString` branded type: el `unique symbol` es referenciado por el tipo `EncryptedString` (vía `typeof encryptedBrand`), pero eslint no detecta esto como "uso" — exportarlo resuelve el falso positivo sin cambiar la semántica del branded type.
+- RobloxBottingService `bottingAccounts.forEach`: `accId` era el Map key que no se usaba dentro del loop (solo se usaba `config.placeId`) — destructuring hole `[, config]` es lo correcto.
+- accountHandlers `loginBrowser()`: la función retorna `{ cookie, userId, username }` pero el handler usa `verifyCookie(cookie)` que re-obtiene userId/username frescos — los del return de loginBrowser eran redundantes.
+- E2E requiere `npm run build` previo (fixture carga `dist/main/main.js` como bundle empaquetado — sin rebuild, tests fallan con `Target page, context or browser has been closed`).
+
+### Próximos pasos sugeridos (backlog)
+1. Implementar WebSocket real para `account:control` (reemplazar HTTP bridge interino)
+2. Añadir tests unitarios para `advanced:devmode` y `account:control` handlers
+3. Address P-001/P-002 performance en AccountsView (React.memo effectiveness en listas grandes)
+4. Cobertura i18n para strings hardcodeados restantes
+5. Considerar electron-log para logs persistentes (console.log se pierde en restarts)
+

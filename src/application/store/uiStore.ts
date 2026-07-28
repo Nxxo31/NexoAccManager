@@ -30,7 +30,7 @@ interface UIState {
 
 export const useUIStore = create<UIState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       activeView: 'accounts',
       activeModal: null,
       theme: 'dark',

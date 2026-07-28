@@ -332,7 +332,7 @@ export function registerAccountHandlers(): void {
   // La cookie NUNCA abandona el main process (se cumple regla de seguridad "cookies nunca abandonan el PC").
   ipcMain.handle('account:login-browser', async () => {
     try {
-      const { cookie, userId, username } = await loginBrowser(); // usa Chromium aislado
+      const { cookie } = await loginBrowser(); // usa Chromium aislado
       // Validar y crear cuenta (mismo flujo que account:add)
       const info = await verifyCookie(cookie);
       if (!info.valid) return err('Cookie inválida');
