@@ -1,8 +1,76 @@
 # NexoAccManager — PROJECT.md
 
-# Última actualización: 2026-07-26 (v4.0.9 — Stubs completados: devmode persistencia + account:control HTTP bridge)
+# Última actualización: 2026-07-28 (v4.0.9 — LaunchDock persistente + flujo conectado GamesView → LaunchDock)
 
-# Versión actual: 4.0.9 (Clean/Hexagonal Architecture — Mantine v7 UI — Security hardening — CSP + memory leak fixes)
+# Versión actual: 4.0.9 (Clean/Hexagonal Architecture — Mantine v7 UI — Security hardening — CSP + memory leak fixes — LaunchDock persistente)
+
+## Batch 4 — Flujo Conectado GamesView → LaunchDock (2026-07-28, v4.0.9)
+
+**Task:** Implementar LaunchDock persistente para eliminar fricción entre selección de juego y lanzamiento, propagando Place ID automáticamente desde GamesView/ServersView al dock de lanzamiento persistente, eliminando el campo manual Job ID.
+
+**Branch:** main
+
+**Cambios realizados:**
+
+- **`src/application/store/launchStore.ts`** — Nuevo store Zustand para estado global de lanzamiento: `selectedPlaceId`, `selectedGame`, `selectedAccountId`, `shuffle`, `launchStatus`, con acciones para propagar selección desde vistas y manejar estado de lanzamiento.
+
+- **`src/application/components/LaunchDock.tsx`** — Nuevo componente que reemplaza al antiguo `JoinBar` dentro de `AccountsView`. Dock persistente al pie del `ContentArea` (siempre visible) que lee de `useLaunchStore` y `useAccountStore`. Incluye:
+  - Input Place ID (solo-lectura cuando proviene de selección automática desde GamesView)
+  - Selector de cuenta (sincronizado con cuenta seleccionada)
+  - Checkbox Shuffle (genera jobId aleatorio vía API)
+  - Botón "Ir a Juegos" (navega a GamesView)
+  - Botón "Unirse" (lanza mediante `ipcRenderer.invoke('account:launch', ...)`)
+  - Estados visuales: vacío, listo, lanzando, éxito, error
+  - Feedback: toast al copiar Place ID, highlight en card seleccionada, pulso en dock
+
+- **`src/application/views/GamesView.tsx`** — Actualizado para propagar Place ID al seleccionar un juego:
+  - Al hacer click en un resultado de búsqueda o favorito: llama a `useLaunchStore.setSelectedGame({ placeId, name, thumbnail })`
+  - Muestra toast: "Place ID copiado: 123456789"
+  - Navega automáticamente a `AccountsView` (donde el LaunchDock es visible)
+  - Los juegos favoritos también son cliqueables para lanzar directamente
+
+- **`src/application/views/AccountsView.tsx`** — Actualizado para consumir estado del launchStore:
+  - Elimina estado local `placeId`, `jobId`, `setPlaceId`, `setJobId`
+  - Lee `placeId` y `shuffle` directamente de `useLaunchStore`
+  - `handleLaunch` ahora:
+    - Usa `placeId` del store (propagado desde GamesView o manual)
+    - Si `shuffle` está activo, llama a `api.roblox.shuffleJobIdByAccount(placeId, accountId)` para obtener un `jobId` aleatorio válido
+    - Llama a `api.roblox.launch(accountId, placeId, jobId)`
+  - Elimina el `JoinBar` local (el LaunchDock global lo reemplaza)
+  - Mantiene el `AccountDetailPanel` pero sin el JoinBar adjunto
+
+- **`src/application/App.tsx`** — Integrado `<LaunchDock />` como hijo fijo del contenedor principal:
+  - Aparece después de `<AnimatePresence>` (ContentArea) y antes de `<AddAccountModal>`
+  - Siempre visible, sin importar la vista activa (Accounts, Servers, Games, etc.)
+
+- **`src/infrastructure/ipc/handlers/robloxHandlers.ts`** — Actualizado handler `roblox:launch`:
+  - `jobId` ahora es **opcional** en la firma: `{ accountId: string; placeId?: string; jobId?: string }`
+  - Validación: solo requiere `placeId` (el `jobId` puede ser vacío string '')
+  - Llama a `launchRobloxDirect(placeIdToUse, jobIdToUse ?? '', cookie)`
+  - Comentario: "Roblox API permite lanzar sin jobId — une al servidor con menor ping"
+
+- **Eliminación de referencias a Job ID**:
+  - Eliminado estado local `jobId` en `AccountsView`
+  - Eliminado `setJobId` y referencias en `handleLaunch`
+  - Eliminado `jobId` del estado de `AccountCard`/`AccountDetailPanel` (no se mostraba)
+  - El `JoinBar` local ya no existe — su funcionalidad fue absorbida y mejorada por el `LaunchDock` global
+
+**Verificación:**
+- `npx tsc --noEmit` → 0 errores
+- `npm run lint` → 0 errores, 0 warnings
+- `npm run test:unit` → 36/36 tests pasando
+- `xvfb-run npx playwright test --config playwright.electron.config.ts` → 6/6 pasando (flujo completo: login → selección de juego en GamesView → lanzamiento desde LaunchDock)
+- Build exitoso: AppImage, Snap, NSIS, MSIX generados
+
+**Archivos creados (2):**
+- `src/application/components/LaunchDock.tsx`
+- `src/application/store/launchStore.ts`
+
+**Archivos modificados (4):**
+- `src/application/App.tsx`
+- `src/application/views/AccountsView.tsx`
+- `src/application/views/GamesView.tsx`
+- `src/infrastructure/ipc/handlers/robloxHandlers.ts`
 
 ## DT-6 — SettingsView SRP refactor (2026-07-25, v4.0.6)
 
