@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Plus, Users, LogOut, Tag } from 'lucide-react';
 import { useAccountStore } from '../store/accountStore';
+import { useLaunchStore } from '../store/launchStore';
 import { useAccounts } from '../hooks/useAccounts';
 import { AccountCard } from '../components/accounts/AccountCard';
 import { AccountDetailPanel } from '../components/AccountDetailPanel';
@@ -23,9 +24,10 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
   const update = useAccountStore((s) => s.update);
   const { removeAccount, loginBrowser } = useAccounts();
   const api = typeof window !== 'undefined' ? window.api : undefined;
-  const [placeId, setPlaceId] = useState('');
-  const [jobId, setJobId] = useState('');
-  const [shuffle, setShuffle] = useState(false);
+  // Launch state ahora vive en launchStore — propagado desde GamesView
+  const placeId = useLaunchStore((s) => s.selectedPlaceId);
+  const shuffle = useLaunchStore((s) => s.shuffle);
+  const setShuffle = useLaunchStore((s) => s.setShuffle);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
   const [editGroup, setEditGroup] = useState('');
   const [editDesc, setEditDesc] = useState('');
@@ -53,19 +55,24 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
 
   const handleLaunch = useCallback(async () => {
     if (!selected || !api) return;
-    let finalJobId = jobId;
+    let finalJobId: string | undefined;
     if (shuffle && placeId) {
-      finalJobId = Math.random().toString(36).substring(2, 18);
-      setJobId(finalJobId);
+      // Shuffle: obtener un jobId aleatorio via API (cookie resuelta en main process)
+      const shuffleResult = await api.roblox.shuffleJobIdByAccount(placeId, selected.id);
+      if (!shuffleResult.success) {
+        notifications.show({ message: shuffleResult.error ?? t('common.error'), color: 'red' });
+        return;
+      }
+      finalJobId = shuffleResult.data as string;
     }
     try {
-      const result = await api.roblox.launch(selected.id, placeId || undefined, finalJobId || undefined);
+      const result = await api.roblox.launch(selected.id, placeId || undefined, finalJobId);
       if (result.success) notifications.show({ message: t('accounts.launched', { name: selected.username }), color: 'green' });
       else notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
     } catch {
       notifications.show({ message: t('common.error'), color: 'red' });
     }
-  }, [selected, api, shuffle, placeId, jobId]);
+  }, [selected, api, shuffle, placeId]);
 
   const handleKillAll = useCallback(async () => {
     modals.openConfirmModal({
@@ -215,27 +222,19 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
           )}
         </ScrollArea>
 
-        {/* Join bar + detail */}
+        {/* Detail panel (no JoinBar here — LaunchDock is global in AppShell) */}
         {selected && (
-          <>
-            <Group p="md" gap="sm" align="center" style={{ borderTop: '1px solid var(--mantine-color-gray-3)' }}>
-              <TextInput placeholder={t('accounts.placeId')} value={placeId} onChange={(e) => setPlaceId(e.target.value)} size="sm" style={{ width: 120 }} />
-              <Button variant="filled" color="primary" size="sm" onClick={handleLaunch} disabled={!placeId.trim()}>
-                {t('accounts.join')}
-              </Button>
-            </Group>
-            <AccountDetailPanel
-              account={selected}
-              onClose={() => select(null)}
-              onLaunch={handleLaunch}
-              onRefreshCookie={async () => {
-                const result = await api?.cookie.refresh(selected.id);
-                if (result?.success) notifications.show({ message: t('accounts.cookieRefreshed'), color: 'green' });
-                else notifications.show({ message: result?.error ?? t('common.error'), color: 'red' });
-              }}
-              onLogoutAll={() => notifications.show({ message: t('accounts.functionUnavailable'), color: 'orange' })}
-            />
-          </>
+          <AccountDetailPanel
+            account={selected}
+            onClose={() => select(null)}
+            onLaunch={handleLaunch}
+            onRefreshCookie={async () => {
+              const result = await api?.cookie.refresh(selected.id);
+              if (result?.success) notifications.show({ message: t('accounts.cookieRefreshed'), color: 'green' });
+              else notifications.show({ message: result?.error ?? t('common.error'), color: 'red' });
+            }}
+            onLogoutAll={() => notifications.show({ message: t('accounts.functionUnavailable'), color: 'orange' })}
+          />
         )}
       </div>
 

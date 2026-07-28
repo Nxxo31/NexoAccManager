@@ -40,10 +40,12 @@ export function registerRobloxHandlers(): void {
       const cookie = decrypt(acc.encryptedCookie);
       const placeIdToUse = placeId ?? acc.savedPlaceId;
       const jobIdToUse = jobId ?? acc.savedJobId;
-      if (!placeIdToUse || !jobIdToUse) {
-        return err('Place ID y Job ID son requeridos');
+      if (!placeIdToUse) {
+        return err('Place ID es requerido');
       }
-      await launchRobloxDirect(placeIdToUse, jobIdToUse, cookie);
+      // jobId opcional: si no se proporciona, usar el guardado o vacío
+      // (Roblox API permite lanzar sin jobId — une al servidor con menor ping)
+      await launchRobloxDirect(placeIdToUse, jobIdToUse ?? '', cookie);
       await accountRepo.updateLastUsed(accountId);
       return ok(null);
     } catch (e) { return err(String(e)); }

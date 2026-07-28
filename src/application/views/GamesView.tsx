@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAccountStore } from '../store/accountStore';
+import { useLaunchStore } from '../store/launchStore';
+import { useUIStore } from '../store/uiStore';
 import { notifications } from '@mantine/notifications';
 import { Group, Stack, Text, Button, Select, TextInput, Card, Badge, ScrollArea, ActionIcon, Skeleton } from '@mantine/core';
-import { Star, Search } from 'lucide-react';
+import { Star, Search, Rocket } from 'lucide-react';
 import { t } from '../../config/i18n';
 
 interface GameResult {
@@ -23,12 +25,48 @@ interface FavoriteGame {
 
 export function GamesView(): JSX.Element {
   const accounts = useAccountStore((s) => s.accounts);
+  const select = useAccountStore((s) => s.select);
+  const setView = useUIStore((s) => s.setView);
+  const setSelectedGame = useLaunchStore((s) => s.setSelectedGame);
   const api = typeof window !== 'undefined' ? window.api : undefined;
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<GameResult[]>([]);
   const [favorites, setFavorites] = useState<FavoriteGame[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Propagar Place ID de un juego seleccionado al LaunchDock
+  const handleSelectGame = useCallback((game: GameResult) => {
+    const placeId = String(game.id);
+    setSelectedGame({
+      placeId,
+      name: game.name,
+      thumbnail: game.thumbnail,
+    });
+    notifications.show({
+      message: `Place ID copiado: ${placeId}`,
+      color: 'blue',
+      autoClose: 2000,
+    });
+    // Navegar a AccountsView donde el LaunchDock está visible
+    setView('accounts');
+  }, [setSelectedGame, setView]);
+
+  // Lanzar un juego directamente desde un favorito
+  const handleLaunchFavorite = useCallback((fav: FavoriteGame) => {
+    setSelectedGame({
+      placeId: String(fav.gameId),
+      name: fav.name,
+      thumbnail: fav.icon,
+    });
+    // Si hay una cuenta seleccionada, marcamos ready
+    if (accounts.length > 0 && !selectedAccountId) {
+      // Seleccionar la primera cuenta automáticamente
+      select(accounts[0].id);
+    }
+    setView('accounts');
+    notifications.show({ message: `Place ID copiado: ${fav.gameId}`, color: 'blue', autoClose: 2000 });
+  }, [setSelectedGame, setView, accounts, selectedAccountId, select]);
 
   useEffect(() => {
     if (selectedAccountId && api) loadFavorites();
@@ -139,11 +177,22 @@ export function GamesView(): JSX.Element {
             <Text size="sm" fw={500} c="dimmed">{t('games.favorites')}</Text>
             <Group gap="xs" wrap="wrap">
               {favorites.map((f) => (
-                <Badge key={f.id} variant="light" color="yellow" rightSection={
-                  <button onClick={() => removeFavorite(f.gameId)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'inherit' }} aria-label={t('games.removeFromFavorites')}>
-                    x
-                  </button>
-                }>
+                <Badge
+                  key={f.id}
+                  variant="light"
+                  color="yellow"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => handleLaunchFavorite(f)}
+                  rightSection={
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeFavorite(f.gameId); }}
+                      style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'inherit' }}
+                      aria-label={t('games.removeFromFavorites')}
+                    >
+                      x
+                    </button>
+                  }
+                >
                   {f.name}
                 </Badge>
               ))}
@@ -157,13 +206,18 @@ export function GamesView(): JSX.Element {
             {results.map((g) => (
               <Card key={g.id} withBorder padding="sm" radius="md">
                 <Group justify="space-between" align="center">
-                  <Stack gap={2}>
+                  <Stack gap={2} style={{ cursor: 'pointer' }} onClick={() => handleSelectGame(g)}>
                     <Text size="sm" fw={500}>{g.name}</Text>
                     <Text size="xs" c="dimmed">ID: {g.id}</Text>
                   </Stack>
-                  <ActionIcon variant="subtle" color="gray" onClick={() => addFavorite(g)} aria-label={t('games.addToFavorites')}>
-                    <Star size={16} />
-                  </ActionIcon>
+                  <Group gap="xs">
+                    <ActionIcon variant="filled" color="primary" size="sm" onClick={() => handleSelectGame(g)} aria-label={t('accounts.join')}>
+                      <Rocket size={14} />
+                    </ActionIcon>
+                    <ActionIcon variant="subtle" color="gray" onClick={() => addFavorite(g)} aria-label={t('games.addToFavorites')}>
+                      <Star size={16} />
+                    </ActionIcon>
+                  </Group>
                 </Group>
               </Card>
             ))}

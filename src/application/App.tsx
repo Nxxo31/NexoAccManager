@@ -8,6 +8,7 @@ import { useAccounts } from './hooks/useAccounts';
 import { Sidebar } from './layout/Sidebar';
 import { TopBar } from './layout/TopBar';
 import { ContentArea, type ViewContext } from './layout/ContentArea';
+import { LaunchDock } from './components/LaunchDock';
 import { AddAccountModal } from './components/AddAccountModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useMantineColorScheme } from '@mantine/core';
@@ -81,6 +82,8 @@ export function App(): JSX.Element {
  <ContentArea activeView={activeView} context={context} />
  </motion.div>
  </AnimatePresence>
+ {/* LaunchDock — persistent bottom dock, reads from launchStore */}
+ <LaunchDock />
  </div>
  <AddAccountModal open={showAddModal} onClose={() => setShowAddModal(false)} onLoginBrowser={loginBrowser} />
  </div>
