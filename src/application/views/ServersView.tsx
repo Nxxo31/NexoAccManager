@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useAccountStore } from '../store/accountStore';
+import { useLaunchStore } from '../store/launchStore';
 import { notifications } from '@mantine/notifications';
 import { Group, Stack, Text, Badge, Button, Select, TextInput, Card, Progress, ScrollArea, Skeleton } from '@mantine/core';
 import { Search, Globe, Wifi } from 'lucide-react';
@@ -23,12 +24,19 @@ interface RegionInfo {
 
 export function ServersView(): JSX.Element {
   const accounts = useAccountStore((s) => s.accounts);
+  const setSelectedPlaceId = useLaunchStore((s) => s.setSelectedPlaceId);
   const api = typeof window !== 'undefined' ? window.api : undefined;
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [placeId, setPlaceId] = useState('');
   const [servers, setServers] = useState<ServerInfo[]>([]);
   const [region, setRegion] = useState<RegionInfo | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Propagar Place ID al LaunchDock cuando el usuario lo escribe
+  const handlePlaceIdChange = useCallback((value: string) => {
+    setPlaceId(value);
+    if (value.trim()) setSelectedPlaceId(value);
+  }, [setSelectedPlaceId]);
 
   const searchServers = useCallback(async () => {
     if (!placeId || !selectedAccountId || !api) return;
@@ -87,7 +95,7 @@ export function ServersView(): JSX.Element {
         <TextInput
           placeholder={t('servers.placeIdPlaceholder')}
           value={placeId}
-          onChange={(e) => setPlaceId(e.target.value)}
+          onChange={(e) => handlePlaceIdChange(e.currentTarget.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') searchServers(); }}
           leftSection={<Search size={14} />}
           size="sm"
