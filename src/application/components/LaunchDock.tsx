@@ -32,6 +32,7 @@ export function LaunchDock(): JSX.Element {
   const setShuffle = useLaunchStore((s) => s.setShuffle);
   const setLaunchStatus = useLaunchStore((s) => s.setLaunchStatus);
   const clearSelection = useLaunchStore((s) => s.clearSelection);
+  const setSelectedPlaceId = useLaunchStore((s) => s.setSelectedPlaceId);
   const selectedAccountId = useLaunchStore((s) => s.selectedAccountId);
   const setSelectedAccountId = useLaunchStore((s) => s.setSelectedAccountId);
 
@@ -122,7 +123,7 @@ export function LaunchDock(): JSX.Element {
         <Group gap="xs" align="center">
           <TextInput
             value={placeId}
-            onChange={(e) => useLaunchStore.getState().setSelectedPlaceId(e.currentTarget.value)}
+            onChange={(e) => setSelectedPlaceId(e.currentTarget.value)}
             placeholder={selectedGame ? selectedGame.name : '123456789'}
             size="sm"
             disabled={isLaunching}
