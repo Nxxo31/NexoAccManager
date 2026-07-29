@@ -205,7 +205,7 @@ class ControlWebSocketServiceImpl {
   }
 
   private failAllPending(message: string): void {
-    for (const [id, cmd] of this.pending) {
+    for (const [, cmd] of this.pending) {
       clearTimeout(cmd.timer);
       cmd.resolve(errResult(message));
     }

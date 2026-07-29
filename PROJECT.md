@@ -866,7 +866,7 @@ DT-3. **Domain: Factories sin invariantes** — createAccount/createFastFlag/cre
 DT-4. **Infra: DIP violado** — 18 servicios external no implementan RobloxApiPort, IPCAdapter importa funciones concretas → inyectar interfaces [Required] — **✅ REPARADO 2026-07-29**
 DT-5. **Infra: IPCAdapter 748 líneas** — partir por namespace: handlers/account.ts, handlers/roblox.ts, handlers/advanced.ts, handlers/settings.ts [Required SRP] — **✅ REPARADO 2026-07-26**
 DT-6. **App: SettingsView 713 líneas** — 11 concerns en un componente → extraer SettingsAppearance, SettingsBotting, SettingsFastFlags, etc. [Required SRP] — **✅ REPARADO 2026-07-25**
-DT-7. **App: 6 views sin browser guard** — FriendsView, GamesView, ServersView, AccountsView, AccountDetailPanel, AddAccountModal → patrón `const api = typeof window !== 'undefined' ? window.api : undefined` [Required]
+DT-7. **App: 6 views sin browser guard** — FriendsView, GamesView, ServersView, AccountsView, AccountDetailPanel, AddAccountModal → patrón `const api = typeof window !== 'undefined' ? window.api : undefined` [Required] — **✅ REPARADO 2026-07-29**
 
 ### Verificación post-refactor seguridad
 - tsc --noEmit: 0 errores
