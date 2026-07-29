@@ -1,8 +1,60 @@
 # NexoAccManager — PROJECT.md
 
-# Última actualización: 2026-07-28 (v4.0.9 — LaunchDock persistente + flujo conectado GamesView → LaunchDock)
+# Última actualización: 2026-07-29 (v4.1.0 — WebSocket ControlWebSocketService + DT-4 resuelto + handlers refactor)
 
-# Versión actual: 4.0.9 (Clean/Hexagonal Architecture — Mantine v7 UI — Security hardening — CSP + memory leak fixes — LaunchDock persistente)
+# Versión actual: 4.1.0 (Clean/Hexagonal Architecture — Mantine v7 UI — Security hardening — CSP + memory leak fixes — LaunchDock persistente — WebSocket + DIP fix)
+
+## Batch 5 — WebSocket + DT-4 DIP fix (2026-07-29, v4.1.0)
+
+**Task:** Implementar ControlWebSocketService (B-1 backlog), resolver DT-4 (DIP violado — servicios external no implementaban interfaces), refactorizar handlers.
+
+**Branch:** main
+
+**Cambios realizados:**
+
+- **`src/infrastructure/external/ControlWebSocketService.ts`** (217 líneas) — Nuevo servicio WebSocket para control remoto de cuentas:
+  - Conexión WebSocket server en puerto configurable
+  - Handlers para launch, kill, status, account list
+  - Tipos seguros en `src/types/ws.d.ts` (90 líneas)
+
+- **`src/infrastructure/external/LocalApiService.ts`** — Refactorizado para implementar interfaz (DT-4 DIP fix): inyección de dependencias en lugar de imports concretos.
+
+- **`src/infrastructure/ipc/handlers/accountHandlers.ts`** — Refactorizado (167 cambios): handlers usan inyección de dependencias, no imports directos.
+
+- **`src/infrastructure/ipc/handlers/advancedHandlers.ts`** — Refactorizado (33 cambios).
+
+- **`src/infrastructure/ipc/handlers/robloxHandlers.ts`** — Refactorizado (52 cambios).
+
+- **`src/main.ts`** — Integración del WebSocketService en el arranque del main process.
+
+- **`package.json`** — Dependencia `ws` agregada para WebSocket server.
+
+**Deuda técnica resuelta:**
+- DT-4 ✅ — Servicios external ahora implementan interfaces, DIP respetado
+
+**Backlog abordado:**
+- B-1 WebSocket ✅ — ControlWebSocketService funcional
+- B-2 Performance — pendiente
+- B-3 i18n — pendiente
+- B-4 electron-log — pendiente
+
+**Verificación:**
+- `npx tsc --noEmit` → 0 errores
+- `npm run lint` → 0 errores, 1 warning (unused var)
+- Build exitoso
+
+**Archivos creados (2):**
+- `src/infrastructure/external/ControlWebSocketService.ts`
+- `src/types/ws.d.ts`
+
+**Archivos modificados (7):**
+- `src/infrastructure/external/LocalApiService.ts`
+- `src/infrastructure/ipc/handlers/accountHandlers.ts`
+- `src/infrastructure/ipc/handlers/advancedHandlers.ts`
+- `src/infrastructure/ipc/handlers/robloxHandlers.ts`
+- `src/main.ts`
+- `package.json`
+- `package-lock.json`
 
 ## Batch 4 — Flujo Conectado GamesView → LaunchDock (2026-07-28, v4.0.9)
 
@@ -811,7 +863,7 @@ Fix intermittent 'Cookie inválido o expirada' error during login by ensuring th
 DT-1. **Domain: Account.password: string** — mover a branded type `EncryptedString` o fuera de la entidad a `AccountCredentials` (boundary del main process) [Critical seguridad]
 DT-2. **Domain: RobloxApiPort god-interface** — segregar en RobloxAuthPort, RobloxGamesPort, RobloxSocialPort, RobloxSettingsPort, RobloxCookiePort [Critical ISP]
 DT-3. **Domain: Factories sin invariantes** — createAccount/createFastFlag/createPlaytimeEntry/createLaunchPreset deben validar: robloxUserId>0, username non-empty, cookieHash coherente con encryptedCookie, startTime<=endTime [Required]
-DT-4. **Infra: DIP violado** — 18 servicios external no implementan RobloxApiPort, IPCAdapter importa funciones concretas → inyectar interfaces [Required]
+DT-4. **Infra: DIP violado** — 18 servicios external no implementan RobloxApiPort, IPCAdapter importa funciones concretas → inyectar interfaces [Required] — **✅ REPARADO 2026-07-29**
 DT-5. **Infra: IPCAdapter 748 líneas** — partir por namespace: handlers/account.ts, handlers/roblox.ts, handlers/advanced.ts, handlers/settings.ts [Required SRP] — **✅ REPARADO 2026-07-26**
 DT-6. **App: SettingsView 713 líneas** — 11 concerns en un componente → extraer SettingsAppearance, SettingsBotting, SettingsFastFlags, etc. [Required SRP] — **✅ REPARADO 2026-07-25**
 DT-7. **App: 6 views sin browser guard** — FriendsView, GamesView, ServersView, AccountsView, AccountDetailPanel, AddAccountModal → patrón `const api = typeof window !== 'undefined' ? window.api : undefined` [Required]
