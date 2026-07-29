@@ -93,5 +93,10 @@ app.on('before-quit', () => {
     const { stopBotting } = require('./infrastructure/external/RobloxBottingService');
     stopBotting();
   } catch { /* best-effort cleanup */ }
+  // B-1: cerrar el WS de control si estaba activo.
+  try {
+    const { controlWs } = require('./infrastructure/external/ControlWebSocketService');
+    controlWs.stop();
+  } catch { /* best-effort cleanup */ }
   closeDb();
 });

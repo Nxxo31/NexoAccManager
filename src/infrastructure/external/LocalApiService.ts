@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { WebSocketServer, WebSocket } from 'ws';
 import { AccountRepositoryImpl } from '../database/AccountRepositoryImpl';
 import { launchRobloxDirect } from '../external/RobloxBottingService';
 import { killInstance } from '../external/MultiRobloxService';
@@ -12,6 +13,7 @@ const exec = require('node:child_process').exec;
 const execAsync = require('node:util').promisify(exec);
 
 let server: http.Server | null = null;
+let wss: WebSocketServer | null = null;
 const accountRepo = new AccountRepositoryImpl();
 const runningInstances = new Map<string, number>(); // accountId -> PID
 
@@ -236,13 +238,111 @@ export function start(port: number = 31415): Promise<void> {
 
     server.listen(port, '127.0.0.1', () => {
       console.log(`Local API server listening on port ${port}`);
+      // B-1: WebSocket server on path '/control' for real-time command/response.
+      // The same HTTP server handles the WS upgrade — single port, no extra listen.
+      wss = new WebSocketServer({ noServer: true });
+      const httpServer = server!;
+      httpServer.on('upgrade', (req: http.IncomingMessage, socket: import('node:net').Socket, head: Buffer) => {
+        const reqUrl = req.url ?? '';
+        // Origin check: only accept loopback (no DNS-rebinding from external pages).
+        const origin = req.headers.origin;
+        if (origin && !/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(origin)) {
+          socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+          socket.destroy();
+          return;
+        }
+        if (!reqUrl.startsWith('/control')) {
+          socket.destroy();
+          return;
+        }
+        wss!.handleUpgrade(req, socket, head, (ws: WebSocket) => {
+          wss!.emit('connection', ws, req);
+        });
+      });
+      wss.on('connection', (ws: WebSocket) => {
+        ws.on('message', async (raw: Buffer | ArrayBuffer | Buffer[]) => {
+          const text = Buffer.isBuffer(raw) ? raw.toString() : Buffer.from(raw as ArrayBuffer).toString();
+          let msg: { id?: number; accountId?: string; command?: string };
+          try { msg = JSON.parse(text); }
+          catch { return; /* malformed — drop silently */ }
+          if (typeof msg.id !== 'number' || typeof msg.accountId !== 'string' || typeof msg.command !== 'string') return;
+
+          try {
+            // Dispatch the command to the same handlers used by the HTTP routes
+            // (launch / kill / status / refresh-cookie). Keeps semantics in sync
+            // between the HTTP and WS surfaces — no business logic drift.
+            if (msg.command === 'launch') {
+              const account = await accountRepo.getById(msg.accountId);
+              if (!account) { ws.send(JSON.stringify({ id: msg.id, ok: false, error: 'Account not found' })); return; }
+              const cookie = decrypt(account.encryptedCookie);
+              const placeId = account.savedPlaceId;
+              const jobId = account.savedJobId;
+              await launchRobloxDirect(placeId ?? '', jobId ?? '', cookie);
+              await accountRepo.updateLastUsed(msg.accountId);
+              ws.send(JSON.stringify({ id: msg.id, ok: true, data: { success: true } }));
+              return;
+            }
+            if (msg.command === 'kill') {
+              await killInstance(msg.accountId);
+              runningInstances.delete(msg.accountId);
+              ws.send(JSON.stringify({ id: msg.id, ok: true, data: { success: true } }));
+              return;
+            }
+            if (msg.command === 'status') {
+              const pid = runningInstances.get(msg.accountId);
+              let running = false;
+              if (pid !== undefined && Number.isInteger(pid) && pid > 0) {
+                try {
+                  const output = await execAsync(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`);
+                  const lines = output.trim().split('\n');
+                  running = lines.length > 0 && !lines[0].includes('INFO: No tasks are running');
+                } catch { running = false; }
+              }
+              ws.send(JSON.stringify({ id: msg.id, ok: true, data: { running, pid } }));
+              return;
+            }
+            if (msg.command === 'refresh-cookie') {
+              const account = await accountRepo.getById(msg.accountId);
+              if (!account) { ws.send(JSON.stringify({ id: msg.id, ok: false, error: 'Account not found' })); return; }
+              const oldCookie = decrypt(account.encryptedCookie);
+              const newCookie = await refreshCookie(oldCookie);
+              if (newCookie !== oldCookie) {
+                await accountRepo.update(msg.accountId, { encryptedCookie: makeEncryptedString(encrypt(newCookie)), cookieHash: hashCookie(newCookie) });
+              }
+              ws.send(JSON.stringify({ id: msg.id, ok: true, data: { success: true } }));
+              return;
+            }
+            ws.send(JSON.stringify({ id: msg.id, ok: false, error: `Unknown command: ${msg.command}` }));
+          } catch (e) {
+            ws.send(JSON.stringify({ id: msg.id, ok: false, error: String(e) }));
+          }
+        });
+      });
       resolve();
     });
   });
 }
 
+/** Hook para notificar a todos los clientes WS conectados sobre un cambio de
+ *  estado de cuenta (push update). Usado por botting watchers y watchers de
+ *  estado de juego para empujar al renderer sin que el renderer tenga que hacer
+ *  polling HTTP. */
+export function broadcastStatus(accountId: string, status: unknown): void {
+  if (!wss) return;
+  const payload = JSON.stringify({ type: 'status', accountId, status });
+  for (const client of (wss as unknown as { clients: Set<WebSocket> }).clients) {
+    if (client.readyState === WebSocket.OPEN) {
+      try { client.send(payload); } catch { /* best-effort */ }
+    }
+  }
+}
+
 export function stop(): Promise<void> {
   return new Promise((resolve) => {
+    if (wss) {
+      try { wss.close(); } catch { /* best-effort */ }
+      wss = null;
+    }
     if (server) {
       server.close(() => {
         server = null;

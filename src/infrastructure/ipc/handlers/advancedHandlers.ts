@@ -9,9 +9,18 @@ import { AccountRepositoryImpl } from '../../database/AccountRepositoryImpl';
 import { SettingsRepositoryImpl } from '../../database/SettingsRepositoryImpl';
 import { encrypt, decrypt, hashCookie } from '../../database/CryptoService';
 import { getDb } from '../../database/DatabaseManager';
-import { getCookieExpiry, refreshCookie } from '../../external/RobloxCookieService';
+// DT-4 (DIP): el handler de cookies depende de RobloxCookiePort vía el adapter
+// singleton en lugar de importar las funciones sueltas. El resto de servicios
+// (Captcha, FastFlags, ContentMod, DiscordRPC, Playtime, LaunchPresets, Logs,
+// Cache, LocalApi) NO son parte de RobloxApiPort — son servicios de
+// infrastructure que no tienen un port en el domain (boundary decisión), así
+// que se mantienen como imports directos de funciones concretas.
+import { robloxCookieApi } from '../../external/RobloxCookieService';
 import { solveCaptcha } from '../../external/CaptchaService';
 import { start as startLocalApi, stop as stopLocalApi } from '../../external/LocalApiService';
+// B-1: el control WS se conecta al LocalApiService cuando éste arranca, y
+// se desconecta + limpia cola cuando se detiene.
+import { controlWs } from '../../external/ControlWebSocketService';
 import { makeEncryptedString } from '../../../domain/types/EncryptedString';
 
 // FastFlags
@@ -71,8 +80,22 @@ export function registerAdvancedHandlers(): void {
       return ok(enable);
     } catch (e) { return err(errMsg(e)); } // F-009: err(errMsg(e)) no string crudo
   });
-  ipcMain.handle('advanced:local-api:start', async (_e, port: number) => { try { await startLocalApi(port); return ok(null); } catch (e) { return err(errMsg(e)); } }); // F-010
-  ipcMain.handle('advanced:local-api:stop', async () => { try { await stopLocalApi(); return ok(null); } catch (e) { return err(errMsg(e)); } }); // F-011
+  ipcMain.handle('advanced:local-api:start', async (_e, port: number) => {
+    try {
+      await startLocalApi(port);
+      // B-1: arrancar el WS cliente contra el LocalApiService recién levantado.
+      controlWs.start(port);
+      return ok(null);
+    } catch (e) { return err(errMsg(e)); }
+  }); // F-010
+  ipcMain.handle('advanced:local-api:stop', async () => {
+    try {
+      // B-1: desconectar el WS y limpiar la cola de comandos pendientes.
+      controlWs.stop();
+      await stopLocalApi();
+      return ok(null);
+    } catch (e) { return err(errMsg(e)); }
+  }); // F-011
 
   // ============ COOKIE ============
   ipcMain.handle('cookie:expiry', async (_e, { accountId }: { accountId: string }) => {
@@ -80,7 +103,7 @@ export function registerAdvancedHandlers(): void {
       const acc = await accountRepo.getById(accountId);
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
-      return ok(await getCookieExpiry(cookie));
+      return ok(await robloxCookieApi.getCookieExpiry(cookie));
     } catch (e) { return err(String(e)); }
   });
 
@@ -89,7 +112,7 @@ export function registerAdvancedHandlers(): void {
       const acc = await accountRepo.getById(accountId);
       if (!acc) return err('Cuenta no encontrada');
       const oldCookie = decrypt(acc.encryptedCookie);
-      const newCookie = await refreshCookie(oldCookie);
+      const newCookie = await robloxCookieApi.refreshCookie(oldCookie);
       if (newCookie !== oldCookie) {
         await accountRepo.update(accountId, { encryptedCookie: makeEncryptedString(encrypt(newCookie)), cookieHash: hashCookie(newCookie) });
       }

@@ -8,23 +8,17 @@
 import { ipcMain } from 'electron';
 import { AccountRepositoryImpl } from '../../database/AccountRepositoryImpl';
 import { decrypt } from '../../database/CryptoService';
-import {
-  searchGames,
-  getGameServers,
-  getServerUsers,
-  getServerRegion,
-  getOutfits,
-  detectVIPServers,
-  shuffleJobId,
-} from '../../external/RobloxGamesService';
-import {
-  getFriends,
-  getFriendRequests,
-  respondFriendRequest,
-  followUser,
-  unfollowUser,
-  sendFriendRequest,
-} from '../../external/RobloxPresenceService';
+// DT-4 (DIP): los handlers dependen de los Ports del domain vía adapter
+// singletons en lugar de funciones concretas sueltas. Esto permite inyectar
+// mocks en tests y deja explícita la dependencia de la interface, no de la impl.
+import { robloxGamesApi } from '../../external/RobloxGamesService';
+import { robloxSocialApi } from '../../external/RobloxPresenceService';
+// Nota: sendFriendRequest no está en RobloxSocialPort — se importa como utilidad
+// adicional del módulo (pertenece al adapter, no al port segregado).
+import { sendFriendRequest } from '../../external/RobloxPresenceService';
+// Nota: detectVIPServers y shuffleJobId no son parte de RobloxGamesPort — son
+// utilidades del módulo y quedan como funciones sueltas.
+import { detectVIPServers, shuffleJobId } from '../../external/RobloxGamesService';
 import { killAllRoblox, launchRobloxDirect, startBotting, stopBotting, getBottingStatus } from '../../external/RobloxBottingService';
 import { killInstance, getRunningInstances } from '../../external/MultiRobloxService';
 import { ok, err, errMsg } from './shared';
@@ -74,7 +68,7 @@ export function registerRobloxHandlers(): void {
   // (no hay variante byAccount actualmente; GroupService no está portado aún)
 
   ipcMain.handle('roblox:server-region', async (_e, { placeId }: { placeId: string }) => {
-    try { return ok(await getServerRegion(placeId)); } catch (e) { return err(String(e)); }
+    try { return ok(await robloxGamesApi.getServerRegion(placeId)); } catch (e) { return err(String(e)); }
   });
 
   // ============ PRESENCE ============
@@ -132,7 +126,7 @@ export function registerRobloxHandlers(): void {
       const acc = await accountRepo.getById(accountId);
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
-      return ok(await getFriends(acc.robloxUserId, cookie));
+      return ok(await robloxSocialApi.getFriends(acc.robloxUserId, cookie));
     } catch (e) { return err(String(e)); }
   });
 
@@ -141,7 +135,7 @@ export function registerRobloxHandlers(): void {
       const acc = await accountRepo.getById(accountId);
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
-      return ok(await getFriendRequests(cookie));
+      return ok(await robloxSocialApi.getFriendRequests(cookie));
     } catch (e) { return err(String(e)); }
   });
 
@@ -150,7 +144,7 @@ export function registerRobloxHandlers(): void {
       const acc = await accountRepo.getById(accountId);
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
-      await respondFriendRequest(requestId, accept, cookie);
+      await robloxSocialApi.respondFriendRequest(requestId, accept, cookie);
       return ok(null);
     } catch (e) { return err(String(e)); }
   });
@@ -160,7 +154,7 @@ export function registerRobloxHandlers(): void {
       const acc = await accountRepo.getById(accountId);
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
-      await followUser(userId, cookie);
+      await robloxSocialApi.followUser(userId, cookie);
       return ok(null);
     } catch (e) { return err(String(e)); }
   });
@@ -170,7 +164,7 @@ export function registerRobloxHandlers(): void {
       const acc = await accountRepo.getById(accountId);
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
-      await unfollowUser(userId, cookie);
+      await robloxSocialApi.unfollowUser(userId, cookie);
       return ok(null);
     } catch (e) { return err(String(e)); }
   });
@@ -180,7 +174,7 @@ export function registerRobloxHandlers(): void {
       const acc = await accountRepo.getById(accountId);
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
-      return ok(await searchGames(query, cookie));
+      return ok(await robloxGamesApi.searchGames(query, cookie));
     } catch (e) { return err(String(e)); }
   });
 
@@ -189,7 +183,7 @@ export function registerRobloxHandlers(): void {
       const acc = await accountRepo.getById(accountId);
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
-      return ok(await getGameServers(placeId, cookie, serverType ?? 'Public'));
+      return ok(await robloxGamesApi.getGameServers(placeId, cookie, serverType ?? 'Public'));
     } catch (e) { return err(String(e)); }
   });
 
@@ -198,7 +192,7 @@ export function registerRobloxHandlers(): void {
       const acc = await accountRepo.getById(accountId);
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
-      return ok(await getServerUsers(serverId, cookie));
+      return ok(await robloxGamesApi.getServerUsers(serverId, cookie));
     } catch (e) { return err(String(e)); }
   });
 
@@ -219,14 +213,14 @@ export function registerRobloxHandlers(): void {
       const account = await accountRepo.getById(accountId);
       if (!account) return err('Cuenta no encontrada');
       const cookie = decrypt(account.encryptedCookie);
-      return ok(await getOutfits(account.robloxUserId, cookie));
+      return ok(await robloxGamesApi.getOutfits(account.robloxUserId, cookie));
     } catch (e) { return err(errMsg(e)); } // F-006: err(errMsg(e)) no string crudo
   });
 
   // Get server region by account (cookie not needed by getServerRegion)
   ipcMain.handle('roblox:serverRegionByAccount', async (_e, { placeId, accountId: _accountId }: { placeId: string; accountId: string }) => {
     try {
-      return ok(await getServerRegion(placeId));
+      return ok(await robloxGamesApi.getServerRegion(placeId));
     } catch (e) { return err(String(e)); }
   });
 

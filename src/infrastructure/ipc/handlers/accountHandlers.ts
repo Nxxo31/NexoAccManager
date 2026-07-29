@@ -9,24 +9,15 @@
 
 import { ipcMain } from 'electron';
 import { v4 as uuid } from 'uuid';
-import * as http from 'node:http';
 import { AccountRepositoryImpl } from '../../database/AccountRepositoryImpl';
 import { encrypt, decrypt, hashCookie } from '../../database/CryptoService';
-import { loginBrowser, loginUserPass, verifyCookie } from '../../external/RobloxAuthService';
-import {
-  getProfile,
-  updateProfile,
-  get2FAStatus,
-  toggle2FA,
-  getActiveSessions,
-  logoutSession,
-  logoutAllSessions,
-  changePassword,
-  getPrivacySettings,
-  updatePrivacySetting,
-  getNotificationSettings,
-  updateNotificationSetting,
-} from '../../external/RobloxSettingsService';
+// DT-4 (DIP): los handlers dependen de los Ports (interfaces del domain) vía
+// adapter singletons en lugar de importar funciones concretas. Esto hace la
+// dependencia explícita y permite inyectar mocks en tests sin reescribir imports.
+import { robloxAuthApi } from '../../external/RobloxAuthService';
+import { robloxSettingsApi } from '../../external/RobloxSettingsService';
+// B-1: la conexión persistente WS al LocalApiService para el handler account:control.
+import { controlWs } from '../../external/ControlWebSocketService';
 import type { Account } from '../../../domain/entities/Account';
 import { createAccount } from '../../../domain/entities/Account';
 import { makeEncryptedString } from '../../../domain/types/EncryptedString';
@@ -39,7 +30,7 @@ export function registerAccountHandlers(): void {
   // ============ ACCOUNT ============
   ipcMain.handle('account:add', async (_e, { cookie, group = 'Default' }: { cookie: string; group?: string }) => {
     try {
-      const info = await verifyCookie(cookie);
+      const info = await robloxAuthApi.verifyCookie(cookie);
       if (!info.valid) return err('Cookie inválida');
       const count = await accountRepo.count();
       if (count >= 50) return err('Límite de 50 cuentas alcanzado');
@@ -93,7 +84,7 @@ export function registerAccountHandlers(): void {
   });
 
   ipcMain.handle('account:check', async (_e, { cookie }: { cookie: string }) => {
-    try { return ok(await verifyCookie(cookie)); } catch (e) { return err(String(e)); }
+    try { return ok(await robloxAuthApi.verifyCookie(cookie)); } catch (e) { return err(String(e)); }
   });
 
   ipcMain.handle('account:bulk-import', async (_e, { accounts }: { accounts: { username: string; password: string }[] }) => {
@@ -101,8 +92,8 @@ export function registerAccountHandlers(): void {
       let added = 0;
       for (const a of accounts) {
         try {
-          const result = await loginUserPass(a.username, a.password);
-          const info = await verifyCookie(result.cookie);
+          const result = await robloxAuthApi.loginUserPass(a.username, a.password);
+          const info = await robloxAuthApi.verifyCookie(result.cookie);
           if (info.valid) {
             const count = await accountRepo.count();
             if (count >= 50) break;
@@ -116,99 +107,43 @@ export function registerAccountHandlers(): void {
     } catch (e) { return err(String(e)); }
   });
 
-  // ============ ACCOUNT CONTROL (HTTP bridge to LocalApiService — interim) ============
-  // Architectural note: the long-term design calls for a persistent WebSocket
-  // between the Electron main process and the LocalApiService for real-time
-  // status updates. The WebSocket layer is NOT yet implemented — this handler
-  // is the interim HTTP bridge that lets the renderer issue launch / kill /
-  // status / refresh-cookie commands against the LocalApiService REST API.
+  // ============ ACCOUNT CONTROL (WebSocket bridge to LocalApiService) =========
+  // B-1 (backlog): reemplazo del HTTP bridge interino por una conexión
+  // WebSocket persistente contra el LocalApiService. La conexión se gestiona en
+  // src/infrastructure/external/ControlWebSocketService.ts: reconexión con
+  // backoff exponencial, cola de comandos pendientes, y push messages de estado
+  // en tiempo real vía el event listener onStatus.
   //
-  // Behavior contract:
-  //   - Every call returns an IpcResult (ok|err); never throws.
-  //   - If LocalApiService is not running, requests fail with ECONNREFUSED and
-  //     we surface a clear, actionable error instead of an opaque system msg.
-  //   - 5s timeout guards against hanging the IPC channel.
+  // Comportamiento:
+  //   - Cada llamada retorna IpcResult (ok|err); nunca hace throw.
+  //   - Si el LocalApiService no está corriendo, el WS no connecta y el
+  //     comando se encola hasta que el timeout de 8s lo descarta con un mensaje
+  //     claro ("Local API service is not running …").
+  //   - El LocalApiService responde con `{ id, ok, data? } | { id, ok: false, error }`.
   ipcMain.handle('account:control', async (_e, { accountId, command }: { accountId: string; command: string }) => {
     try {
-      // Validate accountId exists (optional, but we can let the service handle it)
       const account = await accountRepo.getById(accountId);
       if (!account) {
         return err('Account not found');
       }
 
-      const baseUrl = 'http://127.0.0.1:31415';
-      let endpoint = '';
-      let method = 'POST';
-
-      switch (command) {
-        case 'launch':
-          endpoint = `/accounts/${accountId}/launch`;
-          break;
-        case 'kill':
-          endpoint = `/accounts/${accountId}/kill`;
-          break;
-        case 'status':
-          endpoint = `/accounts/${accountId}/status`;
-          method = 'GET';
-          break;
-        case 'refresh-cookie':
-          endpoint = `/accounts/${accountId}/refresh-cookie`;
-          break;
-        default:
-          return err(`Unknown command: ${command}`);
+      // Validación temprana del comando (fail-fast en el renderer).
+      if (command !== 'launch' && command !== 'kill' && command !== 'status' && command !== 'refresh-cookie') {
+        return err(`Unknown command: ${command}`);
       }
 
-      const url = `${baseUrl}${endpoint}`;
       // Best-effort audit log — wrap so a logging failure never breaks the IPC contract.
-      try { console.log(`[account:control] cmd=${command} account=${accountId} -> ${method} ${url}`); } catch { /* logging is best-effort */ }
+      try { console.log(`[account:control] cmd=${command} account=${accountId} (ws)`); } catch { /* best-effort */ }
 
-      // Make the HTTP request
-      const response = await new Promise<{ statusCode: number; data: Record<string, unknown> | string }>((resolve, reject) => {
-        const req = http.request(url, { method }, (res: http.IncomingMessage) => {
-          let data = '';
-          res.on('data', (chunk: Buffer) => {
-            data += chunk.toString();
-          });
-          res.on('end', () => {
-            try {
-              const parsed = JSON.parse(data);
-              resolve({ statusCode: res.statusCode ?? 0, data: parsed as Record<string, unknown> });
-            } catch {
-              resolve({ statusCode: res.statusCode ?? 0, data });
-            }
-          });
-        });
-
-        // Enforce a 5s timeout to avoid hanging the IPC handler indefinitely
-        req.setTimeout(5000, () => {
-          req.destroy(new Error('Request timeout'));
-        });
-
-        req.on('error', (error: Error) => {
-          reject(error);
-        });
-
-        req.end();
-      });
-
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        try { console.log(`[account:control] ok cmd=${command} status=${response.statusCode}`); } catch { /* best-effort */ }
-        return ok(response.data);
-      } else {
-        const errorMsg = typeof response.data === 'object' && response.data !== null && 'error' in response.data
-          ? String(response.data.error)
-          : `HTTP ${response.statusCode}`;
-        return err(errorMsg);
+      const result = await controlWs.sendCommand(accountId, command as 'launch' | 'kill' | 'status' | 'refresh-cookie');
+      if (result.success) {
+        try { console.log(`[account:control] ok cmd=${command} account=${accountId}`); } catch { /* best-effort */ }
+        return ok(result.data);
       }
+      // Traducir errores conocidos del WS al usuario final.
+      return err(result.error);
     } catch (caught) {
-      // Surface a clear, actionable error when the LocalApiService is down
-      // (typically the case: user hasn't enabled it via Settings → WebServer).
-      // Node exposes the syscall code on the system error object.
-      const maybeSysErr = caught as NodeJS.ErrnoException | undefined;
-      if (maybeSysErr && (maybeSysErr.code === 'ECONNREFUSED' || maybeSysErr.code === 'ECONNRESET')) {
-        try { console.warn(`[account:control] service down: ${maybeSysErr.code} cmd=${command}`); } catch { /* best-effort */ }
-        return err(`Local API service is not running (start it via Settings → WebServer). [${maybeSysErr.code}]`);
-      }
+      // Errores de accountRepo.getById u otros inesperados.
       return err(errMsg(caught));
     }
   });
@@ -219,7 +154,7 @@ export function registerAccountHandlers(): void {
       const account = await accountRepo.getById(accountId);
       if (!account) return err('Account not found');
       const cookie = decrypt(account.encryptedCookie);
-      return ok(await getProfile(cookie));
+      return ok(await robloxSettingsApi.getProfile(cookie));
     } catch (e) { return err(String(e)); }
   });
   ipcMain.handle('account:profile:update', async (_e, { accountId, updates }: { accountId: string; updates: { displayName?: string; description?: string } }) => {
@@ -227,7 +162,7 @@ export function registerAccountHandlers(): void {
       const account = await accountRepo.getById(accountId);
       if (!account) return err('Account not found');
       const cookie = decrypt(account.encryptedCookie);
-      await updateProfile(cookie, updates);
+      await robloxSettingsApi.updateProfile(cookie, updates);
       return ok(null);
     } catch (e) { return err(String(e)); }
   });
@@ -238,7 +173,7 @@ export function registerAccountHandlers(): void {
       const account = await accountRepo.getById(accountId);
       if (!account) return err('Account not found');
       const cookie = decrypt(account.encryptedCookie);
-      const result = await get2FAStatus(cookie);
+      const result = await robloxSettingsApi.get2FAStatus(cookie);
       return ok(result);
     } catch (e) { return err(String(e)); }
   });
@@ -247,7 +182,7 @@ export function registerAccountHandlers(): void {
       const account = await accountRepo.getById(accountId);
       if (!account) return err('Account not found');
       const cookie = decrypt(account.encryptedCookie);
-      await toggle2FA(cookie, enable);
+      await robloxSettingsApi.toggle2FA(cookie, enable);
       return ok(null);
     } catch (e) { return err(String(e)); }
   });
@@ -256,7 +191,7 @@ export function registerAccountHandlers(): void {
       const account = await accountRepo.getById(accountId);
       if (!account) return err('Account not found');
       const cookie = decrypt(account.encryptedCookie);
-      return ok(await getActiveSessions(cookie));
+      return ok(await robloxSettingsApi.getActiveSessions(cookie));
     } catch (e) { return err(String(e)); }
   });
   ipcMain.handle('account:security:logout', async (_e, { accountId, sessionId }: { accountId: string; sessionId: string }) => {
@@ -264,7 +199,7 @@ export function registerAccountHandlers(): void {
       const account = await accountRepo.getById(accountId);
       if (!account) return err('Account not found');
       const cookie = decrypt(account.encryptedCookie);
-      await logoutSession(cookie, sessionId);
+      await robloxSettingsApi.logoutSession(cookie, sessionId);
       return ok(null);
     } catch (e) { return err(String(e)); }
   });
@@ -273,7 +208,7 @@ export function registerAccountHandlers(): void {
       const account = await accountRepo.getById(accountId);
       if (!account) return err('Account not found');
       const cookie = decrypt(account.encryptedCookie);
-      await logoutAllSessions(cookie);
+      await robloxSettingsApi.logoutAllSessions(cookie);
       return ok(null);
     } catch (e) { return err(String(e)); }
   });
@@ -282,7 +217,7 @@ export function registerAccountHandlers(): void {
       const account = await accountRepo.getById(accountId);
       if (!account) return err('Account not found');
       const cookie = decrypt(account.encryptedCookie);
-      await changePassword(cookie, current, next);
+      await robloxSettingsApi.changePassword(cookie, current, next);
       return ok(null);
     } catch (e) { return err(String(e)); }
   });
@@ -293,7 +228,7 @@ export function registerAccountHandlers(): void {
       const account = await accountRepo.getById(accountId);
       if (!account) return err('Account not found');
       const cookie = decrypt(account.encryptedCookie);
-      return ok(await getPrivacySettings(cookie));
+      return ok(await robloxSettingsApi.getPrivacySettings(cookie));
     } catch (e) { return err(String(e)); }
   });
   ipcMain.handle('account:privacy:update', async (_e, { accountId, key, value }: { accountId: string; key: string; value: string | boolean }) => {
@@ -301,7 +236,7 @@ export function registerAccountHandlers(): void {
       const account = await accountRepo.getById(accountId);
       if (!account) return err('Account not found');
       const cookie = decrypt(account.encryptedCookie);
-      await updatePrivacySetting(cookie, key, value);
+      await robloxSettingsApi.updatePrivacySetting(cookie, key, value);
       return ok(null);
     } catch (e) { return err(String(e)); }
   });
@@ -312,7 +247,7 @@ export function registerAccountHandlers(): void {
       const account = await accountRepo.getById(accountId);
       if (!account) return err('Account not found');
       const cookie = decrypt(account.encryptedCookie);
-      return ok(await getNotificationSettings(cookie));
+      return ok(await robloxSettingsApi.getNotificationSettings(cookie));
     } catch (e) { return err(String(e)); }
   });
   ipcMain.handle('account:notifications:update', async (_e, { accountId, key, value }: { accountId: string; key: string; value: boolean }) => {
@@ -320,7 +255,7 @@ export function registerAccountHandlers(): void {
       const account = await accountRepo.getById(accountId);
       if (!account) return err('Account not found');
       const cookie = decrypt(account.encryptedCookie);
-      await updateNotificationSetting(cookie, key, value);
+      await robloxSettingsApi.updateNotificationSetting(cookie, key, value);
       return ok(null);
     } catch (e) { return err(String(e)); }
   });
@@ -332,9 +267,9 @@ export function registerAccountHandlers(): void {
   // La cookie NUNCA abandona el main process (se cumple regla de seguridad "cookies nunca abandonan el PC").
   ipcMain.handle('account:login-browser', async () => {
     try {
-      const { cookie } = await loginBrowser(); // usa Chromium aislado
+      const { cookie } = await robloxAuthApi.loginBrowser(); // usa Chromium aislado
       // Validar y crear cuenta (mismo flujo que account:add)
-      const info = await verifyCookie(cookie);
+      const info = await robloxAuthApi.verifyCookie(cookie);
       if (!info.valid) return err('Cookie inválida');
       const count = await accountRepo.count();
       if (count >= 50) return err('Límite de 50 cuentas alcanzado');
@@ -356,8 +291,8 @@ export function registerAccountHandlers(): void {
   // La cookie NUNCA abandona el main process.
   ipcMain.handle('account:login', async (_e, { username, password }: { username: string; password: string }) => {
     try {
-      const result = await loginUserPass(username, password); // usa Chromium aislado
-      const info = await verifyCookie(result.cookie);
+      const result = await robloxAuthApi.loginUserPass(username, password); // usa Chromium aislado
+      const info = await robloxAuthApi.verifyCookie(result.cookie);
       if (!info.valid) return err('Cookie inválida');
       const count = await accountRepo.count();
       if (count >= 50) return err('Límite de 50 cuentas alcanzado');
