@@ -9,19 +9,13 @@ import { useCallback } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Group, TextInput, Button, Select, Stack, Tooltip, Checkbox, Text, ActionIcon } from '@mantine/core';
 import { Rocket, Gamepad2, X, Loader2 } from 'lucide-react';
-import { useLaunchStore, type LaunchStatus } from '../store/launchStore';
+import { useLaunchStore } from '../store/launchStore';
 import { useAccountStore } from '../store/accountStore';
 import { useUIStore } from '../store/uiStore';
 import { notifications } from '@mantine/notifications';
 import { t } from '../../config/i18n';
 
-const STATUS_LABELS: Record<LaunchStatus, string> = {
-  idle: '',
-  ready: '',
-  launching: 'Lanzando…',
-  success: 'Instancia lanzada',
-  error: 'Error',
-};
+
 
 export function LaunchDock(): JSX.Element {
   const placeId = useLaunchStore((s) => s.selectedPlaceId);
@@ -193,7 +187,7 @@ export function LaunchDock(): JSX.Element {
         onClick={handleLaunch}
         disabled={!canLaunch}
       >
-        {isLaunching ? STATUS_LABELS.launching : t('accounts.join')}
+        {isLaunching ? t('accounts.launching') : t('accounts.join')}
       </Button>
 
       {/* Error display */}

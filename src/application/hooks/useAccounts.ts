@@ -9,7 +9,15 @@ import { MAX_ACCOUNTS } from '../../config/constants';
 const api = typeof window !== 'undefined' ? window.api : undefined;
 
 export function useAccounts() {
-  const { accounts, selectedId, setAccounts, select, remove, add, update, loading, setLoading } = useAccountStore();
+  const accounts = useAccountStore((s) => s.accounts);
+  const selectedId = useAccountStore((s) => s.selectedId);
+  const setAccounts = useAccountStore((s) => s.setAccounts);
+  const select = useAccountStore((s) => s.select);
+  const remove = useAccountStore((s) => s.remove);
+  const add = useAccountStore((s) => s.add);
+  const update = useAccountStore((s) => s.update);
+  const loading = useAccountStore((s) => s.loading);
+  const setLoading = useAccountStore((s) => s.setLoading);
   const notify = useUIStore((s) => s.notify);
 
   const loadAccounts = useCallback(async () => {

@@ -14,7 +14,8 @@
     "savedJob": "Saved Job ID",
     "savedPlace": "Saved Place ID",
     "title": "Accounts",
-    "unfavorite": "Unfavorite"
+    "unfavorite": "Unfavorite",
+    "launching": "Launching…"
   },
   "common": {
     "cancel": "Cancel",
