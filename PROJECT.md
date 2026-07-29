@@ -1,8 +1,73 @@
 # NexoAccManager — PROJECT.md
 
-# Última actualización: 2026-07-29 (v4.1.0 — WebSocket ControlWebSocketService + DT-4 resuelto + handlers refactor)
+# Última actualización: 2026-07-29 (v4.1.0 — DT-1/DT-2/DT-3 domain layer refactor + WebSocket ControlWebSocketService + DT-4 resuelto + handlers refactor)
 
 # Versión actual: 4.1.0 (Clean/Hexagonal Architecture — Mantine v7 UI — Security hardening — CSP + memory leak fixes — LaunchDock persistente — WebSocket + DIP fix)
+
+## Batch 6 — DT-1/DT-2/DT-3 domain layer refactor (2026-07-29, v4.1.0)
+
+**Task:** Resolver DT-1 (EncryptedString branded type para Account.password), DT-2 (RobloxApiPort god-interface segregado en sub-ports), DT-3 (factories con validación de invariantes). Refactor arquitectural del domain layer.
+
+**Branch:** main
+
+**Cambios realizados:**
+
+- **DT-1 ✅ — EncryptedString branded type para Account.password [Critical seguridad]**
+  - `src/domain/types/EncryptedString.ts` (46L) — Branded type con symbol privado `encryptedBrand` (no exportado) que hace imposible crear un `EncryptedString` sin pasar por la factory `makeEncryptedString()`. La funcíón `isEncryptedString()` es reserved para verificación futura con tagged prefix MAC.
+  - `src/domain/entities/Account.ts` — `password: string` → `password: EncryptedString`. `encryptedCookie` ya era `EncryptedString`. La factory `createAccount` asigna `makeEncryptedString('')` como password por defecto (cuenta autenticada via cookie, sin password saved).
+  - Todos los lugares que asignan `password` usan `makeEncryptedString()`:
+    - `src/infrastructure/ipc/handlers/accountHandlers.ts` — `account:savePassword` y `account:updateField` envuelven el valor cifrado con `makeEncryptedString(encrypt(...))`.
+    - `src/infrastructure/database/AccountRepositoryImpl.ts` — `rowToAccount` wrap `password` de la DB con `makeEncryptedString`.
+  - **El renderer nunca ve el password descifrado** — el handler `account:getPassword` fue eliminado; el valor solo se procesa internamente para reautenticar/refresh.
+
+- **DT-2 ✅ — RobloxApiPort god-interface segregado en 6 sub-ports [Critical ISP]**
+  - `src/domain/repositories/RobloxApiPort.ts` (101L) — God-interface original segregada en:
+    - `RobloxAuthPort` — loginBrowser, loginUserPass, verifyCookie, importCookies, getCsrfToken
+    - `RobloxGamesPort` — searchGames, getGameThumbnail, getGameServers, getServerUsers, getServerRegion, searchPlayer, getOutfits, getUniverses
+    - `RobloxPresencePort` — getPresence, getRecentGames, getRobuxBalance
+    - `RobloxSocialPort` — getFriends, getFriendRequests, respondFriendRequest, getBlockedUsers, blockUser, unblockUser, followUser, unfollowUser
+    - `RobloxSettingsPort` — getProfile, updateProfile, 2FA, sessions, logout, changePassword, getPrivacySettings, updatePrivacySetting, getNotificationSettings, updateNotificationSetting
+    - `RobloxCookiePort` — getCookieExpiry, refreshCookie
+  - Composite type `RobloxApiPort extends ...todos los sub-ports` se mantiene vacío para backward compat.
+  - **Adaptadores con `implements` formal** (DT-4 DIP):
+    - `RobloxAuthApiImpl implements RobloxAuthPort` en `RobloxAuthService.ts`
+    - `RobloxGamesApiImpl implements RobloxGamesPort` en `RobloxGamesService.ts`
+    - `RobloxPresenceApiImpl implements RobloxPresencePort` en `RobloxPresenceService.ts`
+    - `RobloxSocialApiImpl implements RobloxSocialPort` en `RobloxPresenceService.ts`
+    - `RobloxSettingsApiImpl implements RobloxSettingsPort` en `RobloxSettingsService.ts`
+    - `RobloxCookieApiImpl implements RobloxCookiePort` en `RobloxCookieService.ts`
+  - Cada adaptador exporta un singleton (`robloxAuthApi`, `robloxGamesApi`, etc.) para DI.
+
+- **DT-3 ✅ — Factories con validación de invariantes [Required]**
+  - `createAccount` (`Account.ts`) — valida: `robloxUserId > 0`, `username` non-empty, coherencia `encryptedCookie`/`cookieHash` (si cookie non-empty, hash debe ser non-empty; cookie empty permitida para login antes de persistir).
+  - `createFastFlag` (`FastFlag.ts`) — valida: `name` non-empty, `name` respeta convención Roblox FastFlag (regex `^(FFlag|FInt|DFlag|DInt|SDebug|BInt)[A-Za-z0-9_]+$`).
+  - `createPlaytimeEntry` (`PlaytimeEntry.ts`) — valida: `placeId` non-empty, `robloxUserId > 0`, si `endTime` non-null debe ser `>= startTime`.
+  - `createLaunchPreset` (`LaunchPreset.ts`) — valida: `name` non-empty, `accountIds` es array (dedup con Set, no error).
+
+**Deuda técnica resuelta:**
+- DT-1 ✅ — EncryptedString branded type
+- DT-2 ✅ — RobloxApiPort segregado (ISP)
+- DT-3 ✅ — Factories con invariantes
+
+**Verificación:**
+- `npx tsc --noEmit` → 0 errores
+- `npm run lint` → 0 errores, 0 warnings
+- `npm run build` → exit 0 (AppImage + Snap generados)
+
+**Archivos afectados (no nuevos — el código ya estaba implementado desde batches previos, este commit documenta y verifica):**
+- `src/domain/types/EncryptedString.ts`
+- `src/domain/repositories/RobloxApiPort.ts`
+- `src/domain/entities/Account.ts`
+- `src/domain/entities/FastFlag.ts`
+- `src/domain/entities/PlaytimeEntry.ts`
+- `src/domain/entities/LaunchPreset.ts`
+- `src/infrastructure/external/RobloxAuthService.ts`
+- `src/infrastructure/external/RobloxGamesService.ts`
+- `src/infrastructure/external/RobloxPresenceService.ts`
+- `src/infrastructure/external/RobloxSettingsService.ts`
+- `src/infrastructure/external/RobloxCookieService.ts`
+- `src/infrastructure/database/AccountRepositoryImpl.ts`
+- `src/infrastructure/ipc/handlers/accountHandlers.ts`
 
 ## Batch 5 — WebSocket + DT-4 DIP fix (2026-07-29, v4.1.0)
 
