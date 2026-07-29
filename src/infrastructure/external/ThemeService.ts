@@ -1,5 +1,6 @@
 // Infrastructure: ThemeService — CSS variables + theme system
 // Works in both main and renderer processes
+import { logger } from '../logging/logger';
 
 export type ThemeId = 'dark' | 'light' | 'midnight';
 
@@ -101,7 +102,7 @@ export function getTheme(): ThemeId {
         const raw = fs.readFileSync(configPath, 'utf-8');
         config = JSON.parse(raw);
       } catch (e) {
-        console.error('Failed to read config file', e);
+        logger.error('Failed to read config file', e);
         config = {};
       }
     }
@@ -128,7 +129,7 @@ export function setTheme(theme: ThemeId): void {
         const raw = fs.readFileSync(configPath, 'utf-8');
         config = JSON.parse(raw);
       } catch (e) {
-        console.error('Failed to read config file', e);
+        logger.error('Failed to read config file', e);
         config = {};
       }
     }
@@ -136,7 +137,7 @@ export function setTheme(theme: ThemeId): void {
     try {
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
     } catch (e) {
-      console.error('Failed to write config file', e);
+      logger.error('Failed to write config file', e);
     }
   }
 }

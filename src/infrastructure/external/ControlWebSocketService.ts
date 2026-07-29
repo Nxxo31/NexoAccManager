@@ -20,6 +20,7 @@
 // esquema {accountId: string, command: 'launch'|'kill'|'status'|'refresh-cookie'}.
 
 import { WebSocket } from 'ws';
+import { logger } from '../logging/logger';
 import { EventEmitter } from 'node:events';
 
 export type ControlCommand = 'launch' | 'kill' | 'status' | 'refresh-cookie';
@@ -107,7 +108,7 @@ class ControlWebSocketServiceImpl {
     this.socket.on('error', (e: Error) => {
       // ws::readyState !== OPEN and on('close') will fire right after; just log
       // noise here. Reconnect is handled in 'close'.
-      try { console.warn(`[ControlWS] error: ${e.message}`); } catch { /* best-effort */ }
+      try { logger.warn(`[ControlWS] error: ${e.message}`); } catch { /* best-effort */ }
     });
   }
 

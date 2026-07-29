@@ -270,6 +270,9 @@ export const translations: Record<LangId, Record<string, string>> = {
     'error.unknown': 'Error desconocido',
     'error.retry': 'Reintentar',
 
+    // Common - ID prefix
+    'common.idPrefix': 'ID:',
+
     // Common
     'common.error': 'Error',
     'common.save': 'Guardar',

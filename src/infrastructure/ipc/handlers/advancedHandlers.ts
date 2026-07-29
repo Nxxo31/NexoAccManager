@@ -5,6 +5,7 @@
 // Channels: advanced:*, cookie:*, captcha:solve, fflags:*, mods:*, logs:*, cache:*, discord:*, presets:*, playtime:*.
 
 import { ipcMain } from 'electron';
+import { logger } from '../../logging/logger';
 import { AccountRepositoryImpl } from '../../database/AccountRepositoryImpl';
 import { SettingsRepositoryImpl } from '../../database/SettingsRepositoryImpl';
 import { encrypt, decrypt, hashCookie } from '../../database/CryptoService';
@@ -76,7 +77,7 @@ export function registerAdvancedHandlers(): void {
       await settingsRepo.set('devmode', enable);
       // Best-effort log — useful for support handoffs and audit traceability.
       // Wrapped so a logging failure never breaks the IPC contract.
-      try { console.log(`[advanced:devmode] devmode=${enable ? 'enabled' : 'disabled'}`); } catch { /* logging is best-effort */ }
+      try { logger.info(`[advanced:devmode] devmode=${enable ? 'enabled' : 'disabled'}`); } catch { /* logging is best-effort */ }
       return ok(enable);
     } catch (e) { return err(errMsg(e)); } // F-009: err(errMsg(e)) no string crudo
   });

@@ -5,6 +5,9 @@ import { app, BrowserWindow, Menu, shell, session } from 'electron';
 import path from 'node:path';
 import { getDb, closeDb } from './infrastructure/database/DatabaseManager';
 import { registerHandlers, setMainWindow } from './infrastructure/ipc/IPCAdapter';
+// B-4: Import first to override console.* before any module logs
+import './infrastructure/logging/logger';
+import { logger } from './infrastructure/logging/logger';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -78,7 +81,7 @@ app.whenReady().then(() => {
     }
   });
 }).catch((e) => {
-  console.error('Failed to initialize app:', e);
+  logger.error('Failed to initialize app:', e);
   app.quit();
 });
 

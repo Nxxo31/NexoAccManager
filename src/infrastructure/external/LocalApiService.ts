@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { logger } from '../logging/logger';
 import { WebSocketServer, WebSocket } from 'ws';
 import { AccountRepositoryImpl } from '../database/AccountRepositoryImpl';
 import { launchRobloxDirect } from '../external/RobloxBottingService';
@@ -230,14 +231,14 @@ export function start(port: number = 31415): Promise<void> {
         res.statusCode = 404;
         res.end(JSON.stringify({ error: 'Not found' }));
       } catch (err) {
-        console.error('Error in LocalApiService:', err);
+        logger.error('Error in LocalApiService:', err);
         res.statusCode = 500;
         res.end(JSON.stringify({ error: 'Internal server error' }));
       }
     });
 
     server.listen(port, '127.0.0.1', () => {
-      console.log(`Local API server listening on port ${port}`);
+      logger.info(`Local API server listening on port ${port}`);
       // B-1: WebSocket server on path '/control' for real-time command/response.
       // The same HTTP server handles the WS upgrade — single port, no extra listen.
       wss = new WebSocketServer({ noServer: true });

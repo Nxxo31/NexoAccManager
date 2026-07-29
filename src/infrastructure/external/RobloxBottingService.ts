@@ -1,5 +1,6 @@
 // Infrastructure: RobloxBottingService — process control, auto-relaunch, watcher, fps, duplicates
 import { exec, execSync } from 'node:child_process';
+import { logger } from '../logging/logger';
 import { promisify } from 'node:util';
 import { apiPost } from './RobloxHttp';
 import { apiGet } from './RobloxHttp';
@@ -71,11 +72,11 @@ export async function setAutoRelaunch(accountId: string, enable: boolean): Promi
     }
 
     if (!isRunning) {
-      console.warn(`Auto-relaunch: Roblox process not found for account ${accountId}`);
+      logger.warn(`Auto-relaunch: Roblox process not found for account ${accountId}`);
       try {
         await launchRobloxDirect('', '', '');
       } catch (e) {
-        console.error(`Failed to relaunch Roblox for account ${accountId}:`, e);
+        logger.error(`Failed to relaunch Roblox for account ${accountId}:`, e);
       }
     }
   }, 30000);
@@ -133,7 +134,7 @@ function handleOffline(accountId: string, maxInactivity: number): void {
     const elapsed = now - firstFailure;
     if (elapsed >= maxInactivity * 60 * 1000) {
       // Max inactivity reached, kill Roblox process
-      console.log(`Connection watcher: Max inactivity reached for account ${accountId}. Killing Roblox process.`);
+      logger.info(`Connection watcher: Max inactivity reached for account ${accountId}. Killing Roblox process.`);
       try {
         if (process.platform === 'win32') {
           execSync('taskkill /F /IM RobloxPlayerBeta.exe');
@@ -141,7 +142,7 @@ function handleOffline(accountId: string, maxInactivity: number): void {
           execSync('pkill -f RobloxPlayer');
         }
       } catch (err) {
-        console.error(`Failed to kill Roblox process for account ${accountId}:`, err);
+        logger.error(`Failed to kill Roblox process for account ${accountId}:`, err);
       }
       // Reset after killing
       connectionFailureTimes.delete(accountId);
@@ -237,7 +238,7 @@ export async function setFPSUnlock(fps: 60 | 120 | 240): Promise<void> {
 
     const versionsDir = path.join(localAppData, 'Versions');
     if (!fs.existsSync(versionsDir)) {
-      console.warn(`Roblox Versions directory not found: ${versionsDir}`);
+      logger.warn(`Roblox Versions directory not found: ${versionsDir}`);
       return;
     }
 
@@ -250,7 +251,7 @@ export async function setFPSUnlock(fps: 60 | 120 | 240): Promise<void> {
       }));
 
     if (entries.length === 0) {
-      console.warn('No Roblox version directories found');
+      logger.warn('No Roblox version directories found');
       return;
     }
 
@@ -268,9 +269,9 @@ export async function setFPSUnlock(fps: 60 | 120 | 240): Promise<void> {
     const settingsContent = JSON.stringify({ DFIntTaskSchedulerTargetFps: fps }, null, 2);
     fs.writeFileSync(settingsPath, settingsContent, { encoding: 'utf8' });
 
-    console.log(`FPS unlocker set to ${fps} FPS at ${settingsPath}`);
+    logger.info(`FPS unlocker set to ${fps} FPS at ${settingsPath}`);
   } catch (err) {
-    console.error('Failed to set FPS unlocker:', err);
+    logger.error('Failed to set FPS unlocker:', err);
   }
 }
 

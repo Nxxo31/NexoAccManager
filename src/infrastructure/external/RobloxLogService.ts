@@ -3,6 +3,7 @@
 // Retorna eventos estructurados
 
 import * as fs from 'fs';
+import { logger } from '../logging/logger';
 import * as path from 'path';
 import * as readline from 'readline';
 import { randomUUID as cryptoRandomUUID } from 'crypto';
@@ -35,7 +36,7 @@ function getRobloxLogsDir(): string | null {
     if (!fs.existsSync(logsDir)) return null;
     return logsDir;
   } catch (error) {
-    console.error('Error finding Roblox logs directory:', error);
+    logger.error('Error finding Roblox logs directory:', error);
     return null;
   }
 }
@@ -54,7 +55,7 @@ function getLogFiles(): string[] {
       .filter((file) => file.endsWith('.log'))
       .map((file) => path.join(logsDir, file));
   } catch (error) {
-    console.error('Error reading log files directory:', error);
+    logger.error('Error reading log files directory:', error);
     return [];
   }
 }
@@ -186,7 +187,7 @@ export function parseRobloxLogs(sinceTimestamp?: Date, maxLinesPerFile = 10000):
         }
       }
     } catch (error) {
-      console.error(`Error reading log file ${file}:`, error);
+      logger.error(`Error reading log file ${file}:`, error);
     }
   }
 
@@ -242,7 +243,7 @@ export async function parseRobloxLogsAsync(sinceTimestamp?: Date): Promise<Roblo
         });
 
         rl.on('error', (error) => {
-          console.error(`Error reading log file ${file}:`, error);
+          logger.error(`Error reading log file ${file}:`, error);
           filesProcessed++;
           if (filesProcessed === logFiles.length) {
             // Ordenar eventos por timestamp (más recientes primero)
@@ -251,7 +252,7 @@ export async function parseRobloxLogsAsync(sinceTimestamp?: Date): Promise<Roblo
           }
         });
       } catch (error) {
-        console.error(`Error opening log file ${file}:`, error);
+        logger.error(`Error opening log file ${file}:`, error);
         filesProcessed++;
         if (filesProcessed === logFiles.length) {
           // Ordenar eventos por timestamp (más recientes primero)

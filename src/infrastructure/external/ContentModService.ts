@@ -2,6 +2,7 @@
 // Soporta backup/restore de death sounds, mouse cursors, fonts, textures
 
 import * as fs from 'fs';
+import { logger } from '../logging/logger';
 import * as path from 'path';
 import { safeResolve } from '../../infrastructure/ipc/handlers/shared';
 
@@ -19,7 +20,7 @@ function getRobloxContentDir(): string | null {
     if (!fs.existsSync(contentDir)) return null;
     return contentDir;
   } catch (error) {
-    console.error('Error finding Roblox content directory:', error);
+    logger.error('Error finding Roblox content directory:', error);
     return null;
   }
 }
@@ -78,7 +79,7 @@ export function backupContent(relativePath: string): boolean {
 
     return true;
   } catch (error) {
-    console.error(`Error backing up content ${relativePath}:`, error);
+    logger.error(`Error backing up content ${relativePath}:`, error);
     return false;
   }
 }
@@ -126,7 +127,7 @@ export function restoreContent(relativePath: string): boolean {
 
     return true;
   } catch (error) {
-    console.error(`Error restoring content ${relativePath}:`, error);
+    logger.error(`Error restoring content ${relativePath}:`, error);
     return false;
   }
 }
@@ -151,7 +152,7 @@ export function deleteBackup(relativePath: string): boolean {
 
     return true;
   } catch (error) {
-    console.error(`Error deleting backup ${relativePath}:`, error);
+    logger.error(`Error deleting backup ${relativePath}:`, error);
     return false;
   }
 }
@@ -184,7 +185,7 @@ export function listAvailableBackups(): string[] {
     scanDirectory(backupDir);
     return backups;
   } catch (error) {
-    console.error('Error listing available backups:', error);
+    logger.error('Error listing available backups:', error);
     return [];
   }
 }

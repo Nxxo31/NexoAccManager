@@ -8,6 +8,7 @@
 // from accountRepo + decrypt — the renderer NEVER receives raw cookies.
 
 import { ipcMain } from 'electron';
+import { logger } from '../../logging/logger';
 import { v4 as uuid } from 'uuid';
 import { AccountRepositoryImpl } from '../../database/AccountRepositoryImpl';
 import { encrypt, decrypt, hashCookie } from '../../database/CryptoService';
@@ -133,11 +134,11 @@ export function registerAccountHandlers(): void {
       }
 
       // Best-effort audit log — wrap so a logging failure never breaks the IPC contract.
-      try { console.log(`[account:control] cmd=${command} account=${accountId} (ws)`); } catch { /* best-effort */ }
+      try { logger.info(`[account:control] cmd=${command} account=${accountId} (ws)`); } catch { /* best-effort */ }
 
       const result = await controlWs.sendCommand(accountId, command as 'launch' | 'kill' | 'status' | 'refresh-cookie');
       if (result.success) {
-        try { console.log(`[account:control] ok cmd=${command} account=${accountId}`); } catch { /* best-effort */ }
+        try { logger.info(`[account:control] ok cmd=${command} account=${accountId}`); } catch { /* best-effort */ }
         return ok(result.data);
       }
       // Traducir errores conocidos del WS al usuario final.

@@ -2,6 +2,7 @@
 // Limpia: %temp%\\Roblox\\*, %localappdata%\\Roblox\\temp\\*, archivos de log antiguos
 // Devuelve el espacio liberado en bytes
 import * as fs from 'fs';
+import { logger } from '../logging/logger';
 import * as path from 'path';
 
 /**
@@ -18,7 +19,7 @@ function getRobloxTempDir(): string | null {
     if (!fs.existsSync(robloxTempDir)) return null;
     return robloxTempDir;
   } catch (error) {
-    console.error('Error finding Roblox temp directory:', error);
+    logger.error('Error finding Roblox temp directory:', error);
     return null;
   }
 }
@@ -37,7 +38,7 @@ function getRobloxInternalTempDir(): string | null {
     if (!fs.existsSync(internalTempDir)) return null;
     return internalTempDir;
   } catch (error) {
-    console.error('Error finding Roblox internal temp directory:', error);
+    logger.error('Error finding Roblox internal temp directory:', error);
     return null;
   }
 }
@@ -56,7 +57,7 @@ function getRobloxLogsDir(): string | null {
     if (!fs.existsSync(logsDir)) return null;
     return logsDir;
   } catch (error) {
-    console.error('Error finding Roblox logs directory:', error);
+    logger.error('Error finding Roblox logs directory:', error);
     return null;
   }
 }
@@ -83,7 +84,7 @@ function getDirectorySize(dirPath: string): number {
     }
   } catch (error) {
     // Si no podemos leer el directorio, asumir tamaño 0
-    console.warn(`Could not calculate size for ${dirPath}:`, error);
+    logger.warn(`Could not calculate size for ${dirPath}:`, error);
   }
 
   return size;
@@ -117,7 +118,7 @@ function deleteDirectoryAndGetSize(dirPath: string): number {
     removeDirRecursive(dirPath);
     return sizeBefore;
   } catch (error) {
-    console.error(`Error deleting directory ${dirPath}:`, error);
+    logger.error(`Error deleting directory ${dirPath}:`, error);
     return 0; // No se pudo liberar espacio
   }
 }
@@ -157,7 +158,7 @@ function deleteOldFilesInDirectory(dirPath: string, daysOld: number): number {
 
     processDirectory(dirPath);
   } catch (error) {
-    console.error(`Error processing directory ${dirPath}:`, error);
+    logger.error(`Error processing directory ${dirPath}:`, error);
   }
 
   return spaceFreed;

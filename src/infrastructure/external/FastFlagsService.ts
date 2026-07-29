@@ -3,6 +3,7 @@
 // Flags comunes: DFIntTaskSchedulerTargetFps (FPS unlock), FIntDebugForceFlagValue, etc.
 
 import * as fs from 'fs';
+import { logger } from '../logging/logger';
 import * as path from 'path';
 import type { FastFlag } from '../../domain/entities/FastFlag';
 
@@ -31,7 +32,7 @@ function getLatestRobloxVersionDir(): string | null {
 
     return versionDirs.length > 0 ? versionDirs[0].path : null;
   } catch (error) {
-    console.error('Error finding Roblox version directory:', error);
+    logger.error('Error finding Roblox version directory:', error);
     return null;
   }
 }
@@ -58,7 +59,7 @@ export function readClientAppSettings(): Record<string, unknown> {
     const content = fs.readFileSync(filePath, 'utf8');
     return JSON.parse(content);
   } catch (error) {
-    console.error('Error reading ClientAppSettings.json:', error);
+    logger.error('Error reading ClientAppSettings.json:', error);
     return {};
   }
 }
@@ -81,7 +82,7 @@ export function writeClientAppSettings(settings: Record<string, unknown>): boole
     fs.writeFileSync(filePath, content, 'utf8');
     return true;
   } catch (error) {
-    console.error('Error writing ClientAppSettings.json:', error);
+    logger.error('Error writing ClientAppSettings.json:', error);
     return false;
   }
 }
