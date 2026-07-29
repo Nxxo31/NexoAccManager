@@ -1,6 +1,6 @@
 {
   "name": "nx-manager",
-  "version": "4.0.9",
+  "version": "4.1.0",
   "description": "Open-source multi-account manager for gaming platforms — 100% local, no servers, no cloud",
   "main": "dist/main/main.js",
   "author": {
@@ -15,13 +15,7 @@
     "electron:dev": "vite-plugin-electron dev",
     "electron:build": "npm run build && electron-builder",
     "electron:preview": "electron-builder --dir",
-    "test:unit": "vitest run",
-    "lint": "eslint . --ext .ts,.tsx --ignore-pattern '*.config.*' --ignore-pattern 'playwright-*.js' --ignore-pattern 'public/**' --ignore-pattern 'dist/**'",
-    "test:e2e:browser": "BROWSER_ONLY=1 playwright test tests/e2e-browser --config playwright.browser.config.ts",
-    "test:e2e:electron": "playwright test --config playwright.electron.config.ts",
-    "test:visual": "BROWSER_ONLY=1 playwright test tests/visual --config playwright.browser.config.ts",
-    "test:a11y:browser": "BROWSER_ONLY=1 playwright test tests/a11y-browser --config playwright.browser.config.ts",
-    "test:coverage": "vitest run --coverage"
+    "lint": "eslint . --ext .ts,.tsx --ignore-pattern '*.config.*' --ignore-pattern 'public/**' --ignore-pattern 'dist/**'"
   },
   "dependencies": {
     "@mantine/core": "^7.17.8",
@@ -41,16 +35,10 @@
     "uuid": "^14.0.0"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.12.1",
     "@deslint/eslint-plugin": "^0.10.0",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.61.1",
     "@radix-ui/react-dialog": "^1.1.19",
     "@tailwindcss/postcss": "^4.3.3",
-    "@testing-library/dom": "^10.4.1",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
     "@types/better-sqlite3": "^7.6.0",
     "@types/discord-rpc": "^4.0.11",
     "@types/node": "^20.0.0",
@@ -59,7 +47,6 @@
     "@types/react-dom": "^18.2.0",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^4.2.0",
-    "@vitest/coverage-v8": "^4.1.10",
     "autoprefixer": "^10.5.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -68,9 +55,7 @@
     "electron-builder": "^24.0.0",
     "eslint": "^10.5.0",
     "framer-motion": "^12.42.2",
-    "happy-dom": "^20.10.6",
     "lucide-react": "^1.24.0",
-    "msw": "^2.15.0",
     "postcss": "^8.5.21",
     "react": "^18.2.0",
     "react-beautiful-dnd": "^13.1.1",
@@ -81,7 +66,6 @@
     "typescript-eslint": "^8.64.0",
     "vite": "^5.0.0",
     "vite-plugin-electron": "^0.15.6",
-    "vitest": "^4.1.10",
     "wait-on": "^7.2.0",
     "zustand": "^5.0.14"
   },
@@ -97,8 +81,7 @@
     ],
     "win": {
       "target": [
-        "nsis",
-        "msix"
+        "nsis"
       ],
       "icon": "build/icon.png",
       "asarUnpack": [
@@ -123,14 +106,6 @@
       "oneClick": false,
       "perMachine": false,
       "runAfterFinish": true
-    },
-    "msix": {
-      "applicationName": "NexoAccManager",
-      "backgroundColor": "#0D0D0D",
-      "publisher": "CN=Nxxo31",
-      "publisherDisplayName": "Sebastian Velasco",
-      "identityName": "Nxxo31.NexoAccManager",
-      "languages": ["es-ES", "en-US", "pt-BR"]
     }
   }
 }
