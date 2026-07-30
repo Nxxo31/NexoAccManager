@@ -112,5 +112,11 @@
     "stopLocalApi": "Parar API local",
     "theme": "Tema",
     "title": "Configurações"
+  },
+  "topbar": {
+    "add": "Adicionar conta",
+    "searchAria": "Buscar contas",
+    "searchPlaceholder": "Buscar contas...",
+    "toggleTheme": "Mudar tema"
   }
 }

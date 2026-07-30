@@ -63,10 +63,12 @@ app.whenReady().then(() => {
 
   // Inicializar DB
   getDb();
+  try { logger.info('App starting — DB initialized'); } catch { /* best-effort */ }
 
   // Crear ventana
   mainWindow = createWindow();
   setMainWindow(mainWindow);
+  try { logger.info('Main window created'); } catch { /* best-effort */ }
 
   // Registrar todos los IPC handlers
   registerHandlers();
@@ -90,6 +92,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  try { logger.info('App shutting down — cleaning up'); } catch { /* best-effort */ }
   // Cleanup: stop all botting intervals to prevent memory leaks on exit
   try {
     // Import dynamically to avoid circular dependency at module load time

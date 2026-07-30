@@ -55,16 +55,31 @@ export function registerAdvancedHandlers(): void {
     } catch (e) { return err(String(e)); }
   });
 
+  // B-2: deleteAllAccounts was issuing N individual DELETE statements in a loop.
+  // Replaced with a single TRUNCATE-style DELETE for O(1) DB round-trips.
   ipcMain.handle('advanced:deleteAllAccounts', async () => {
     try {
-      const all = await accountRepo.getAll();
-      for (const a of all) await accountRepo.delete(a.id);
-      return ok(all.length);
+      const db = getDb();
+      const count = (db.prepare('SELECT COUNT(*) as count FROM accounts').get() as { count: number }).count;
+      db.prepare('DELETE FROM accounts').run();
+      return ok(count);
     } catch (e) { return err(String(e)); }
   });
 
+  // B-2: VACUUM is a heavy synchronous operation that blocks the main process
+  // event loop. We defer it to the next event loop tick with setImmediate so the
+  // IPC response returns immediately, then VACUUM runs without holding up other
+  // IPC calls. The DB has at most 50 accounts so VACUUM completes in milliseconds,
+  // but deferring prevents head-of-line blocking on other ipcMain handlers.
   ipcMain.handle('advanced:clearCache', async () => {
-    try { getDb().exec('VACUUM'); return ok(null); } catch (e) { return err(String(e)); }
+    try {
+      return await new Promise((resolve) => {
+        setImmediate(() => {
+          try { getDb().exec('VACUUM'); } catch { /* best-effort */ }
+          resolve(ok(null));
+        });
+      });
+    } catch (e) { return err(String(e)); }
   });
 
   // Developer Mode toggle — persisted to settings DB (key='devmode').

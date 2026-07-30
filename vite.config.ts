@@ -46,6 +46,26 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, 'dist/renderer'),
     emptyOutDir: true,
+    // B-2: Vendor chunk splitting to reduce initial bundle payload.
+    // Mantine (~200 kB), React+ReactDOM (~140 kB), and framer-motion (~80 kB)
+    // are split into separate cacheable chunks. Combined with React.lazy
+    // code-splitting of non-default views, this keeps the initial load fast.
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react/jsx-runtime'],
+          'vendor-mantine': [
+            '@mantine/core',
+            '@mantine/hooks',
+            '@mantine/modals',
+            '@mantine/notifications',
+            '@mantine/form',
+          ],
+          'vendor-motion': ['framer-motion'],
+          'vendor-i18n': ['i18next', 'react-i18next'],
+        },
+      },
+    },
   },
   resolve: {
     alias: {

@@ -6,6 +6,7 @@
 // friends:*ByAccount, follow:byAccount, unfollow:byAccount.
 
 import { ipcMain } from 'electron';
+import { logger } from '../../logging/logger';
 import { AccountRepositoryImpl } from '../../database/AccountRepositoryImpl';
 import { decrypt } from '../../database/CryptoService';
 // DT-4 (DIP): los handlers dependen de los Ports del domain vía adapter
@@ -39,6 +40,7 @@ export function registerRobloxHandlers(): void {
       }
       // jobId opcional: si no se proporciona, usar el guardado o vacío
       // (Roblox API permite lanzar sin jobId — une al servidor con menor ping)
+      try { logger.info(`[roblox:launch] account=${accountId} placeId=${placeIdToUse} jobId=${jobIdToUse || '(none)'}`); } catch { /* best-effort */ }
       await launchRobloxDirect(placeIdToUse, jobIdToUse ?? '', cookie);
       await accountRepo.updateLastUsed(accountId);
       return ok(null);
@@ -94,11 +96,11 @@ export function registerRobloxHandlers(): void {
 
   // ============ BOTTING ============
   ipcMain.handle('botting:start', async (_e, { accountId, placeId, interval }: { accountId: string; placeId: string; interval: number }) => {
-    try { await startBotting(accountId, placeId, interval); return ok(null); } catch (e) { return err(String(e)); }
+    try { try { logger.info(`[botting:start] account=${accountId} placeId=${placeId} interval=${interval}ms`); } catch { /* best-effort */ } await startBotting(accountId, placeId, interval); return ok(null); } catch (e) { return err(String(e)); }
   });
 
   ipcMain.handle('botting:stop', async () => {
-    try { await stopBotting(); return ok(null); } catch (e) { return err(String(e)); }
+    try { try { logger.info('[botting:stop]'); } catch { /* best-effort */ } await stopBotting(); return ok(null); } catch (e) { return err(String(e)); }
   });
 
   ipcMain.handle('botting:getStatus', async () => {

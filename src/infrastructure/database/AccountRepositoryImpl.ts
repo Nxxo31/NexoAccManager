@@ -108,25 +108,35 @@ export class AccountRepositoryImpl implements AccountRepository {
   }
 
   async update(id: string, partial: Partial<Account>): Promise<void> {
+    // B-2: Eliminated redundant getById() SELECT before UPDATE.
+    // The original implementation fetched the full row, merged, then wrote
+    // every column. For a 50-account table the SELECT is fast but unnecessary —
+    // we now build a targeted UPDATE that only writes the changed columns.
+    // COALESCE keeps NULL-safety for optional fields (cookieExpiresAt).
     const db = getDb();
-    const current = await this.getById(id);
-    if (!current) return;
-    const merged = { ...current, ...partial };
+    const fields: string[] = [];
+    const values: unknown[] = [];
 
-    db.prepare(`
-      UPDATE accounts SET
-        display_name = ?, group_name = ?, description = ?, avatar_url = ?,
-        cookie_expires_at = ?, saved_place_id = ?, saved_job_id = ?,
-        password = ?, auto_relaunch = ?, is_favorite = ?, custom_fields = ?,
-        browser_tracker_id = ?, last_used = ?
-      WHERE id = ?
-    `).run(
-      merged.displayName, merged.group, merged.description, merged.avatarUrl,
-      merged.cookieExpiresAt?.toISOString() ?? null, merged.savedPlaceId, merged.savedJobId,
-      merged.password, merged.autoRelaunch ? 1 : 0, merged.isFavorite ? 1 : 0,
-      JSON.stringify(merged.fields), merged.browserTrackerId, merged.lastUsed.toISOString(),
-      id
-    );
+    if (partial.encryptedCookie !== undefined) { fields.push('encrypted_cookie = ?'); values.push(partial.encryptedCookie); }
+    if (partial.cookieHash !== undefined) { fields.push('cookie_hash = ?'); values.push(partial.cookieHash); }
+    if (partial.displayName !== undefined) { fields.push('display_name = ?'); values.push(partial.displayName); }
+    if (partial.group !== undefined) { fields.push('group_name = ?'); values.push(partial.group); }
+    if (partial.description !== undefined) { fields.push('description = ?'); values.push(partial.description); }
+    if (partial.avatarUrl !== undefined) { fields.push('avatar_url = ?'); values.push(partial.avatarUrl); }
+    if (partial.cookieExpiresAt !== undefined) { fields.push('cookie_expires_at = ?'); values.push(partial.cookieExpiresAt?.toISOString() ?? null); }
+    if (partial.savedPlaceId !== undefined) { fields.push('saved_place_id = ?'); values.push(partial.savedPlaceId); }
+    if (partial.savedJobId !== undefined) { fields.push('saved_job_id = ?'); values.push(partial.savedJobId); }
+    if (partial.password !== undefined) { fields.push('password = ?'); values.push(partial.password); }
+    if (partial.autoRelaunch !== undefined) { fields.push('auto_relaunch = ?'); values.push(partial.autoRelaunch ? 1 : 0); }
+    if (partial.isFavorite !== undefined) { fields.push('is_favorite = ?'); values.push(partial.isFavorite ? 1 : 0); }
+    if (partial.fields !== undefined) { fields.push('custom_fields = ?'); values.push(JSON.stringify(partial.fields)); }
+    if (partial.browserTrackerId !== undefined) { fields.push('browser_tracker_id = ?'); values.push(partial.browserTrackerId); }
+    if (partial.lastUsed !== undefined) { fields.push('last_used = ?'); values.push(partial.lastUsed.toISOString()); }
+
+    if (fields.length === 0) return; // nothing to update
+
+    values.push(id);
+    db.prepare(`UPDATE accounts SET ${fields.join(', ')} WHERE id = ?`).run(...values);
   }
 
   async delete(id: string): Promise<void> {

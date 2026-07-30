@@ -545,6 +545,9 @@ export const translations: Record<LangId, Record<string, string>> = {
     'error.unknown': 'Unknown error',
     'error.retry': 'Retry',
 
+    // Common - ID prefix
+    'common.idPrefix': 'ID:',
+
     // Common
     'common.error': 'Error',
     'common.save': 'Save',
@@ -816,6 +819,9 @@ export const translations: Record<LangId, Record<string, string>> = {
     'error.title': 'Algo deu errado',
     'error.unknown': 'Erro desconhecido',
     'error.retry': 'Tentar novamente',
+
+    // Common - ID prefix
+    'common.idPrefix': 'ID:',
 
     // Common
     'common.error': 'Erro',

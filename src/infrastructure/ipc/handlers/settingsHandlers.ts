@@ -4,6 +4,7 @@
 // shell:open-external (validated https-only external URL opener).
 
 import { ipcMain } from 'electron';
+import { logger } from '../../logging/logger';
 import { SettingsRepositoryImpl } from '../../database/SettingsRepositoryImpl';
 import { getTheme, setTheme, type ThemeId } from '../../external/ThemeService';
 import { ok, err, errMsg } from './shared';
@@ -22,7 +23,7 @@ export function registerSettingsHandlers(): void {
 
   // ============ THEME ============
   ipcMain.handle('theme:get', async () => { try { return ok(getTheme()); } catch (e) { return err(errMsg(e)); } }); // F-007: err(errMsg(e)) no string crudo
-  ipcMain.handle('theme:set', async (_e, name: string) => { try { setTheme(name as ThemeId); return ok(name); } catch (e) { return err(errMsg(e)); } }); // F-008
+  ipcMain.handle('theme:set', async (_e, name: string) => { try { try { logger.info(`[theme:set] theme=${name}`); } catch { /* best-effort */ } setTheme(name as ThemeId); return ok(name); } catch (e) { return err(errMsg(e)); } }); // F-008
 
   // ============ SHELL ============
   ipcMain.handle('shell:open-external', async (_e, { url }: { url: string }) => {

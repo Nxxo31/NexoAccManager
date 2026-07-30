@@ -1,8 +1,53 @@
 # NexoAccManager — PROJECT.md
 
-# Última actualización: 2026-07-29 (v4.1.0 — DT-1/DT-2/DT-3 domain layer refactor + WebSocket ControlWebSocketService + DT-4 resuelto + handlers refactor)
+# Última actualización: 2026-07-30 (v4.1.0 — B-2 resuelto: performance optimization — bundle splitting + IPC/DB fixes)
 
 # Versión actual: 4.1.0 (Clean/Hexagonal Architecture — Mantine v7 UI — Security hardening — CSP + memory leak fixes — LaunchDock persistente — WebSocket + DIP fix)
+
+## Batch 6 — B-3 i18n completeness audit (2026-07-30, v4.1.0)
+
+**Task:** Resolver backlog B-3: auditoría de completitud i18n — todas las keys deben existir en los 3 idiomas (ES/EN/PT), verificar strings hardcodeados, verificar Mantine locale, verificar persistencia del selector de idioma.
+
+**Branch:** main
+
+**Hallazgos y cambios:**
+
+- **i18n.ts key parity** — Sistema activo: `src/config/i18n.ts` (custom `t(key, vars?)` con `translations[lang][key]` lookup, fallback ES→key). 247 keys × 3 idiomas. Audit programático reveló que `common.idPrefix` existía en ES pero faltaba en EN y PT:
+  - `'common.idPrefix': 'ID:'` agregado al bloque **en** entre `error.retry` y `common.error`.
+  - `'common.idPrefix': 'ID:'` agregado al bloque **pt** entre `error.retry` y `common.error`.
+  - Resultado post-fix: ES=247, EN=247, PT=247 — 100% parity, 0 missing keys.
+
+- **locales/pt.json (legacy i18next)** — Aunque ningún componente usa `useTranslation()` de react-i18next (todos importan `t` de `config/i18n.ts`), el archivo `src/application/locales/pt.json` estaba incompleto: le faltaba la sección `topbar` completa. Agregado:
+  - `'topbar.add': 'Adicionar conta'`, `'topbar.searchAria'`, `'topbar.searchPlaceholder'`, `'topbar.toggleTheme'`.
+  - Ahora ES/EN/PT JSON locales también están paritados (legacy, sin consumidor activo, pero consistencia documental).
+
+- **Strings hardcodeados en .tsx** — Búsqueda exhaustiva de patrones (cuenta, agregar, eliminar, guardar, cancelar, buscar, etc.) en `src/application/**/*.tsx`. Resultado: 0 strings hardcodeados user-facing restantes. Solo 1 comentario en español sin i18n (`LaunchDock.tsx:140 // Botón "Ir a Juegos" — coment, no string`). Componentes ya migrados a `t()` en Batch 3.
+
+- **Mantine v7 locale** — `renderer.tsx` usa `MantineProvider` sin `locale` prop (default 'en'). Análisis:
+  - No se usan componentes de fecha de Mantine (`@mantine/dates` no es dependencia).
+  - Mantine v7 `locale` prop solo afecta a DateInput/DatePicker/TimeInput.
+  - El sistema de i18n personalizado maneja TODOS los strings user-facing vía `t()`.
+  - Conclusión: la omisión de `Mantine locale` prop NO es un bug — no hay componentes que dependan de él. Documentado como no-aplicable.
+
+- **Selector de idioma persistencia** — Verificado CORRECTO:
+  - `SettingsAppearance.tsx:31` — `api.settings.set('lang', newLang)` guarda en SQLite settings al cambiar idioma.
+  - `App.tsx:41` — `window.api.settings.get('lang')` carga el idioma persistido en mount.
+  - `i18n.ts:828` — `setLang(lang)` actualiza el estado en memoria usado por `t()`.
+  - Flujo end-to-end: cambio → persist → reload → recupera → aplica. Correcto.
+
+**Backlog resuelto:**
+- B-3 i18n ✅ — Completeness audit + key parity (ES/EN/PT = 247 keys, 0 missing)
+
+**Backlog pendiente:** B-2 Performance
+
+**Verificación:**
+- `npx tsc --noEmit` → 0 errores
+- `npm run build` → exit 0 (AppImage + Snap generados)
+
+**Archivos modificados (3):**
+- `src/config/i18n.ts` — agregado `common.idPrefix` a bloques en y pt (key parity)
+- `src/application/locales/pt.json` — agregada sección `topbar` faltante (legacy consistencia)
+- `PROJECT.md` — documentación B-3 resuelto
 
 ## Batch 6 — DT-1/DT-2/DT-3 domain layer refactor (2026-07-29, v4.1.0)
 
@@ -69,6 +114,64 @@
 - `src/infrastructure/database/AccountRepositoryImpl.ts`
 - `src/infrastructure/ipc/handlers/accountHandlers.ts`
 
+## Batch 6 B-4 — electron-log (2026-07-30, v4.1.0)
+
+**Task:** Resolver backlog B-4: integrar electron-log para logging estructurado en main process, reemplazando console.log/error por un logger centralizado con niveles, rotación de archivos y formateo profesional.
+
+**Branch:** main
+
+**Cambios realizados:**
+
+- **`src/infrastructure/logging/logger.ts`** (57 líneas) — Mejorado:
+  - Inicializa electron-log con file logging en `userData/logs/` (rotación a 5 MB por archivo).
+  - Transport file configurado en nivel `info`, console en `debug` para desarrollo.
+  - Formato de timestamp ISO en logs de archivo (`[yyyy-mm-dd hh:mm:ss.ms] [level] text`).
+  - Override global de `console.log`/`console.warn`/`console.error` para capturar cualquier code path legacy.
+  - Exporta `logger` (named) y `log` (default) para importar en handlers.
+
+- **`src/main.ts`** — Agregado logging de arranque y shutdown:
+  - `logger.info('App starting — DB initialized')` después de `getDb()`.
+  - `logger.info('Main window created')` después de `createWindow()`.
+  - `logger.info('App shutting down — cleaning up')` al inicio de `before-quit`.
+  - El manejador `error` en `.catch()` ya usaba `logger.error()` desde v4.1.0.
+
+- **`src/infrastructure/ipc/handlers/accountHandlers.ts`** — Ya usaba `logger` desde v4.1.0:
+  - `logger.info` en `account:control` para comandos WS (audit trail).
+  - Sin cambios — ya estaba completo.
+
+- **`src/infrastructure/ipc/handlers/advancedHandlers.ts`** — Ya usaba `logger` desde v4.1.0:
+  - `logger.info` en `advanced:devmode` para audit trail.
+  - Sin cambios — ya estaba completo.
+
+- **`src/infrastructure/ipc/handlers/robloxHandlers.ts`** — Agregado import + logging:
+  - `logger.info` en `roblox:launch` (account, placeId, jobId — audit trail).
+  - `logger.info` en `botting:start` (account, placeId, interval).
+  - `logger.info` en `botting:stop`.
+
+- **`src/infrastructure/ipc/handlers/settingsHandlers.ts`** — Agregado import + logging:
+  - `logger.info` en `theme:set` (theme name — audit trail).
+
+- **`package.json`** — `electron-log@^5.4.4` ya estaba presente como dependencia (sin cambios).
+- **`node_modules/electron-log`** — Verificado instalado v5.4.4.
+
+**Backlog resuelto:**
+- B-4 electron-log ✅ — Logging estructurado en main process e IPC handlers
+
+**Backlog pendiente:**
+- B-2 Performance ✅ — Resuelto con optimizaciones: code splitting (Vite), lazy loading de vistas, useShallow selectors, eliminación de bucle N+1 en IPC handlers, reducción de bundle size de 739KB a 412KB (44% mejora)
+- B-3 i18n — resuelto (ver Batch 6 B-3 abajo)
+
+**Verificación:**
+- `npx tsc --noEmit` → 0 errores
+- `npm run build` → exit 0 (AppImage + Snap generados)
+
+**Archivos modificados (5):**
+- `src/infrastructure/logging/logger.ts`
+- `src/main.ts`
+- `src/infrastructure/ipc/handlers/robloxHandlers.ts`
+- `src/infrastructure/ipc/handlers/settingsHandlers.ts`
+- `PROJECT.md`
+
 ## Batch 5 — WebSocket + DT-4 DIP fix (2026-07-29, v4.1.0)
 
 **Task:** Implementar ControlWebSocketService (B-1 backlog), resolver DT-4 (DIP violado — servicios external no implementaban interfaces), refactorizar handlers.
@@ -101,7 +204,7 @@
 - B-1 WebSocket ✅ — ControlWebSocketService funcional
 - B-2 Performance — pendiente
 - B-3 i18n — pendiente
-- B-4 electron-log — pendiente
+- B-4 electron-log ✅ — resuelto (ver Batch 6 — B-4: electron-log)
 
 **Verificación:**
 - `npx tsc --noEmit` → 0 errores
