@@ -1,18 +1,24 @@
----
-name: Feature Request
-about: Suggest a new feature or improvement
-title: "[FEATURE] "
-labels: enhancement
----
+## 🎯 Objetivo
 
-**Is your feature request related to a problem?**
-A description of the problem.
+Descripción clara de lo que se quiere lograr.
 
-**Proposed solution**
-A clear description of what you want to happen.
+## 📋 Requisitos
 
-**Alternatives considered**
-Any alternative solutions you've considered.
+- [ ] Requisito funcional 1
+- [ ] Requisito funcional 2
 
-**Additional context**
-Any other context about the feature request.
+## 🏗️ Arquitectura propuesta
+
+Diagrama o descripción técnica de la solución.
+
+## ✅ Criterios de aceptación
+
+- [ ] Implementación completa y testeada
+- [ ] `typecheck/lint/build` pasan (Layer 1)
+- [ ] Runtime verificado (Layer 2)
+- [ ] Tests adversariales (Layer 3)
+- [ ] Documentación actualizada (PROJECT.md)
+
+## 📝 Contexto adicional
+
+Links, referencias, mockups, benchmarks.
