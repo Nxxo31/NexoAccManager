@@ -1,21 +1,37 @@
-# Pull Request
+## 📋 Resumen
 
-## Description
-Brief description of what this PR does.
+<!-- Qué cambia este PR y por qué -->
 
-## Type of change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Refactoring
-- [ ] Documentation
-- [ ] UI/UX improvement
+## 🔗 Issue relacionado
 
-## Checklist
-- [ ] `npx tsc --noEmit` passes without errors
-- [ ] `npm run lint` passes without warnings
-- [ ] `npm run build` succeeds
-- [ ] IPC changes use invoke/handle pattern
-- [ ] UI changes follow the design system
-- [ ] New strings use i18next `t('key')` 
-- [ ] No sensitive data in code or logs
-- [ ] Commit messages follow conventions
+Closes #
+
+## 🏗️ Cambios
+
+- [ ] Cambio 1
+- [ ] Cambio 2
+
+## ✅ Verificación (3-Layer Gates)
+
+### Layer 1 — Compile
+- [ ] `tsc --noEmit` / `go vet` / `py_compile` → 0 errors
+- [ ] Lint → 0 errors
+- [ ] Build → exit 0
+
+### Layer 2 — Runtime
+- [ ] Sistema arranca sin errores
+- [ ] Endpoints/puntos de entrada responden
+- [ ] Console/browser → 0 errors
+
+### Layer 3 — Adversarial
+- [ ] Boundary cases probados
+- [ ] Idempotencia verificada
+- [ ] Concurrencia/estado validado
+
+## 📸 Evidencia
+
+<!-- Comando + output + result -->
+
+## 📝 Notas
+
+<!-- Decisiones técnicas, trade-offs, deuda técnica conocida -->
