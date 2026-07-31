@@ -11,6 +11,12 @@ Built for privacy. Modern, secure, 100% local — no servers, no cloud, no track
 [![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![CI](https://img.shields.io/badge/CI-passing-brightgreen?logo=github&logoColor=white)](https://github.com/Nxxo31/NexoAccManager/actions)
+[![Vitest](https://img.shields.io/badge/Tests-Vitest-6ECC3F?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Code Style](https://img.shields.io/badge/Code_Style-ESLint-4B32C3?logo=eslint&logoColor=white)](https://eslint.org/)
+
+<!-- Screenshot placeholder — add app screenshot here -->
+<!-- ![NAM Screenshot](docs/screenshot-main.png) -->
 
 **[Features](#-features) · [Install](#-installation) · [Architecture](#-architecture) · [Security](#-security) · [Contributing](#-contributing)**
 
