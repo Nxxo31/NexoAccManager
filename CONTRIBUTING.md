@@ -1,90 +1,85 @@
-# Contributing Guide — NexoAccManager
+# Contributing to Nxxo31 Projects
 
-Thank you for your interest in contributing to NexoAccManager! This document explains how to collaborate effectively.
+## 🚀 Quick Start
 
-## Project Philosophy
+1. Fork el repo
+2. `git checkout -b feature/tu-feature`
+3. Implementa siguiendo los **3-Layer Verification Gates**
+4. `git commit -m "feat: descripción breve en español"`
+5. Abre un PR con el template completo
 
-- **OpenSource first** — All code is public, auditable, and modifiable
-- **User privacy** — No telemetry, no tracking, no servers
-- **Security first** — AES-256-GCM encryption, contextIsolation, sandbox
-- **Cross-platform** — Electron supports Windows, Mac, and Linux
+## 📋 Reglas de Commit
 
-## How to Contribute
+### Formato
+```
+<type>: <descripción en español>
 
-### 1. Set Up Your Environment
-
-```bash
-git clone https://github.com/Nxxo31/NexoAccManager.git
-cd NexoAccManager
-npm install
-npm run dev
+<body opcional con detalles>
 ```
 
-### 2. Find Something to Work On
+### Types
+| Type | Uso |
+|------|-----|
+| `feat` | Nueva funcionalidad |
+| `fix` | Bug fix |
+| `refactor` | Refactor sin cambio de comportamiento |
+| `docs` | Solo documentación |
+| `chore` | Mantenimiento (deps, configs) |
+| `test` | Tests nuevos o corregidos |
+| `perf` | Mejora de rendimiento |
 
-- Check [Issues](https://github.com/Nxxo31/NexoAccManager/issues) with the `good first issue` label
-- Comment on the issue so we know you're working on it
-- If you have a new idea, open a [Discussion](https://github.com/Nxxo31/NexoAccManager/discussions) first
+### Reglas
+- Commits **atómicos** — un cambio lógico por commit
+- Mensaje en **español** (body puede ser técnico en inglés)
+- **No** mentions of "AI generated" en commits
+- Verificación **antes** de commit: typecheck → lint → build → test
 
-### 3. Workflow
+## 🛡️ 3-Layer Verification Gates
 
+Todo PR debe pasar los 3 layers antes de merge:
+
+### Layer 1 — Compile (determinístico)
 ```bash
-# Create a branch
-git checkout -b feature/my-feature
+# TypeScript
+npx tsc --noEmit && npm run lint && npm run build
 
-# Develop following project rules:
-# - Use typed IPC with invoke/handle
-# - Validate data on both sides (main + renderer)
-# - Follow the design system (colors, glassmorphism)
-# - Write commit messages in Spanish
+# Go
+go vet ./... && go build ./... && go test ./...
 
-# Verify it compiles
-npx tsc --noEmit
-npm run lint
-npm run build
-
-# Commit
-git add -A
-git commit -m "tipo(scope): descripcion en español"
-
-# Push and create PR
-git push origin feature/my-feature
-# Create Pull Request on GitHub
+# Python
+python -m py_compile src/ && pytest --tb=short
 ```
 
-### 4. Commit Conventions
+### Layer 2 — Runtime (verificación funcional)
+- Start del sistema (servidor, CLI, app)
+- Curl/interact con endpoints reales
+- Browser: `browser_navigate` + `browser_console` (0 errors)
+- Verificar datos reales (no mock)
 
-| Commit type | Description              | Example                    |
-|--------------|--------------------------|----------------------------|
-| feat         | New feature              | feat(account): agregar soporte multi-idioma |
-| fix          | Bug fix                  | fix(ipc): validar cookies antes de guardar |
-| refactor     | Refactoring              | refactor(theme): simplificar ThemeService |
-| docs         | Documentation            | docs: actualizar README    |
-| style        | UI/UX changes            | style(panel): ajustar glassmorphism |
-| chore        | Maintenance tasks        | chore: actualizar dependencias |
+### Layer 3 — Adversarial (robustez)
+- Boundary cases (vacío, nulo, máximo, mínimo)
+- Idempotencia (ejecutar 2x → mismo resultado)
+- Concurrencia (race conditions)
 
-### 5. Code Guidelines
+## 🔀 Workflow de Branches
 
-- **Strict TypeScript** — No `any`, type everything
-- **IPC namespacing** — `account:*`, `roblox:*`, `settings:*`, `theme:*`, `i18n:*`, `advanced:*`
-- **Result pattern** — `{ success, data }` | `{ success: false, error }`
-- **Security** — contextBridge only exposes specific functions, never raw ipcRenderer
-- **Visual style** — Use CSS variables from the design system, glassmorphism, Inter/JetBrains Mono
-- **i18n** — All user-facing strings must use `t('key')` from react-i18next
+```
+main          ← solo PRs aprobados, siempre verde
+├── feature/xxx   ← nueva funcionalidad
+├── fix/xxx       ← bug fix
+├── refactor/xxx  ← refactor
+└── docs/xxx      ← solo documentación
+```
 
-### 6. Before Submitting a PR
+## 📝 Issue Workflow
 
-- [ ] `npx tsc --noEmit` passes without errors
-- [ ] `npm run lint` passes without warnings
-- [ ] `npm run build` generates binaries correctly
-- [ ] If new feature: does it have tests?
-- [ ] If UI: does it respect the design system?
-- [ ] If IPC: does it use invoke/handle and type validation?
+1. **Abrir issue** antes de implementar (feature o bug)
+2. Asignar labels: `enhancement`, `bug`, `documentation`
+3. Linkear el issue en el PR (`Closes #N`)
+4. Mover a "In Progress" en el project board
 
-## Support
+## 🔐 Seguridad
 
-- **Issues** for bugs and feature requests
-- **Discussions** for ideas and general questions
-- **PRs** for code contributions
-
-Thank you for helping build NexoAccManager!
+- **Nunca** commitear secrets, API keys, tokens, o `.env`
+- Usar `.env.example` para variables de entorno
+- `.env` siempre en `.gitignore`
