@@ -34,6 +34,8 @@ export const translations: Record<LangId, Record<string, string>> = {
     'accounts.killAllConfirmBody': '¿Estás seguro de que quieres cerrar todos los procesos de Roblox?\\nEsta acción no se puede deshacer.',
     'accounts.placeId': 'Place ID',
     'accounts.join': 'Unirse',
+    'accounts.count': '{count} cuentas',
+    'accounts.maxAccountsReached': 'Límite alcanzado ({max} cuentas)',
     'accounts.launched': '{name} lanzado',
     'accounts.processesClosed': 'Procesos cerrados',
     'accounts.updated': 'Cuenta actualizada',
@@ -61,6 +63,7 @@ export const translations: Record<LangId, Record<string, string>> = {
 
     // Servers
     'servers.title': 'Servidores',
+    'servers.count': '{count} servidores',
     'servers.selectAccount': 'Seleccionar cuenta...',
     'servers.placeIdPlaceholder': 'Place ID...',
     'servers.search': 'Buscar',
@@ -75,6 +78,8 @@ export const translations: Record<LangId, Record<string, string>> = {
 
     // Games
     'games.title': 'Juegos',
+    'games.count': '{count} juegos',
+    'games.placeIdCopied': 'Place ID copiado: {placeId}',
     'games.selectAccount': 'Seleccionar cuenta...',
     'games.searchPlaceholder': 'Buscar juego...',
     'games.search': 'Buscar',
@@ -90,6 +95,7 @@ export const translations: Record<LangId, Record<string, string>> = {
 
     // Friends
     'friends.title': 'Amigos',
+    'friends.onlineCount': '{count} amigos en línea',
     'friends.selectAccount': 'Seleccionar cuenta...',
     'friends.tabFriends': 'Amigos',
     'friends.tabRequests': 'Solicitudes',
@@ -205,6 +211,8 @@ export const translations: Record<LangId, Record<string, string>> = {
 
     // AddAccountModal
     'modal.addAccountTitle': 'Agregar cuenta',
+    'modal.maxAccounts': 'Máximo {max} cuentas',
+    'modal.accountsLimitReached': 'Límite de {max} cuentas alcanzado',
     'modal.browser': 'Navegador',
     'modal.cookie': 'Cookie',
     'modal.bulkImport': 'Bulk Import',
@@ -309,6 +317,8 @@ export const translations: Record<LangId, Record<string, string>> = {
     'accounts.killAllConfirmBody': 'Are you sure you want to close all Roblox processes?\\nThis action cannot be undone.',
     'accounts.placeId': 'Place ID',
     'accounts.join': 'Join',
+    'accounts.count': '{count} accounts',
+    'accounts.maxAccountsReached': 'Limit reached ({max} accounts)',
     'accounts.launched': '{name} launched',
     'accounts.processesClosed': 'Processes closed',
     'accounts.updated': 'Account updated',
@@ -336,6 +346,7 @@ export const translations: Record<LangId, Record<string, string>> = {
 
     // Servers
     'servers.title': 'Servers',
+    'servers.count': '{count} servers',
     'servers.selectAccount': 'Select account...',
     'servers.placeIdPlaceholder': 'Place ID...',
     'servers.search': 'Search',
@@ -350,6 +361,8 @@ export const translations: Record<LangId, Record<string, string>> = {
 
     // Games
     'games.title': 'Games',
+    'games.count': '{count} games',
+    'games.placeIdCopied': 'Place ID copied: {placeId}',
     'games.selectAccount': 'Select account...',
     'games.searchPlaceholder': 'Search games...',
     'games.search': 'Search',
@@ -365,6 +378,7 @@ export const translations: Record<LangId, Record<string, string>> = {
 
     // Friends
     'friends.title': 'Friends',
+    'friends.onlineCount': '{count} friends online',
     'friends.selectAccount': 'Select account...',
     'friends.tabFriends': 'Friends',
     'friends.tabRequests': 'Requests',
@@ -480,6 +494,8 @@ export const translations: Record<LangId, Record<string, string>> = {
 
     // AddAccountModal
     'modal.addAccountTitle': 'Add account',
+    'modal.maxAccounts': 'Maximum {max} accounts',
+    'modal.accountsLimitReached': '{max} accounts limit reached',
     'modal.browser': 'Browser',
     'modal.cookie': 'Cookie',
     'modal.bulkImport': 'Bulk Import',
@@ -584,6 +600,8 @@ export const translations: Record<LangId, Record<string, string>> = {
     'accounts.killAllConfirmBody': 'Você tem certeza de que deseja fechar todos os processos do Roblox?\\nEsta ação não pode ser desfeita.',
     'accounts.placeId': 'Place ID',
     'accounts.join': 'Entrar',
+    'accounts.count': '{count} contas',
+    'accounts.maxAccountsReached': 'Limite atingido ({max} contas)',
     'accounts.launched': '{name} iniciado',
     'accounts.processesClosed': 'Processos fechados',
     'accounts.updated': 'Conta atualizada',
@@ -611,6 +629,7 @@ export const translations: Record<LangId, Record<string, string>> = {
 
     // Servers
     'servers.title': 'Servidores',
+    'servers.count': '{count} servidores',
     'servers.selectAccount': 'Selecionar conta...',
     'servers.placeIdPlaceholder': 'Place ID...',
     'servers.search': 'Buscar',
@@ -625,6 +644,8 @@ export const translations: Record<LangId, Record<string, string>> = {
 
     // Games
     'games.title': 'Jogos',
+    'games.count': '{count} jogos',
+    'games.placeIdCopied': 'Place ID copiado: {placeId}',
     'games.selectAccount': 'Selecionar conta...',
     'games.searchPlaceholder': 'Buscar jogos...',
     'games.search': 'Buscar',
@@ -640,6 +661,7 @@ export const translations: Record<LangId, Record<string, string>> = {
 
     // Friends
     'friends.title': 'Amigos',
+    'friends.onlineCount': '{count} amigos online',
     'friends.selectAccount': 'Selecionar conta...',
     'friends.tabFriends': 'Amigos',
     'friends.tabRequests': 'Solicitações',
@@ -755,6 +777,8 @@ export const translations: Record<LangId, Record<string, string>> = {
 
     // AddAccountModal
     'modal.addAccountTitle': 'Adicionar conta',
+    'modal.maxAccounts': 'Máximo {max} contas',
+    'modal.accountsLimitReached': 'Limite de {max} contas atingido',
     'modal.browser': 'Navegador',
     'modal.cookie': 'Cookie',
     'modal.bulkImport': 'Bulk Import',
