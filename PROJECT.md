@@ -108,7 +108,7 @@ Nota: el renderer NUNCA manipula cookies ni passwords — solo el main process l
 | R-08 | Logging estructurado rotativo (electron-log) | `src/infrastructure/logging/logger.ts` | ✅ | File transport `userData/logs/`, formato ISO timestamp |
 | R-09 | Code splitting + performance (bundle 739KB→412KB) | `vite.config.ts`, `AccountCard.tsx` | ✅ | Build exit 0, bundle size medida |
 | R-10 | Mantine v7 locale no relevante (no DateInput) | `renderer.tsx` | ✅ | Audit — solo se usa `t()` custom para all user-facing strings |
-| R-11 | B-5 formularios dinámicos i18n (espin en .tsx → t({count})) | `AccountsView.tsx`, `AddAccountModal.tsx` | ⏳ | Issue #3 — forms con interpolación count/vars |
+| R-11 | B-5 formularios dinámicos i18n (espin en .tsx → t({count})) | `FriendsView.tsx`, `GamesView.tsx`, `ServersView.tsx` | ✅ | 2026-08-02 — interpolación count/vars en 3 views; tsc 0, lint 0/0, build exit 0 |
 | R-12 | WebSocket real para account:control (reemplazar HTTP bridge) | `ControlWebSocketService.ts` | ⏳ | Interino HTTP bridge, WebSocket real pendiente |
 
 ---
@@ -167,7 +167,7 @@ Próximo commit previsto: `docs: estandarizar PROJECT.md (template SophIA con ma
 
 | ID | Descripción | Prioridad | Issue |
 |----|-------------|-----------|-------|
-| B-5 | Formularios dinámicos i18n (interpolación count/vars en .tsx) | Alta | #3 |
+| B-5 | ✅ Formularios dinámicos i18n (interpolación count/vars en .tsx) — completado 2026-08-02 | Alta | #3 |
 | B-1 | WebSocket real para `account:control` (reemplazar HTTP bridge interino) | Media | #1 |
 | B-6 | Tests unitarios para `advanced:devmode` y `account:control` handlers | Media | #4 |
 | B-7 | P-001/P-002 perf en AccountsView (React.memo en listas grandes) | Baja | #5 |
