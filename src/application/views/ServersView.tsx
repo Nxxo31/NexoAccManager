@@ -79,8 +79,12 @@ export function ServersView(): JSX.Element {
 
   return (
     <Stack gap="md" p="md" h="100%">
-      <Text size="lg" fw={600}>{t('servers.title')}</Text>
-
+      <Text size="lg" fw={600}>
+        {t('servers.title')}
+        {selectedAccountId && (
+          <span> {t('servers.count', { count: servers.length })} </span>
+        )}
+      </Text>
       <Select
         placeholder={t('servers.selectAccount')}
         value={selectedAccountId}
@@ -90,7 +94,6 @@ export function ServersView(): JSX.Element {
         searchable
         aria-label={t('servers.selectAccount')}
       />
-
       <Group gap="sm">
         <TextInput
           placeholder={t('servers.placeIdPlaceholder')}
@@ -129,19 +132,16 @@ export function ServersView(): JSX.Element {
             <Skeleton height={80} radius="md" />
           </Stack>
         )}
-
         {!loading && !selectedAccountId && (
           <Text c="dimmed" ta="center" pt="xl">
             {t('servers.selectToSearch')}
           </Text>
         )}
-
         {!loading && selectedAccountId && placeId && servers.length === 0 && (
           <Text c="dimmed" ta="center" pt="xl">
             {t('servers.noResults')}
           </Text>
         )}
-
         {!loading && servers.length > 0 && (
           <Stack gap="sm">
             {servers.map((s) => (
@@ -151,9 +151,12 @@ export function ServersView(): JSX.Element {
                     <Globe size={14} />
                     <Text size="xs" ff="monospace" c="dimmed">{s.id.substring(0, 12)}...</Text>
                   </Group>
-                  {/* A-003: Color como unico indicador - anadir texto a ping badge */}
+                  {/* A-003: Color como unico indicador - anadir icono y texto a ping badge */}
                   <Badge size="xs" variant="light" color={s.ping < 100 ? 'green' : s.ping < 200 ? 'yellow' : 'red'}>
-                    {s.ping}ms
+                    <Group gap={4}>
+                      <Wifi size={12} />
+                      {s.ping}ms
+                    </Group>
                   </Badge>
                 </Group>
                 <Group justify="space-between" mb="xs">
