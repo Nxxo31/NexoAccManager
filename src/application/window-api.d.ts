@@ -79,6 +79,14 @@ declare global {
         devMode: (enable: boolean) => Promise<IpcResult>;
         localApiStart: (port: number) => Promise<IpcResult>;
         localApiStop: () => Promise<IpcResult>;
+        // B-1: snapshot síncrono del estado de conexion WS.
+        controlStatus: () => Promise<IpcResult<'connected' | 'disconnected' | 'reconnecting' | 'stopped'>>;
+        // B-1: subscripción push a eventos del WS de control. Devuelve un
+        // unsubscribe que limpia los listeners IPC.
+        controlSubscribe: (
+          onStatus: (accountId: string, status: unknown) => void,
+          onConnection: (status: 'connected' | 'disconnected' | 'reconnecting' | 'stopped') => void,
+        ) => () => void;
       };
       // Cookie
       cookie: {

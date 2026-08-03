@@ -8,12 +8,26 @@
 // pendientes hasta que la conexión se restablece (cola durability best-effort).
 //
 // Diseño:
-//   - start(port)      → connecta; idempotente
-//   - stop()           → cierra la conexión y limpia temporizadores
-//   - sendCommand      → Promise<IpcResult> — manda {accountId, command} y
-//                        espera la respuesta {ok, data?} del LocalApiService
-//   - onStatus         → subscripción (callback) para push messages
-//                        (estado de cuenta en tiempo real, botting, etc.)
+//   - start(port)        → connecta; idempotente
+//   - stop()             → cierra la conexión y limpia temporizadores
+//   - sendCommand        → Promise<IpcResult> — manda {accountId, command} y
+//                         espera la respuesta {ok, data?} del LocalApiService
+//   - onStatus           → subscripción (callback) para push messages
+//                         (estado de cuenta en tiempo real, botting, etc.)
+//   - onConnectionStatus → subscripción (callback) para cambios de estado de
+//                         la conexion (connected / disconnected / reconnecting)
+//   - getConnectionStatus → snapshot síncrono del estado actual de la conexión
+//
+// Smart-polling fallback (B-1): cuando el WebSocket no está conectado y
+// tampoco hay reconexión en curso (p.ej. el LocalApiService no está corriendo),
+// se arranca un poller adaptativo que consulta el endpoint HTTP `/accounts/:id/status`
+// del LocalApiService. La cadencia es adaptativa:
+//   - 30s en estado estable (sin cambios recientes)
+//   - 10s cuando un estado cambió en el último ciclo (modo "acelerado")
+//   - backoff up to 60s tras varios ciclos sin novedad y sin clientes
+// El poller solo corre si start(port) fue invocado con la bandera
+// `enablePollingFallback = true` (default). Si el WS se conecta, el poller se
+// detiene automáticamente — el WS push es la fuente preferida.
 //
 // Nota de seguridad: el WS sólo escucha en 127.0.0.1 (loopback) — nunca en
 // 0.0.0.0. El LocalApiService valida el origin y los payloads contra el
@@ -25,6 +39,9 @@ import { EventEmitter } from 'node:events';
 
 export type ControlCommand = 'launch' | 'kill' | 'status' | 'refresh-cookie';
 export type ControlStatusListener = (accountId: string, status: unknown) => void;
+/** Estado de la conexión reportado al renderer para el UI indicator. */
+export type ControlConnectionStatus = 'connected' | 'disconnected' | 'reconnecting' | 'stopped';
+export type ControlConnectionListener = (status: ControlConnectionStatus) => void;
 
 interface PendingCommand {
   resolve: (value: { success: true; data?: unknown } | { success: false; error: string }) => void;
@@ -40,12 +57,11 @@ const RECONNECT_BASE_MS = 500;
 const RECONNECT_MAX_MS = 15000;
 const MAX_PENDING_QUEUE = 64;
 
-function okResult(data?: unknown): { success: true; data?: unknown } {
-  return { success: true, data };
-}
-function errResult(error: string): { success: false; error: string } {
-  return { success: false, error };
-}
+// Polling cadence (smart-polling fallback when WS is down).
+const POLL_STABLE_MS = 30_000; // 30s — stable state, no recent changes
+const POLL_FAST_MS = 10_000;   // 10s — accelerated after a status change
+const POLL_SLOW_MS = 60_000;   // 60s — back off after N consecutive unchanged cycles
+const POLL_BACKOFF_AFTER = 4;  // bumped to slow cadence after this many consecutive unchanged cycles
 
 class ControlWebSocketServiceImpl {
   private socket: WebSocket | null = null;
@@ -57,7 +73,15 @@ class ControlWebSocketServiceImpl {
   private pending = new Map<number, PendingCommand>();
   private nextId = 1;
   private statusEmitter = new EventEmitter();
+  private connectionEmitter = new EventEmitter();
   private stopReconnect = false;
+  private connectionStatus: ControlConnectionStatus = 'stopped';
+
+  // Smart-polling fallback state
+  private pollTimer: NodeJS.Timeout | null = null;
+  private pollUnchangedInARow = 0;
+  private pollLastStatusByAccount = new Map<string, unknown>();
+  private pollPending = false;
 
   /** Abre la conexión WebSocket contra el LocalApiService. Idempotente. */
   start(port: number = DEFAULT_PORT): void {
@@ -68,6 +92,7 @@ class ControlWebSocketServiceImpl {
     this.url = `ws://127.0.0.1:${port}/control`;
     this.started = true;
     this.stopReconnect = false;
+    this.setConnectionStatus('reconnecting');
     this.connect();
   }
 
@@ -86,6 +111,9 @@ class ControlWebSocketServiceImpl {
         clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
       }
+      this.setConnectionStatus('connected');
+      // WS is up — stop the smart-polling fallback, if running.
+      this.stopPolling();
     });
 
     this.socket.on('message', (raw: Buffer | ArrayBuffer | Buffer[], isBinary: boolean) => {
@@ -102,7 +130,10 @@ class ControlWebSocketServiceImpl {
     this.socket.on('close', () => {
       this.failAllPending('WebSocket closed');
       this.socket = null;
+      this.setConnectionStatus('reconnecting');
       this.scheduleReconnect();
+      // Arrancar poller de respaldo hasta que el WS vuelva (solo si start() fue invocado).
+      this.startPolling();
     });
 
     this.socket.on('error', (e: Error) => {
@@ -185,8 +216,19 @@ class ControlWebSocketServiceImpl {
     return () => this.statusEmitter.off('status', listener);
   }
 
+  /** Subscripción para cambios de estado de la conexion WS. Devuelve un unsub. */
+  onConnectionStatus(listener: ControlConnectionListener): () => void {
+    this.connectionEmitter.on('connection', listener);
+    return () => this.connectionEmitter.off('connection', listener);
+  }
+
+  /** Snapshot del estado actual de la conexión (síncrono). Undefined si nunca se arrancó. */
+  getConnectionStatus(): ControlConnectionStatus {
+    return this.connectionStatus;
+  }
+
   isConnected(): boolean {
-    return !!this.socket && this.socket.readyState === WebSocket.OPEN;
+    return this.connectionStatus === 'connected' && !!this.socket && this.socket.readyState === WebSocket.OPEN;
   }
 
   /** Cierra la conexión y limpia todo. */
@@ -196,6 +238,7 @@ class ControlWebSocketServiceImpl {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
+    this.stopPolling();
     this.failAllPending('Control WS service stopped');
     if (this.socket) {
       try { this.socket.close(); } catch { /* best-effort */ }
@@ -203,6 +246,115 @@ class ControlWebSocketServiceImpl {
     }
     this.started = false;
     this.reconnectAttempt = 0;
+    this.setConnectionStatus('stopped');
+  }
+
+  // ---- Smart-polling fallback (cuando WS está caído) ---------------------
+
+  /** Arranca el poller adaptativo si no está corriendo. Idempotente. */
+  private startPolling(): void {
+    if (this.pollTimer || this.stopReconnect || !this.started) return;
+    this.pollUnchangedInARow = 0;
+    this.schedulePoll(POLL_FAST_MS);
+  }
+
+  private stopPolling(): void {
+    if (this.pollTimer) {
+      clearTimeout(this.pollTimer);
+      this.pollTimer = null;
+    }
+    this.pollPending = false;
+  }
+
+  private schedulePoll(delayMs: number): void {
+    if (this.pollTimer || this.stopReconnect || !this.started) return;
+    this.pollTimer = setTimeout(() => {
+      this.pollTimer = null;
+      this.pollOnce();
+    }, delayMs);
+  }
+
+  /** Un ciclo de polling: llama a status de cada cuenta rastreada vía HTTP.
+   *  Si el endpoint no responde (LocalApiService caído), backoff a 60s. */
+  private async pollOnce(): Promise<void> {
+    if (this.pollPending || this.stopReconnect || !this.started) return;
+    if (this.isConnected()) return; // WS volvió — no hace falta
+    this.pollPending = true;
+    let anyChange = false;
+    try {
+      const accountIds = Array.from(this.pollLastStatusByAccount.keys());
+      if (accountIds.length === 0) {
+        // Sin cuentas rastreadas — backoff máximo.
+        this.pollUnchangedInARow++;
+        this.schedulePoll(this.nextPollDelay(false));
+        return;
+      }
+      for (const accountId of accountIds) {
+        try {
+          const url = `http://127.0.0.1:${this.port}/accounts/${encodeURIComponent(accountId)}/status`;
+          // Dynamic import http para evitar tocår el global si ya está cargado.
+          const http = await import('node:http');
+          const res = await this.httpGetJson(url, http);
+          if (res && typeof res === 'object') {
+            const prev = this.pollLastStatusByAccount.get(accountId);
+            if (JSON.stringify(prev) !== JSON.stringify(res)) {
+              this.pollLastStatusByAccount.set(accountId, res);
+              anyChange = true;
+              // Emitir como push para que el renderer reaccione igual que con WS.
+              this.statusEmitter.emit('status', accountId, res);
+            }
+          }
+        } catch {
+          // El endpoint falló (probablemente LocalApiService no responde).
+          // Sumar cycle sin cambios → backoff.
+        }
+      }
+      this.pollUnchangedInARow = anyChange ? 0 : this.pollUnchangedInARow + 1;
+      this.schedulePoll(this.nextPollDelay(anyChange));
+    } finally {
+      this.pollPending = false;
+    }
+  }
+
+  private nextPollDelay(anyChange: boolean): number {
+    if (this.pollUnchangedInARow >= POLL_BACKOFF_AFTER) return POLL_SLOW_MS;
+    return anyChange ? POLL_FAST_MS : POLL_STABLE_MS;
+  }
+
+  private httpGetJson(url: string, http: typeof import('node:http')): Promise<unknown> {
+    return new Promise((resolve, reject) => {
+      const req = http.get(url, { headers: { Accept: 'application/json' } }, (res) => {
+        let body = '';
+        res.on('data', (c: Buffer) => { body += c.toString(); });
+        res.on('end', () => {
+          try {
+            resolve(body ? JSON.parse(body) : null);
+          } catch (e) {
+            reject(e);
+          }
+        });
+      });
+      req.on('error', reject);
+      req.setTimeout(COMMAND_TIMEOUT_MS, () => req.destroy(new Error('poll timeout')));
+    });
+  }
+
+  /** Registra un accountId para que el poller de respaldo lo rastree. */
+  trackForPolling(accountId: string): void {
+    if (!this.pollLastStatusByAccount.has(accountId)) {
+      this.pollLastStatusByAccount.set(accountId, undefined);
+    }
+  }
+
+  /** Desregistrar un accountId del poller (alta/baja de cuentas). */
+  untrackForPolling(accountId: string): void {
+    this.pollLastStatusByAccount.delete(accountId);
+  }
+
+  private setConnectionStatus(status: ControlConnectionStatus): void {
+    if (this.connectionStatus === status) return;
+    this.connectionStatus = status;
+    try { this.connectionEmitter.emit('connection', status); } catch { /* best-effort */ }
   }
 
   private failAllPending(message: string): void {

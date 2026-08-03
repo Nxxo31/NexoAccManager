@@ -91,6 +91,30 @@ const api = {
     devMode: (enable: boolean) => ipcRenderer.invoke('advanced:devmode', enable),
     localApiStart: (port: number) => ipcRenderer.invoke('advanced:local-api:start', port),
     localApiStop: () => ipcRenderer.invoke('advanced:local-api:stop'),
+    // B-1: snapshot síncrono del estado de conexion WS (lo llama el renderer
+    // al montar para inicializar el UI indicator sin esperar el primer push).
+    controlStatus: () => ipcRenderer.invoke('advanced:control:status'),
+    // B-1: subscripción push a eventos del WebSocket de control. Llama a
+    // onStatus(accountId, status) cuando llega 'control:status', y
+    // onConnection(status) cuando cambia el estado de la conexión
+    // ('control:connection'). Devuelve un unsubscribe (limpia listeners).
+    controlSubscribe: (
+      onStatus: (accountId: string, status: unknown) => void,
+      onConnection: (status: 'connected' | 'disconnected' | 'reconnecting' | 'stopped') => void,
+    ) => {
+      const statusListener = (_e: unknown, payload: { accountId: string; status: unknown }) => {
+        onStatus(payload.accountId, payload.status);
+      };
+      const connListener = (_e: unknown, status: 'connected' | 'disconnected' | 'reconnecting' | 'stopped') => {
+        onConnection(status);
+      };
+      ipcRenderer.on('control:status', statusListener);
+      ipcRenderer.on('control:connection', connListener);
+      return () => {
+        ipcRenderer.removeListener('control:status', statusListener);
+        ipcRenderer.removeListener('control:connection', connListener);
+      };
+    },
   },
 
   // Cookie
