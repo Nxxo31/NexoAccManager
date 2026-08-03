@@ -20,9 +20,15 @@ import { robloxCookieApi } from '../../external/RobloxCookieService';
 import { solveCaptcha } from '../../external/CaptchaService';
 import { start as startLocalApi, stop as stopLocalApi } from '../../external/LocalApiService';
 // B-1: el control WS se conecta al LocalApiService cuando éste arranca, y
-// se desconecta + limpia cola cuando se detiene.
+// se desconecta + limpia cola cuando se detiene. Se forward push events al
+// renderer vía webContents.send.
 import { controlWs } from '../../external/ControlWebSocketService';
 import { makeEncryptedString } from '../../../domain/types/EncryptedString';
+// B-1: forward push events del servicio WS hacia el renderer a través de
+// getMainWindow().webContents.send. Los canales push son:
+//   'control:status'        → { accountId, status }
+//   'control:connection'    → ControlConnectionStatus
+import { getMainWindow } from '../IPCAdapter';
 
 // FastFlags
 import { getAllFastFlags, setFastFlag, deleteFastFlag, importFlagsFromJson, exportFlagsToJson } from '../../external/FastFlagsService';
@@ -45,6 +51,28 @@ import { ok, err, errMsg } from './shared';
 export function registerAdvancedHandlers(): void {
   const accountRepo = new AccountRepositoryImpl();
   const settingsRepo = new SettingsRepositoryImpl();
+
+  // B-1: forward push events del servicio WS al renderer. Se registran una sola
+  // vez en sesión-level (no por llamada). Los handlers viven durante toda la
+  // vida del main process — los unsubscribe nativos se invocan solo en stop()
+  // del controlWs por la 'before-quit' hook de main.ts.
+  controlWs.onStatus((accountId, status) => {
+    try {
+      const win = getMainWindow();
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('control:status', { accountId, status });
+      }
+    } catch { /* best-effort — never throw from a push-forward */ }
+  });
+  controlWs.onConnectionStatus((status) => {
+    try {
+      const win = getMainWindow();
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('control:connection', status);
+      }
+      try { logger.info(`[ControlWS] connection status → ${status}`); } catch { /* best-effort */ }
+    } catch { /* best-effort */ }
+  });
 
   // ============ ADVANCED ============
   ipcMain.handle('advanced:exportData', async () => {
@@ -112,6 +140,14 @@ export function registerAdvancedHandlers(): void {
       return ok(null);
     } catch (e) { return err(errMsg(e)); }
   }); // F-011
+
+  // B-1: snapshot síncrono del estado de la conexión WS (lo llama el renderer
+  // al montar para inicializar el UI indicator sin esperar el primer push).
+  ipcMain.handle('advanced:control:status', async () => {
+    try {
+      return ok(controlWs.getConnectionStatus());
+    } catch (e) { return err(errMsg(e)); }
+  });
 
   // ============ COOKIE ============
   ipcMain.handle('cookie:expiry', async (_e, { accountId }: { accountId: string }) => {

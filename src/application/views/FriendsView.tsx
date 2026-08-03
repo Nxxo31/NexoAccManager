@@ -117,8 +117,12 @@ export function FriendsView(): JSX.Element {
 
   return (
     <Stack gap="md" p="md" h="100%">
-      <Text size="lg" fw={600}>{t('friends.title')}</Text>
-
+      <Text size="lg" fw={600}>
+        {t('friends.title')}
+        {selectedAccountId && activeTab === 'friends' && (
+          <span> ({t('friends.onlineCount', { count: friends.filter(f => f.isOnline).length })})</span>
+        )}
+      </Text>
       <Select
         placeholder={t('friends.selectAccount')}
         value={selectedAccountId}

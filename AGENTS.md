@@ -15,7 +15,7 @@ License: MIT
 - **i18n**: i18next + react-i18next (ES/EN/PT)
 - **Themes**: CSS variables in :root via IPC theme:set
 - **Build**: electron-builder (AppImage, snap, NSIS)
-- **Testing**: vitest (unit) + Playwright (E2E/a11y/visual browser-mode) + axe-core
+- **Verification gates**: `mcp__lsp_intelligence__live_diagnostics` + `delegate_task` review + `gitleaks` + `auto-commit.sh` — NO vitest, NO jest, NO playwright, NO `tsc --noEmit` directo
 - **No backend**: 100% local, no servers, no cloud
 
 ## Critical rules — NEVER violate
@@ -24,8 +24,8 @@ License: MIT
 - 100% local — no backend, no server, no cloud
 - Never dangerouslySetInnerHTML with external data
 - Never expose raw ipcRenderer — only contextBridge
-- Never commit with unresolved tsc errors
-- Never weaken tests to make them pass
+- Never commit with unresolved type errors — verify via `mcp__lsp_intelligence__live_diagnostics`
+- Never weaken gates to make them pass — fix the code, not the gate
 - Never create .bak files — use git for versioning
 - Never write code without reading PROJECT.md first
 
@@ -71,16 +71,17 @@ Result pattern in IPC: `{ success, data }` | `{ success: false, error }` — nev
 1. Read PROJECT.md → check active phase and known limitations
 2. `git status` → ver estado del repo
 3. Verificar LSP activo: `hermes lsp status` — si no hay clientes: `hermes lsp restart`
-   **Nota en WSL**: El servidor LSP de TypeScript está instalado, pero el cliente solo se conecta cuando un editor (VS Code, etc.) abre un archivo `.ts` o `.tsx`. Mientras no haya un archivo abierto, `hermes lsp status` mostrará `active clients: none`; esto es esperado y no indica un problema. La fuente de verdad para tipos es siempre `npx tsc --noEmit`, que debe dar 0 errores antes de hacer commit.
+   **Nota en WSL**: El servidor LSP de TypeScript está instalado, pero el cliente solo se conecta cuando un editor (VS Code, etc.) abre un archivo `.ts` o `.tsx`. Mientras no haya un archivo abierto, `hermes lsp status` mostrará `active clients: none`; esto es esperado y no indica un problema. La fuente de verdad para tipos es `mcp__lsp_intelligence__live_diagnostics`, que debe dar 0 errores antes de hacer commit.
 4. Skills loaded automatically by the agent before writing code: Electron + electron-desktop-dev (Electron stack), spec-creation (multi-file features), sketch (UI mockups). The agent does NOT need a file to remind it — it loads them.
 5. For tasks >1 archivo or UI work: the agent thinks first about what it's going to build, shows mockups if UI, and only then writes code. No intermediate .md files — design lives inline in PROJECT.md if needed.
-6. `npx tsc --noEmit` — must be 0 errors
-7. `npx vitest run` — must pass
-8. `npm run lint` — must pass
+6. **LSP gate**: `mcp__lsp_intelligence__live_diagnostics` en archivos modificados — 0 errores
+7. **Code review gate**: `delegate_task` con skill `code-review-and-quality` — todos los findings addressados
+8. **Secret scan gate**: `gitleaks` en el staged diff (integrado en `auto-commit.sh`)
 9. Update PROJECT.md with results BEFORE commit (only project doc allowed)
-10. `git add -A && git commit -m "tipo(scope): descripcion en español"`
+10. **Atomic commit gate**: `/home/sebas/.hermes/scripts/auto-commit.sh feat scope "descripcion"` — commits atómicos, conventional commit, gitleaks integrado
 11. `git push` → next task immediately
 
+NO vitest, NO jest, NO playwright, NO `tsc --noEmit` directo. Los gates son determinísticos: LSP live_diagnostics + delegate_task review + gitleaks + auto-commit.sh.
 NO separate spec files, drift reports, docs/specs/, architecture overviews, or any .md outside PROJECT.md. Everything goes in PROJECT.md.
 
 ## Editing code files (TSX/JSX/TS/JS)
@@ -89,7 +90,7 @@ NO separate spec files, drift reports, docs/specs/, architecture overviews, or a
   read the full file, apply the change in memory, and write the
   entire file at once.
 - NEVER create .bak files — git is the versioning system
-- After writing, validate: `npx tsc --noEmit` before marking complete
+- After writing, validate: `mcp__lsp_intelligence__live_diagnostics` en el archivo modificado before marking complete
 - If an edit fails 2 times with the same approach, stop and report
 
 ## Key file structure — ACTUAL v2.5.0
@@ -151,19 +152,6 @@ src/
     preload.ts                → contextBridge — channel whitelist
   types/
     Account.ts
-
-tests/
-  e2e-browser/                → Playwright browser-mode E2E
-    smoke.spec.ts             → app loads, elements visible, modals open
-    navigation.spec.ts        → modal open/close, aria labels, focus trap
-  a11y-browser/               → axe-core accessibility tests
-    accessibility.spec.ts     → WCAG compliance on page + modals
-  visual/                     → Visual regression
-    screenshots.spec.ts       → screenshot comparison
-
-Inline tests (junto al componente):
-  accounts/AccountTable.test.tsx   → 9 tests del componente AccountTable
-  server-browser/ServerBrowser.test.tsx → 6 tests del componente ServerBrowser
 ```
 
 ## Design system — do not improvise

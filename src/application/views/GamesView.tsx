@@ -139,8 +139,12 @@ export function GamesView(): JSX.Element {
 
   return (
     <Stack gap="md" p="md" h="100%">
-      <Text size="lg" fw={600}>{t('games.title')}</Text>
-
+      <Text size="lg" fw={600}>
+        {t('games.title')}
+        {selectedAccountId && (
+          <span> {t('games.count', { count: results.length })} </span>
+        )}
+      </Text>
       <Select
         placeholder={t('games.selectAccount')}
         value={selectedAccountId}
