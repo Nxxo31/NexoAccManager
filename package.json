@@ -15,7 +15,9 @@
     "electron:dev": "vite-plugin-electron dev",
     "electron:build": "npm run build && electron-builder",
     "electron:preview": "electron-builder --dir",
-    "lint": "eslint . --ext .ts,.tsx --ignore-pattern '*.config.*' --ignore-pattern 'public/**' --ignore-pattern 'dist/**'"
+    "lint": "eslint . --ext .ts,.tsx --ignore-pattern '*.config.*' --ignore-pattern 'public/**' --ignore-pattern 'dist/**'",
+    "test:unit": "node --experimental-strip-types --test tests/unit/*.test.ts",
+    "test:unit:watch": "node --experimental-strip-types --test --watch tests/unit/*.test.ts"
   },
   "dependencies": {
     "@mantine/core": "^7.17.8",
