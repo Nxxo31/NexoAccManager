@@ -15,7 +15,7 @@ License: MIT
 - **i18n**: i18next + react-i18next (ES/EN/PT)
 - **Themes**: CSS variables in :root via IPC theme:set
 - **Build**: electron-builder (AppImage, snap, NSIS)
-- **Verification gates**: `mcp__lsp_intelligence__live_diagnostics` + `delegate_task` review + `gitleaks` + `auto-commit.sh` — NO vitest, NO jest, NO playwright, NO `tsc --noEmit` directo
+- **Verification gates**: `mcp__lsp_intelligence__live_diagnostics` + `delegate_task` review + `gitleaks` (staged diff) — NO vitest, NO jest, NO playwright, NO `tsc --noEmit` directo
 - **No backend**: 100% local, no servers, no cloud
 
 ## Critical rules — NEVER violate
@@ -76,12 +76,12 @@ Result pattern in IPC: `{ success, data }` | `{ success: false, error }` — nev
 5. For tasks >1 archivo or UI work: the agent thinks first about what it's going to build, shows mockups if UI, and only then writes code. No intermediate .md files — design lives inline in PROJECT.md if needed.
 6. **LSP gate**: `mcp__lsp_intelligence__live_diagnostics` en archivos modificados — 0 errores
 7. **Code review gate**: `delegate_task` con skill `code-review-and-quality` — todos los findings addressados
-8. **Secret scan gate**: `gitleaks` en el staged diff (integrado en `auto-commit.sh`)
+8. **Secret scan gate**: `gitleaks` en el staged diff
 9. Update PROJECT.md with results BEFORE commit (only project doc allowed)
-10. **Atomic commit gate**: `/home/sebas/.hermes/scripts/auto-commit.sh feat scope "descripcion"` — commits atómicos, conventional commit, gitleaks integrado
+10. **Atomic commit gate**: `mcp__github__push_files feat scope "descripcion"` — commits atómicos, conventional commit, gitleaks integrado
 11. `git push` → next task immediately
 
-NO vitest, NO jest, NO playwright, NO `tsc --noEmit` directo. Los gates son determinísticos: LSP live_diagnostics + delegate_task review + gitleaks + auto-commit.sh.
+NO vitest, NO jest, NO playwright, NO `tsc --noEmit` directo. Los gates son determinísticos: LSP live_diagnostics + delegate_task review + gitleaks.
 NO separate spec files, drift reports, docs/specs/, architecture overviews, or any .md outside PROJECT.md. Everything goes in PROJECT.md.
 
 ## Editing code files (TSX/JSX/TS/JS)
