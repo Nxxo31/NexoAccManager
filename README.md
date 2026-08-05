@@ -11,20 +11,30 @@ Built for privacy. Modern, secure, 100% local — no servers, no cloud, no track
 [![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![CI](https://img.shields.io/badge/CI-passing-brightgreen?logo=github&logoColor=white)](https://github.com/Nxxo31/NexoAccManager/actions)
-[![Vitest](https://img.shields.io/badge/Tests-Vitest-6ECC3F?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![Code Style](https://img.shields.io/badge/Code_Style-ESLint-4B32C3?logo=eslint&logoColor=white)](https://eslint.org/)
+[![Version](https://img.shields.io/badge/version-4.2.0-blue.svg)](https://github.com/Nxxo31/NexoAccManager/releases)
 
-<!-- Screenshot placeholder — add app screenshot here -->
-<!-- ![NAM Screenshot](docs/screenshot-main.png) -->
-
-**[Features](#-features) · [Install](#-installation) · [Architecture](#-architecture) · [Security](#-security) · [Contributing](#-contributing)**
+**[Features](#-features) · [Screenshots](#-screenshots) · [Install](#-installation) · [Architecture](#-architecture) · [Security](#-security) · [Roadmap](#-roadmap) · [Contributing](#-contributing)**
 
 </div>
 
 ---
 
-Inspired by [Roblox Account Manager (RAM)](https://github.com/ic3w0lf22/Roblox-Account-Manager) by ic3w0lf22, rebuilt from scratch with **Clean Architecture** — Electron + React + TypeScript + Zustand.
+Inspired by [Roblox Account Manager (RAM)](https://github.com/ic3w0lf22/Roblox-Account-Manager) by ic3w0lf22, rebuilt from scratch with **Hexagonal Architecture** — Electron + React + TypeScript + Zustand.
+
+---
+
+## 📸 Screenshots
+
+<!-- Screenshots will be added here -->
+
+| Accounts Hub | Server Browser | Settings |
+|:---:|:---:|:---:|
+| _Account grid with drag-and-drop, aging alerts, and encrypted cookies_ | _Real-time server search with filters and auto-join_ | _Accordion settings with themes, i18n, and local API config_ |
+
+> _To add screenshots, place images in `docs/screenshots/` and update the table above._
+
+---
 
 ## 📦 Features
 
@@ -195,7 +205,7 @@ Opens Electron with Vite hot-reload for the renderer.
 
 ## 🏗️ Architecture
 
-NAM v4.0.9 uses **Clean Architecture / Hexagonal Architecture** (Ports & Adapters). The codebase went from 18K+ lines (v3.5.0 Facade Pattern) to ~3,900 lines in 56 files (−79%). The dependency rule points always inward — the domain knows nothing about infrastructure or UI.
+NAM v4.2.0 uses **Hexagonal Architecture** (Ports & Adapters). The codebase went from 18K+ lines (v3.5.0 Facade Pattern) to ~3,900 lines in 56 files (−79%). The dependency rule points always inward — the domain knows nothing about infrastructure or UI.
 
 ```
 src/
@@ -374,9 +384,24 @@ See [SECURITY.md](SECURITY.md) for vulnerability reporting.
 | i18n             | i18next + react-i18next       |
 | Animations       | framer-motion 12              |
 | Build            | Vite 5 + electron-builder 24  |
-| Testing          | Vitest + Playwright + axe-core|
 | Linting          | ESLint                        |
-| Architecture     | Clean / Hexagonal (Ports & Adapters) |
+| Architecture     | Hexagonal (Ports & Adapters)  |
+
+---
+
+## 🗺️ Roadmap
+
+The full roadmap — including completed batches (B-1 through B-5), open technical debt (i18n unification, CI hardening, test coverage), and planned features — lives in [PROJECT.md](PROJECT.md).
+
+### Completed milestones
+- **v4.0.0** — Hexagonal Architecture refactor (−79% LOC)
+- **v4.1.0** — LaunchDock persistence, i18n parity (247 keys × 3 locales), CSP + memory leak fixes
+- **v4.2.0** — WebSocket real account control (B-1), dynamic forms i18n (B-5), portfolio-ready release
+
+### Known technical debt
+- **i18n dual system** — `src/config/i18n.ts` custom `t()` and `src/application/i18n.ts` i18next coexist; unification planned for a future release
+- **Test coverage** — Unit/E2E test harness is parked; CI gates run with `continue-on-error` until tests are reinstated
+- **AGENTS.md stale** — `src/main/AGENTS.md` and `src/renderer/AGENTS.md` describe v2.5.0, not the current hexagonal architecture
 
 ---
 
@@ -396,7 +421,6 @@ cd NexoAccManager
 npm install
 npm run dev          # Development with hot-reload
 npx tsc --noEmit     # Type check (0 errors required)
-npx vitest run       # Run unit tests
 npm run lint         # ESLint (0 warnings required)
 npm run build        # Production build
 ```

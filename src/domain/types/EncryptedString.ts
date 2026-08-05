@@ -33,12 +33,30 @@ export function makeEncryptedString(s: string): EncryptedString {
 }
 
 /**
- * Comprobación runtime placeholder. En producción actual todo string
- * proveniente de la DB se trata como EncryptedString en el boundary.
- * Reservado para futura verificación con tagged prefix MAC si se añade.
+ * Runtime guard for the EncryptedString branded type.
+ *
+ * Unlike a type assertion (which is erased at compile time), this checks for
+ * the *structural fingerprint* that CryptoService.encrypt() leaves on every
+ * value it produces: a base64 string whose decoded form is at least
+ * salt(16) + iv(16) + tag(16) = 48 bytes long.
+ *
+ * A value can only be an EncryptedString at runtime if it was produced by
+ * encrypt() (or read back from the DB where encrypt() wrote it). Plaintext
+ * credentials and arbitrary strings fail this check, preventing them from
+ * being silently assigned to fields that require EncryptedString.
  */
 export function isEncryptedString(s: string): s is EncryptedString {
-  return typeof s === 'string' && s.length >= 0;
+  if (typeof s !== 'string' || s.length === 0) {
+    return false;
+  }
+  try {
+    const decoded = Buffer.from(s, 'base64');
+    // encrypt() layout: salt(16) + iv(16) + tag(16) + ciphertext(>=0)
+    // Minimum decoded length is 48 bytes.
+    return decoded.length >= 48;
+  } catch {
+    return false;
+  }
 }
 
 // The unique symbol is private by design — see comment block above.
