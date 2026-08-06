@@ -1,8 +1,38 @@
 # PROJECT.md — NexoAccManager
 
-> **Estado:** Activo | **Versión:** 4.1.0 | **Última actualización:** 2026-07-31
+> **Estado:** Activo | **Versión:** 4.2.1 | **Última actualización:** 2026-08-06
 
 ---
+
+## Auditoría 2026-08-06
+
+### Cambios realizados durante la limpieza y profesionalización:
+
+1. **Eliminación de archivos huérfanos**:
+   - Eliminado `LAUNCH_DOCK_IMPLEMENTATION_SUMMARY.md` del raíz (violaba la regla "no .md fuera de PROJECT.md")
+   - Contenido relevante movido a esta sección de PROJECT.md
+
+2. **Limpieza de .gitignore**:
+   - Verificado que `test-results/`, `sketches/`, `dist/`, `build/`, `release/` estén en .gitignore
+   - Entradas faltantes añadidas donde necesario
+   - Archivos ya commitados removidos del tracking con `git rm -r --cached` (sin borrar físicamente)
+
+3. **Consolidación de CI Workflows**:
+   - Evaluados 5 workflows en `.github/workflows/`
+   - Eliminado `code-review.yml` (duplicado con funcionalidad de CI principal)
+   - Eliminado `visual-diff.yml` (innecesario sin Playwright visual regression activo)
+   - Mantenidos: `ci.yml` (lint+typecheck), `build-verify.yml` (build test), `build-windows.yml` (Windows-specific)
+
+4. **Actualización de PROJECT.md**:
+   - Añadida esta sección "Auditoría 2026-08-06"
+   - Versión actualizada de 4.1.0 a 4.2.1 (cleanup release)
+   - Integrado resumen de implementación del LaunchDock desde el archivo eliminado
+
+### Resultado:
+- Repo más limpio y profesionalizado
+- Configuración CI simplificada y mantenible
+- Documentación centralizada en PROJECT.md
+- Preparado para gates de calidad: LSP limpio, lint 0 errors, build exitoso
 
 ## 🎯 Objetivo Principal
 
@@ -91,6 +121,40 @@ Gestor de cuentas Roblox de código abierto, 100% local, con encriptación AES-2
 ```
 
 Nota: el renderer NUNCA manipula cookies ni passwords — solo el main process las cifra y persiste.
+
+---
+
+
+---
+
+## Implementación del LaunchDock (Resumen)
+
+El LaunchDock es un componente persistente que mejora el flujo de conexión entre juegos y cuentas eliminando la fricción de copiar/pegar Place IDs manualmente.
+
+### Características principales:
+- **Propagación automática de Place ID**: Al seleccionar un juego en GamesView o ServersView, su Place ID aparece automáticamente en el LaunchDock
+- **Componente persistente**: Siempre visible en el pie de la pantalla, independientemente de la vista activa
+- **Integración con shuffle**: Opción para generar Job ID aleatorio válido vía API
+- **Navegación rápida**: Botón "Ir a Juegos" para acceder directamente a GamesView
+- **Estado visual**: Feedback inmediato con toasts, highlight en cards y pulso en el dock
+
+### Arquitectura:
+- **Store centralizado**: `useLaunchStore` maneja el estado global (selectedPlaceId, selectedGame, selectedAccountId, shuffle, launchStatus)
+- **Componentes actualizados**: 
+  - GamesView.tsx: Propaga Place ID al store al hacer click en un juego
+  - AccountsView.tsx: Lee Place ID y shuffle del store, elimina estado local
+  - App.tsx: Renderiza LaunchDock como hijo fijo del contenedor principal
+  - IPC Handler `roblox:launch`: jobId ahora es opcional, solo requiere placeId
+
+### Beneficios logrados:
+✅ Eliminación de fricción: cero copy-paste manual entre vistas
+✅ Feedback visual inmediato: toast, highlight en card, pulso en dock  
+✅ Siempre visible: el LaunchDock es persistente
+✅ Menos campos: se elimina el Job ID manual
+✅ Integración con shuffle: uso de servidor aleatorio válido vía API
+✅ Navegación rápida: botón "Ir a Juegos" desde el dock
+✅ Arquitectura limpia: estado centralizado en useLaunchStore, acoplado débilmente
+
 
 ---
 
