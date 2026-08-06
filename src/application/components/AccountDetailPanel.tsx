@@ -1,6 +1,6 @@
 // Application Component: AccountDetailPanel — full detail with profile/security/privacy tabs — Mantine v7
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { X, Eye, Shield, User, Bell, Lock, Key, LogOut, Activity } from 'lucide-react';
 import {
@@ -23,7 +23,8 @@ interface AccountDetailPanelProps {
  onLogoutAll: () => void;
 }
 
-export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie, onLogoutAll }: AccountDetailPanelProps): JSX.Element {
+// P-002: React.memo — skip re-render when props (account + stable callbacks) are unchanged.
+function AccountDetailPanelComponent({ account, onClose, onLaunch, onRefreshCookie, onLogoutAll }: AccountDetailPanelProps): JSX.Element {
  const api = (typeof window !== 'undefined' && window.api) ? window.api : null;
  const [activeTab, setActiveTab] = useState<string>('outfits');
  const [outfits, setOutfits] = useState<Outfit[]>([]);
@@ -474,5 +475,7 @@ export function AccountDetailPanel({ account, onClose, onLaunch, onRefreshCookie
  </Tabs>
  </motion.div>
  </AnimatePresence>
- );
+);
 }
+
+export const AccountDetailPanel = memo(AccountDetailPanelComponent);

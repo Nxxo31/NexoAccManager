@@ -171,6 +171,21 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
   const handleCardSelect = useCallback((account: Account) => select(account.id), [select]);
   const handleCardRemove = useCallback((account: Account) => confirmRemoveAccount(account), [confirmRemoveAccount]);
 
+  // P-002: Stable callbacks for AccountDetailPanel — prevents re-renders when
+  // AccountsView state changes (removingIds/togglingFavorites Sets) but the
+  // selected account hasn't. Enables React.memo on AccountDetailPanel.
+  const handleDetailClose = useCallback(() => select(null), [select]);
+  const handleDetailRefreshCookie = useCallback(async () => {
+    if (!selected || !api) return;
+    const result = await api.cookie.refresh(selected.id);
+    if (result?.success) notifications.show({ message: t('accounts.cookieRefreshed'), color: 'green' });
+    else notifications.show({ message: result?.error ?? t('common.error'), color: 'red' });
+  }, [selected, api]);
+  const handleDetailLogoutAll = useCallback(
+    () => notifications.show({ message: t('accounts.functionUnavailable'), color: 'orange' }),
+    [],
+  );
+
   if (accounts.length === 0) {
     return (
       <Stack align="center" justify="center" h="100%" gap="md">
@@ -226,14 +241,10 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
         {selected && (
           <AccountDetailPanel
             account={selected}
-            onClose={() => select(null)}
+            onClose={handleDetailClose}
             onLaunch={handleLaunch}
-            onRefreshCookie={async () => {
-              const result = await api?.cookie.refresh(selected.id);
-              if (result?.success) notifications.show({ message: t('accounts.cookieRefreshed'), color: 'green' });
-              else notifications.show({ message: result?.error ?? t('common.error'), color: 'red' });
-            }}
-            onLogoutAll={() => notifications.show({ message: t('accounts.functionUnavailable'), color: 'orange' })}
+            onRefreshCookie={handleDetailRefreshCookie}
+            onLogoutAll={handleDetailLogoutAll}
           />
         )}
       </div>
