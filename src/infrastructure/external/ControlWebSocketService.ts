@@ -97,6 +97,8 @@ class ControlWebSocketServiceImpl {
         this.reconnectTimer = null;
       }
       this.setConnectionStatus('connected');
+      // Resend any pending commands that were queued while disconnected
+      this.resendPendingCommands();
     });
 
     this.socket.on('message', (raw: Buffer | ArrayBuffer | Buffer[], isBinary: boolean) => {
@@ -189,6 +191,22 @@ class ControlWebSocketServiceImpl {
         resolve(errResult(`Failed to send WS command: ${(e as Error).message}`));
       }
     });
+  }
+
+  /** Resend all pending commands when the WebSocket reconnects. */
+  private resendPendingCommands(): void {
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
+    for (const [id, cmd] of this.pending) {
+      try {
+        this.socket.send(JSON.stringify({ id, accountId: cmd.payload.accountId, command: cmd.payload.command }));
+      } catch (e) {
+        // If sending fails, we let the timer handle the timeout and error.
+        // We do not delete the command here; the existing timeout logic will run.
+        // However, we must avoid flooding if the socket is intermittently failing.
+        // We'll just log and continue.
+        try { logger.warn(`[ControlWS] failed to resend command ${id}: ${(e as Error).message}`); } catch { /* best-effort */ }
+      }
+    }
   }
 
   /** Subscripción para push messages de estado. Devuelve un unsub. */
