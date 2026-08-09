@@ -1,6 +1,7 @@
 name: Build & Verify
 on:
   push:
+    branches: [main]
     tags: ['v*']
   pull_request:
     branches: [main]
@@ -30,17 +31,22 @@ jobs:
           findstr "loadFile" dist/main/main.js
           findstr "../renderer/index.html" dist/main/main.js
           if %ERRORLEVEL% neq 0 exit 1
-      - name: Smoke test - launch app for 5 seconds
+      - name: Smoke test - launch app for 10 seconds
         shell: powershell
         run: |
           $exe = Get-ChildItem release/win-unpacked/*.exe | Select-Object -First 1
+          if (-not $exe) {
+            Write-Host "ERROR: No .exe found in release/win-unpacked/"
+            exit 1
+          }
+          Write-Host "Launching: $($exe.FullName)"
           $proc = Start-Process $exe.FullName -PassThru
-          Start-Sleep -Seconds 5
+          Start-Sleep -Seconds 10
           if ($proc.HasExited) {
             Write-Host "APP CRASHED - process exited with code $($proc.ExitCode)"
             exit 1
           }
-          Write-Host "App running successfully"
+          Write-Host "App running successfully after 10 seconds (PID $($proc.Id))"
           Stop-Process -Id $proc.Id -Force
       - uses: actions/upload-artifact@v4
         with:
@@ -54,3 +60,50 @@ jobs:
           gh release upload $tag release/*.exe release/*.exe.blockmap --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - name: Verify AppImage exists
+        run: |
+          if ! ls release/*.AppImage 1> /dev/null 2>&1; then
+            echo "ERROR: No AppImage found in release/"
+            exit 1
+          fi
+          echo "AppImage built successfully:"
+          ls -lh release/*.AppImage
+      - name: Smoke test - launch AppImage for 10 seconds with xvfb
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y xvfb libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libdrm2 libgbm1 libxcb-dri3-glx0
+          APPIMAGE=$(ls release/*.AppImage | head -1)
+          echo "Launching: $APPIMAGE"
+          chmod +x "$APPIMAGE"
+          # Launch under xvfb-run; app runs for 10 seconds then we kill it.
+          # Exit 0 means the process did not crash during the 10-second window.
+          timeout 15 xvfb-run -a --server-args="-screen 0 1280x720x24" \
+            "$APPIMAGE" --no-sandbox &
+          APP_PID=$!
+          sleep 10
+          if kill -0 $APP_PID 2>/dev/null; then
+            echo "App running successfully after 10 seconds (PID $APP_PID)"
+            kill $APP_PID 2>/dev/null || true
+            wait $APP_PID 2>/dev/null || true
+            exit 0
+          else
+            wait $APP_PID 2>/dev/null
+            EXIT_CODE=$?
+            echo "APP CRASHED - process exited with code $EXIT_CODE"
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: release/*.AppImage

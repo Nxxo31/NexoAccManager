@@ -62,7 +62,6 @@ export default defineConfig({
             '@mantine/form',
           ],
           'vendor-motion': ['framer-motion'],
-          'vendor-i18n': ['i18next', 'react-i18next'],
         },
       },
     },
