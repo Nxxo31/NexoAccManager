@@ -12,7 +12,7 @@ License: MIT
 - **Main process**: Node.js + better-sqlite3
 - **Encryption**: AES-256-GCM hardware-derived
 - **IPC**: Typed contextBridge — invoke/handle only, never send/on
-- **i18n**: i18next + react-i18next (ES/EN/PT)
+- **i18n**: custom flat resolver `t(key, vars)` in `src/config/i18n.ts` — sole system since v5.0.0 (i18next/react-i18next removed; 255 leaf keys × 3 locales with ES fallback, single-brace `{var}` placeholders)
 - **Themes**: CSS variables in :root via IPC theme:set
 - **Build**: electron-builder (AppImage, snap, NSIS)
 - **Verification gates**: `mcp__lsp_intelligence__live_diagnostics` + `delegate_task` review + `gitleaks` (staged diff) — NO vitest, NO jest, NO playwright, NO `tsc --noEmit` directo
@@ -29,17 +29,32 @@ License: MIT
 - Never create .bak files — use git for versioning
 - Never write code without reading PROJECT.md first
 
-## IPC Architecture — mandatory namespacing
+## IPC Architecture — mandatory namespacing (v5.0.0 — 21 namespaces, 92 channels in preload)
 ```
-account:*   → account management (CRUD + encryption)
-roblox:*    → platform API calls
-settings:*  → local preferences and config
-theme:*     → theme system
-i18n:*      → internationalization
-advanced:*  → cache, export, data
+account:*     → account management (CRUD + encryption + login + control)
+roblox:*      → platform API (launch, kill, instances, servers, outfits, vip)
+settings:*    → local preferences, theme, language (key 'language')
+theme:*       → CSS theme system (theme:get / theme:set)
+cookie:*      → cookie expiry + refresh
+friends:*     → friend list / requests / send / respond
+follow:*      → follow / unfollow (companion: unfollow:*)
+servers:*     → server list + users by account
+games:*       → search + favorites management
+advanced:*    → cache, export, devmode, delete-all, local-api start/stop
+botting:*     → botting start / stop / status
+cache:*       → cache analyze / clean
+captcha:*     → captcha solve
+discord:*     → Discord RPC initialize / update / clear / shutdown
+fflags:*      → FastFlags get/set/delete/import/export
+logs:*        → recent logs / clear-old
+mods:*       → content mods install/uninstall/list/backup/restore
+playtime:*    → session tracking + history + totals
+presets:*     → launch presets CRUD + launchPreset
+shell:*       → open-external (sandbox-safe)
 ```
 Pattern: invoke/handle (Promise-based) — never send/on for request-response
 Result pattern in IPC: `{ success, data }` | `{ success: false, error }` — never throw without catch
+`account:control` transport is WebSocket-only since v4.2.0 (smart-polling HTTP fallback removed; v5.0.0 adds resend-on-reconnect buffer). See MIGRATION.md.
 
 ## Account limit
 - Maximum 50 accounts per user
@@ -93,65 +108,109 @@ NO separate spec files, drift reports, docs/specs/, architecture overviews, or a
 - After writing, validate: `mcp__lsp_intelligence__live_diagnostics` en el archivo modificado before marking complete
 - If an edit fails 2 times with the same approach, stop and report
 
-## Key file structure — ACTUAL v2.5.0
+## Key file structure — ACTUAL v5.0.0 (Hexagonal Architecture)
 ```
 src/
-  main/
-    main.ts                   → Electron main process
-    core/
-      AccountManager.ts       → account management + encryption
-      CryptoService.ts        → AES-256-GCM encryption
-      ThemeService.ts         → CSS theme system
-      AccountSettingsService.ts → Roblox account settings
-      MultiRobloxService.ts   → multiple instances
-    services/
-      CookieExpiryService.ts → auto-refresh cookies
-      GamesService.ts         → game and server search
-      PresenceService.ts      → real-time online status
-      LoginBrowserService.ts  → BrowserWindow login (captures .ROBLOSECURITY)
-      RobloxAuthService.ts     → cookie verification
-    storage/
-      DatabaseManager.ts      → local SQLite
-  renderer/
-    App.tsx                   → renderer root (single-view, no routing)
-    context/
-      ThemeContext.tsx        → React context for themes
-    hooks/
-      useFocusTrap.ts         → focus-trap for modals
-    animations/
-      variants.ts             → framer-motion variants
+  main.ts                       → Electron main process entry (single file since v4.0.0 split)
+  renderer.tsx                  → React renderer entry (MantineProvider + Modals + Notifications)
+  theme.ts                      → Mantine v7 theme export
+  config/
+    constants.ts                → app-wide constants (ports, paths, limits)
+    i18n.ts                     → SOLE i18n system: custom t(key, vars) — 255 leaf keys × 3 locales (ES/EN/PT), ES fallback, single-brace {var} interpolation
+  domain/                       → pure business logic, zero Electron/React/Side-effect imports
+    entities/
+      Account.ts                → Account entity + value objects
+      FastFlag.ts               → FastFlag entity
+      GameData.ts               → Game/search result entity
+      LaunchPreset.ts           → preset entity
+      PlaytimeEntry.ts          → playtime tracking entry
+      PresenceData.ts           → presence/online-state entity
+      ServerInfo.ts             → server list entry entity
+    repositories/
+      RepositoryInterfaces.ts   → AccountRepository / SettingsRepository port contracts
+      RobloxApiPort.ts          → Roblox API port — segregated into 6 capability sub-ports (Auth, Games, Presence, Social, Settings, Cookie) since v4.1.0
+    types/
+      EncryptedString.ts        → branded type — runtime guard against plaintext credentials (invariant-validated factory)
+  application/                  → React/UX layer (renderer-side state, views, components)
+    App.tsx                     → app root
+    ErrorBoundary.tsx           → React error boundary
     components/
+      AddAccountModal.tsx       → login/cookie/bulk-import 3-tab modal (uses t() interpolation: modal.accountsAdded)
+      AccountDetailPanel.tsx   → expandable per-account detail panel
+      LaunchDock.tsx            → persistent launch dock (Place ID via launchStore)
       accounts/
-        AccountTable.tsx      → 3-column table (Usuario|Alias|Descripción)
-        AccountRow.tsx        → draggable row with framer-motion Reorder
-        AddAccountModal.tsx   → login/cookie/bulk import tabs
-      layout/
-        Header.tsx            → logo + counter + checkbox + theme toggle
-        Dock.tsx              → Place ID + Job ID + action buttons + Servidores + Ajustes
-      modal/
-        ModalShell.tsx        → overlay modal with focus-trap + ARIA
-      server-browser/
-        ServerBrowser.tsx     → server search and list (accessible via Dock → Servidores)
+        AccountCard.tsx          → inline-editable account card
       settings/
-        SettingsPanel.tsx     → theme + language settings (accessible via Dock → Ajustes)
-      AccountControlPanel/    → profile, security, privacy, friends, notifications
-                              → accessible via AccountRow botón "Control de cuenta" (Settings2 icon)
-                              → abre como modal con setShowAccountControl(true) en App.tsx
-      ErrorBoundary.tsx       → React error boundary wrapper
-      ui/                     → shadcn-ui primitives (button, input, card, badge)
+        SettingsGeneral.tsx      → General settings (language picker → settings:set key='language')
+        SettingsAppearance.tsx   → theme selection
+        SettingsBotting.tsx     → botting toggles
+        SettingsCache.tsx       → cache analyze/clean
+        SettingsContentMods.tsx → content mods install/uninstall
+        SettingsData.tsx        → export/delete-all
+        SettingsDiscordRPC.tsx  → Discord RPC on/off
+        SettingsFastFlags.tsx   → FastFlags editor
+        SettingsLaunchPresets.tsx → preset manager
+        SettingsLogs.tsx        → recent logs viewer
+        SettingsPlaytime.tsx    → playtime history + clear
+        SettingsWebServer.tsx   → advanced: local-api start/stop
+    hooks/
+      useAccounts.ts            → Zustand-bound selectors hook
+    layout/
+      Sidebar.tsx               → navigation sidebar
+      TopBar.tsx                → top bar
+      ContentArea.tsx           → active-view switcher
     store/
-      useAccountStore.ts      → Zustand account state
-      useUIStore.ts           → Zustand UI state
-    lib/
-      utils.ts                → cn() helper for Tailwind merge
-    locales/                  → es.json, en.json, pt.json
-    themeDefinitions.ts
-    index.css
-    main.tsx
+      accountStore.ts           → Zustand account state
+      launchStore.ts            → Zustand persistent launch state (last Place ID)
+      uiStore.ts                → Zustand ephemeral UI state
+    views/
+      AccountsView.tsx          → main hub (uses t() interpolation: accounts.launched, accounts.deleteConfirmBody)
+      ServersView.tsx           → server search (t() interpolation: servers.count/region/players/fps)
+      FriendsView.tsx           → friends list (t() interpolation: friends.onlineCount)
+      GamesView.tsx             → games search & favorites (t() interpolation: games.count)
+      SettingsView.tsx          → accordion wrapper routing to 12 settings/ subcomponents (SRP since v4.1.0)
+    window-api.d.ts             → typed preloaded window.api (preload bridge contract)
+  infrastructure/               → adapters/implementations (side-effects live here)
+    database/
+      DatabaseManager.ts        → better-sqlite3 init, 4 tables (accounts, recent_games, favorite_games, settings) — schema unchanged since v4.0.0 (CREATE TABLE IF NOT EXISTS, no ALTER)
+      AccountRepositoryImpl.ts  → AccountRepository impl
+      SettingsRepositoryImpl.ts  → SettingsRepository impl
+      CryptoService.ts          → AES-256-GCM encryption (hardware-derived salt)
+      LRUCache.ts               → in-process 60s LRU for Roblox API rate-limit respect
+    external/
+      RobloxAuthService.ts       → RobloxAuthPort: cookie verification, CSRF, login
+      RobloxCookieService.ts    → RobloxCookiePort: cookie expiry + refresh (<24h)
+      RobloxGamesService.ts     → RobloxGamesPort: search, servers, users, outfits, universes
+      RobloxPresenceService.ts   → RobloxPresencePort: presence, recent games, Robux
+      RobloxSettingsService.ts   → RobloxSettingsPort: profile, 2FA, sessions, password, privacy, notifications
+      RobloxBottingService.ts   → botting start/stop/status executor
+      RobloxHttp.ts              → shared HTTPS client + cookie-forwarding helpers
+      RobloxLogService.ts        → pulled Roblox client log reader
+      ControlWebSocketService.ts → account:control transport, WS-only since v4.2.0 (ws://127.0.0.1:<port>/control); pending-command resend-on-reconnect added v5.0.0 — see MIGRATION.md
+      LocalApiService.ts        → local control surface host (loopback)
+      MultiRobloxService.ts     → multi-instance launcher (Windows mutex/profiles)
+      CaptchaService.ts          → captcha solver
+      CacheCleanerService.ts    → cache filesystem cleanup
+      ContentModService.ts      → mods install/restore
+      FastFlagsService.ts       → FastFlags persistence
+      DiscordRPCService.ts      → Discord RPC integration
+      LaunchPresetService.ts    → preset persistence (SQLite)
+      PlaytimeService.ts        → playtime session tracking (SQLite)
+      ThemeService.ts           → CSS-variable theme system
+    ipc/
+      IPCAdapter.ts              → registers all 92 channels by namespace (single entry-point called from main.ts)
+      handlers/
+        accountHandlers.ts       → account:* namespace
+        robloxHandlers.ts        → roblox:* namespace
+        settingsHandlers.ts     → settings:* + theme:* namespace
+        advancedHandlers.ts      → advanced:* + botting:* + cache:* + discord:* + fflags:* + logs:* + mods:* + playtime:* + presets:* namespaces
+        shared.ts                → shared IPC result-shaping helpers (okResult/errResult) + validation
+    logging/
+      logger.ts                 → electron-log wrapper (structured, request IDs; B-4)
   preload/
-    preload.ts                → contextBridge — channel whitelist
+    index.ts                    → contextBridge — channel whitelist (all 92 invoke channels exposed via window.api.*; never send/on)
   types/
-    Account.ts
+    ws.d.ts                     → WebSocket message type declarations (account:control payload shapes)
 ```
 
 ## Design system — do not improvise

@@ -1,6 +1,6 @@
 # PROJECT.md — NexoAccManager
 
-> **Estado:** Activo | **Versión:** 4.2.1 | **Última actualización:** 2026-08-06
+> **Estado:** Activo | **Versión:** 5.0.0 | **Última actualización:** 2026-08-09 — release prep v5.0.0 (CHANGELOG + MIGRATION + AGENTS.md hexagonal + i18n audit)
 
 ---
 
@@ -237,7 +237,7 @@ Próximo commit previsto: `docs: estandarizar PROJECT.md (template SophIA con ma
 | B-5 | ✅ Formularios dinámicos i18n (interpolación count/vars en .tsx) — completado 2026-08-02 | Alta | #3 |
 | B-1 | ✅ WebSocket real para `account:control` — completado 2026-08-04 (WS persistente + reconnect backoff, smart-polling eliminado) | Media | #1 |
 | B-6 | ❌ Removido 2026-08-06 — tests unitarios para handlers reemplazados por gates LSP+review. Los tests mockeaban Electron/SQLite y daban falsa confianza. | Media | #4 |
-| B-7 | P-001/P-002 perf en AccountsView (React.memo en listas grandes) | Baja | #5 |
+| B-7 | ✅ P-001/P-002 perf en AccountsView (React.memo en listas grandes) — completado 2026-08-09 (AccountCard.tsx ya tenía `memo()` desde P-001; añadido `memo(AccountsViewComponent)` en AccountsView.tsx) | Baja | #5 |
 | B-8 | ❌ Removido 2026-08-06 — visual regression con Playwright reemplazado por smoke test del binario real en build-verify.yml | Baja | #6 |
 
 ---
@@ -271,10 +271,10 @@ Próximo commit previsto: `docs: estandarizar PROJECT.md (template SophIA con ma
 #### Semana 1 (Aug 1–7): CI repair — quitar continue-on-error
 | # | Entregable | Criterio de éxito |
 |---|------------|-------------------|
-| 1.1 | Editar `.github/workflows/ci.yml`: remover `continue-on-error: true` de todos los jobs | Push a `main` → workflow verde SI Y SOLO SI lint+build pasan |
-| 1.2 | Eliminar `coverage.yml` (roto, llama a script test:coverage que no existe) | Workflow eliminado del repo |
-| 1.3 | Añadir job `ipc-drift-check` en `ci.yml` que ejecuta el extractor de canales → `drift != 0` rompe el build | Drift detector integrado en CI |
-| 1.4 | Añadir `gitleaks` step en ci.yml — scan de staged diff en cada PR | Secret scan bloqueante en CI |
+| 1.1 | ✅ Editar `.github/workflows/ci.yml`: remover `continue-on-error: true` de todos los jobs — **DONE 2026-08-09** | Push a `main` → workflow verde SI Y SOLO SI lint+build pasan |
+| 1.2 | ✅ Eliminar `coverage.yml` (roto, llama a script test:coverage que no existe) — **DONE 2026-08-09**: archivo ya no existe en `.github/workflows/` | Workflow eliminado del repo |
+| 1.3 | ✅ Añadir job `ipc-drift-check` en `ci.yml` que ejecuta el extractor de canales → `drift != 0` rompe el build — **DONE 2026-08-09**: job `ipc-drift-check` corre `scripts/extract-ipc-channels.ts` con `npx tsx` | Drift detector integrado en CI |
+| 1.4 | ✅ Añadir `gitleaks` step en ci.yml — scan de staged diff en cada PR — **DONE 2026-08-09**: job `gitleaks` corre en `pull_request`, reporta a artifact en failure | Secret scan bloqueante en CI |
 
 **Gate al final Semana 1:** CI `green` en `main` sin flags `continue-on-error` en ningún job.
 
@@ -290,9 +290,9 @@ Próximo commit previsto: `docs: estandarizar PROJECT.md (template SophIA con ma
 #### Semana 3-4 (Aug 15–31): B-7 perf + i18n consolidation
 | # | Entregable | Criterio de éxito |
 |---|------------|-------------------|
-| 3.1 | B-7: React.memo en AccountRow, AccountsView para listas grandes (50 cuentas) | Render de 50 cuentas sin jank |
+| 3.1 | ✅ B-7: React.memo en AccountsView + AccountCard (P-001 ya aplicado en AccountCard) — **DONE 2026-08-09**: `memo(AccountsViewComponent)` en AccountsView.tsx; `memo(AccountCardComponent)` ya presente en AccountCard.tsx. NOTA: doc original decía "AccountRow" pero el componente real es `AccountCard` | Render de 50 cuentas sin jank |
 | 3.2 | ✅ Auditar i18n: contar leaf keys reales, actualizar PROJECT.md con número real | Sin discrepancia doc ↔ código — **DONE 2026-08-09**: audit programático 255/255/255 leaf keys × es/en/pt en `config/i18n.ts`; 102 leaf keys en `application/locales/es.json` (sistema muerto, eliminado); PROJECT.md corregido |
-| 3.3 | Verificar que continue-on-error fue removido en todos los workflows | grep `continue-on-error` → 0 resultados |
+| 3.3 | ✅ Verificar que continue-on-error fue removido en todos los workflows — **DONE 2026-08-09**: `grep -rn 'continue-on-error' .github/workflows/` → 0 resultados (exit 1) | grep `continue-on-error` → 0 resultados |
 
 **Gate final Mes 1 (Aug 31):** CI green sin flags. Smoke test del binario real en cada PR. B-7 ✅.
 
@@ -307,17 +307,18 @@ Próximo commit previsto: `docs: estandarizar PROJECT.md (template SophIA con ma
 |---|------------|-------------------|
 | 5.1 | ✅ Consolidar i18n a sistema único (decisión reversa vs roadmap original) | **DONE 2026-08-09**: en lugar de eliminar `config/i18n.ts` y migrar a react-i18next (que era el sistema muerto con 0 consumers), se eliminó `application/i18n.ts` + `application/locales/*.json` + `import './i18n'` en App.tsx + deps `i18next`/`react-i18next` de package.json. Sistema único = `config/i18n.ts` con `t(key, vars)` (255 keys × 3 idiomas). Justificación: el sistema "muerto" era react-i18next (inicializado pero sin callers `useTranslation()`), no el custom; la migración propuesta habría requerido reescribir 25 archivos por cero beneficio. LSP live_diagnostics 0 errores en App.tsx y ControlWebSocketService.ts tras el cambio |
 | 5.2 | ✅ Re-auditar tras consolidación | **DONE 2026-08-09**: 0 missing keys; sistema único verificado por LSP |
-| 5.3 | Verificar interpolación en AddAccountModal, AccountsView, ServersView, FriendsView, GamesView | Sin warnings missing key en consola |
+| 5.3 | ✅ Verificar interpolación en AddAccountModal, AccountsView, ServersView, FriendsView, GamesView | **DONE 2026-08-09**: audit programático dirigió `src/config/i18n.ts` contra los 5 archivos — **124 t() calls totales, 9 con interpolación ({name}, {count}, {current}, {max}, {fps}, {region}), 0 missing keys**. Templates citados en `MIGRATION.md` tabla §4. |
+
 
 **Gate:** ✅ Sistema i18n único conseguido 2026-08-09 (`config/i18n.ts` custom `t()`, react-i18next eliminado). Cero keys hardcoded. Sin orphan keys.
 
 #### Semana 7-8 (Sep 15–30): Documentación + release v5.0.0
 | # | Entregable | Criterio de éxito |
 |---|------------|-------------------|
-| 7.1 | Crear `CHANGELOG.md` con cambios v4.0.0→v5.0.0 | Entrada [5.0.0] con sections Added/Changed/Deprecated/Removed/Fixed/Security |
-| 7.2 | Crear `MIGRATION.md` (v4.x → v5.0.0): i18n migration, account:control WS-only, SQLite schema | Hooks de migración con ejemplos before/after |
-| 7.3 | Actualizar AGENTS.md "Key file structure" de src/main+src/renderer al hexagonal actual | find src/ coincide 1:1 con AGENTS.md |
-| 7.4 | `package.json` version → 5.0.0; `git tag v5.0.0` → trigger build-verify.yml | Artifacts .exe + .AppImage publicados en GitHub Release |
+| 7.1 | ✅ Crear `CHANGELOG.md` con cambios v4.0.0→v5.0.0 | **DONE 2026-08-09**: entrada `[v5.0.0] - 2026-08-09` añadida sobre `[Unreleased]` con las 6 sections Keep a Changelog (Added/Changed/Deprecated/Removed/Fixed/Security); entradas v4.0.0→v4.2.0 preservadas |
+| 7.2 | ✅ Crear `MIGRATION.md` (v4.x → v5.0.0): i18n migration, account:control WS-only, SQLite schema | **DONE 2026-08-09**: 4 secciones — (1) consolidación i18n con before/after y steps para forks, (2) `account:control` WS-only con buffer resend-on-reconnect, (3) SQLite schema: NO migration required (CREATE TABLE IF NOT EXISTS, sin ALTER, 4 tablas idénticas desde v4.0.0), (4) auditoría de interpolación: tabla citando las 9 keys + placeholders verificados |
+| 7.3 | ✅ Actualizar AGENTS.md "Key file structure" de src/main+src/renderer al hexagonal actual | **DONE 2026-08-09**: sección `Key file structure — ACTUAL v5.0.0 (Hexagonal Architecture)` rescrita reflejando 79 archivos reales en `src/{main.ts, renderer.tsx, theme.ts, config/, domain/[entities×7, repositories×2, types×1], application/[App, components, hooks, layout, store×3, views×5], infrastructure/[database×5, external×17, ipc/handlers×5, logging], preload/index.ts, types/ws.d.ts}`; también stack i18n (custom `t()` sole system) y namespaces IPC (21 namespaces, 92 channels) actualizados |
+| 7.4 | ✅ `package.json` version → 5.0.0; `git tag v5.0.0` → trigger build-verify.yml | **DONE 2026-08-09**: `package.json` v4.2.1→5.0.0; commit atómico + tag v5.0.0 creados (push pendiente — el usuario empujará tras revisión). Nota: el criterio `Artifacts .exe + .AppImage` requiere `git push origin v5.0.0` para disparar el workflow release-verify.yml — queda pendiente de ejecución de CI post-push |
 | 7.5 | Smoke test visual final via computer-use: cada tema, AddAccount + Settings modales | Hallazgos en PROJECT.md sección "Validación visual final v5.0.0" |
 | 7.6 | Cerrar issues GitHub #1, #3 (B-1, B-5) con PRs merged | Issues cerrados |
 

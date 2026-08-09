@@ -6,6 +6,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v5.0.0] - 2026-08-09
+
+### Added
+- CHANGELOG.md entry for v5.0.0 with Keep a Changelog sections (Added/Changed/Deprecated/Removed/Fixed/Security); existing v4.0.0→v4.2.0 entries preserved.
+- MIGRATION.md covering the v4.x → v5.0.0 transition: i18n consolidation (custom `t()` as sole system), `account:control` WebSocket-only transport, and SQLite schema status.
+- WebSocket reconnect buffer: pending `account:control` commands are replayed when the persistent WebSocket to the control server reconnects after a dropped connection.
+- AGENTS.md `Key file structure` section updated from stale v2.5.0 `src/main`+`src/renderer` layout to the actual Hexagonal Architecture (`domain/application/infrastructure/preload` + `main.ts`/`renderer.tsx` entry points).
+
+### Changed
+- i18n consolidation: `src/config/i18n.ts` custom `t(key, vars)` is now the **sole** translation system. The parallel `i18next`/`react-i18next` stack (`src/application/i18n.ts` + `src/application/locales/{es,en,pt}.json` + the `import './i18n'` initializer in `App.tsx`) was identified as dead code (initialized but **zero** `useTranslation()` / `i18n.t()` callers in the codebase) and removed. The documented key count was corrected from the inflated 247 claim to the verified **255 leaf keys × 3 locales** with ES fallback.
+- `package.json` `version` bumped `4.2.0` → `5.0.0`.
+- PROJECT.md roadmap items 5.3 (i18n interpolation audit) and 7.1–7.4 (CHANGELOG/MIGRATION/AGENTS.md/version+tag) marked completed.
+
+### Deprecated
+- Nothing. No APIs are soft-deprecated in this release.
+
+### Removed
+- `i18next` and `react-i18next` dependencies (both `dependencies` and `devDependencies`).
+- `src/application/i18n.ts` (i18next initializer).
+- `src/application/locales/{es,en,pt}.json` (102 leaf keys per locale, only 44 of which overlapped with the live `config/i18n.ts` system — pure dead weight).
+- `import './i18n'` side-effect import in `src/application/App.tsx`.
+
+### Fixed
+- Resend-on-reconnect for `account:control` WebSocket: previously, any command queued while the socket was disconnected was silently lost; it is now buffered and replayed once the connection is re-established.
+- Documentation ↔ code discrepancy: the 255-leaf-key count in `config/i18n.ts` is now the single source of truth in both `CHANGELOG.md`, `MIGRATION.md`, and the updated `PROJECT.md`.
+
+### Security
+- No new CVE-relevant changes. `account:control` transport remains loopback WebSocket (`ws://127.0.0.1:<port>/control`) — the `http://` smart-polling fallback removed in v4.2.0 stays removed, so the control surface is now WS-only with no plaintext HTTP path. Cookie handling is unchanged: Roblox cookies never leave the main process; `EncryptedString` branded-type contract intact.
+
 ## [v4.2.0] - 2026-08-05
 ### Added
 - Real WebSocket connection for account:control IPC (B-1) - replaces smart polling fallback

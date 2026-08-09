@@ -1,6 +1,6 @@
 {
   "name": "nx-manager",
-  "version": "4.2.0",
+  "version": "5.0.0",
   "description": "Open-source multi-account manager for gaming platforms — 100% local, no servers, no cloud",
   "main": "dist/main/main.js",
   "author": {
@@ -105,6 +105,15 @@
       "oneClick": false,
       "perMachine": false,
       "runAfterFinish": true
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "icon": "build/icon.png",
+      "category": "Utility",
+      "asarUnpack": [
+        "node_modules/better-sqlite3/**",
+        "node_modules/electron-store/**"
+      ]
     }
   }
 }
