@@ -14,7 +14,6 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { useMantineColorScheme } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { setLang, type LangId } from '../config/i18n';
-import './i18n';
 
 export function App(): JSX.Element {
  const activeView = useUIStore((state) => state.activeView);

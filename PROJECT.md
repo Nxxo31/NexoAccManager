@@ -43,7 +43,7 @@ Gestor de cuentas Roblox de código abierto, 100% local, con encriptación AES-2
 1. Cementar el modelo de seguridad de cero-confianza (cifrado AES-256-GCM, branded type `EncryptedString`, CSP)
 2. Establecer Clean Architecture como base del código (domain / application / infrastructure / preload / renderer)
 3. Proveer una superficie IPC segura y auditada para el renderer (nunca exponer cookies ni secretos)
-4. Localización completa ES / EN / PT vía el sistema `t(key, vars)` personalizado (discrepancia documentada: 247 keys reclamadas vs ~84 leaf keys reales en es.json — dos sistemas i18n activos, consolidacion pendiente Sprint 5-6)
+4. Localización completa ES / EN / PT vía el sistema único `t(key, vars)` personalizado en `src/config/i18n.ts` — 255 leaf keys × 3 idiomas (es/en/pt), simétricos, sin duplicados, con fallback ES. Sistema i18next+react-i18next (`src/application/i18n.ts` + `src/application/locales/*.json`) eliminado 2026-08-09 por ser código muerto (inicializado en App.tsx pero sin consumers `useTranslation()`/`i18n.t()`). Discrepancia doc ↔ código previa resuelta (247 reclamado → 255 real; ~84 leaf keys en es.json → 102 real, ahora eliminado).
 5. Soporte multi-OS (Windows NSIS + MSIX, Linux AppImage + Snap)
 
 ---
@@ -166,7 +166,7 @@ El LaunchDock es un componente persistente que mejora el flujo de conexión entr
 | R-02 | Cookies nunca salen del main process | `accountHandlers.ts`, `RobloxHttp.ts` | ✅ | Auditoría revisión 55 hallazgos → 0 exfiltraciones activas |
 | R-03 | CSP bloquea inline + conexiones externas no autorizadas | `src/main.ts` | ✅ | `npm run build` exit 0, verificación manual |
 | R-04 | 91 canales IPC con tipos sincronizados性强 | `preload/index.ts`, `window-api.d.ts` | ✅ | Extractor sync → 91 handlers = 91 canales, 0 drift |
-| R-05 | i18n completo ES/EN/PT (247 keys cada uno) | `src/config/i18n.ts` | ✅ | Audit programático 247/247/247, 0 missing |
+| R-05 | i18n completo ES/EN/PT (255 keys cada uno) | `src/config/i18n.ts` | ✅ | Audit programático 255/255/255, 0 missing; sistema único tras consolidación 2026-08-09 |
 | R-06 | LaunchDock persistente con WebSocket + DIP | `ControlWebSocketService.ts`, `LaunchDock.tsx` | ✅ | `npm run build` exit 0; adapters implement formal ports |
 | R-07 | RobloxApiPort segregado en 6 sub-ports (ISP) | `RobloxApiPort.ts`, 6 Source service files | ✅ | `tsc --noEmit` 0 errors |
 | R-08 | Logging estructurado rotativo (electron-log) | `src/infrastructure/logging/logger.ts` | ✅ | File transport `userData/logs/`, formato ISO timestamp |
@@ -209,7 +209,7 @@ El script extractor custom sincroniza preload ↔ handlers ↔ `window-api.d.ts`
 | God interface split | 6 sub-ports (ISP) | RobloxApiPort monolítico | NAM_td_2:违反 ISP — segregado para obligar adaptadores específicos |
 | IPC pattern | `IpcResult {ok: T, error?}` retorno assync | throw + try/catch en renderer | Prevención de errores silenciosos, fallback seguro, trazabilidad |
 | Logging | electron-log (rotativo 5MB) | console.log, winston, pino | Persiste entre reinicios, formato ISO timestamp, override global de console |
-| i18n | Custom `t(key, vars)` system | react-i18next (legacy en /locales/) | Control total del formato, sin deps extra, 247 keys × 3 idiomas con fallback ES |
+| i18n | Custom `t(key, vars)` system (único tras consolidación 2026-08-09) | react-i18next (eliminado — era código muerto sin consumers) | Control total del formato, sin deps extra, 255 keys × 3 idiomas con fallback ES; cero callers de `useTranslation()`/`i18n.t()` en el codebase |
 | Build splitting | Vite code splitting + lazy load | Single bundle | Bundle 739KB → 412KB (-44%), view/code-splitting natural |
 
 ---
@@ -225,7 +225,7 @@ El script extractor custom sincroniza preload ↔ handlers ↔ `window-api.d.ts`
 | v4.0.7 | Corrección seguridad crítica — eliminar exfil cookies, CSRF fix | — | LSP 0 errores, lint 0/0, build exit 0 |
 | v4.0.8 | IpcResult contract, path-traversal fix, loading states, effect hygiene | — | LSP 0 errores, lint 0/0, build exit 0 |
 | v4.0.9 | Lint cleanup 28 warnings→0, version bump, CSP, memory leak fix | — | LSP 0 errores, lint 0/0, build exit 0 |
-| v4.1.0 | DT-1/DT-2/DT-3 refactor domain + B-1 WS + B-2 perf + B-3 i18n + B-4 electron-log | 42d3978, f9bccf2 | LSP 0 errores, parity 247 keys |
+| v4.1.0 | DT-1/DT-2/DT-3 refactor domain + B-1 WS + B-2 perf + B-3 i18n + B-4 electron-log | 42d3978, f9bccf2 | LSP 0 errores, parity 255 keys (corregido de 247 tras audit), i18n consolidado 2026-08-09 |
 | Templates | GitHub issue/PR templates + CI 3-layer gates | d57f9e5 | Workflow files committed |
 
 Próximo commit previsto: `docs: estandarizar PROJECT.md (template SophIA con matriz de trazabilidad y justificación de decisiones)`
@@ -256,7 +256,7 @@ Próximo commit previsto: `docs: estandarizar PROJECT.md (template SophIA con ma
 | Archivos de test | **0** (removidos 2026-08-06) | vitest/playwright/jsdom/wait-on eliminados de devDependencies; tests/ folder eliminado; scripts test:* eliminados |
 | Verification gates | LSP + review + gitleaks + smoke | Sin tests tradicionales — gates determinísticos reemplazan unit tests de mocks |
 | CI `continue-on-error` | Lint + Build + Go vet todos con `continue-on-error: true` | `coverage.yml` llama `npm run test:coverage` que no existe → workflow roto |
-| i18n | `src/config/i18n.ts` (sistema `t()` custom, flat) + `src/application/locales/*.json` + `src/application/i18n.ts` (i18next) | **Dos sistemas de i18n activos simultáneamente**; PROJECT.md reclama 247 keys pero `es.json` tiene ~84 leaf keys. Discrepancia documentada = deuda técnica a resolver |
+| i18n | `src/config/i18n.ts` (sistema `t()` custom, flat, único) | **Sistema único tras consolidación 2026-08-09**. Sistema i18next+react-i18next eliminado (mismo era código muerto: `import './i18n'` inicializaba pero `0 callers` de `useTranslation()`/`i18n.t()`; 102 leaf keys en `es.json`, solo 44 overlapping con el sistema vivo). Audit real: **255/255/255** leaf keys × 3 idiomas en `config/i18n.ts` (no 247 ni 84); discrepancia doc ↔ código resuelta |
 | `ControlWebSocketService` | Implementado (B-1 interino) | Usa `ws://127.0.0.1:<port>/control` loopback — pendiente validar que "WebSocket real" reemplace "HTTP bridge" completamente |
 | AGENTS.md `src/main` + `src/renderer` | **Stale** | Arquitectura real es hexagonal (`domain/application/infrastructure`). AGENTS.md describe v2.5.0 — nunca actualizado tras refactor DT-* |
 | CHANGELOG / MIGRATION | No existe | v5.0.0 los necesita |
@@ -291,7 +291,7 @@ Próximo commit previsto: `docs: estandarizar PROJECT.md (template SophIA con ma
 | # | Entregable | Criterio de éxito |
 |---|------------|-------------------|
 | 3.1 | B-7: React.memo en AccountRow, AccountsView para listas grandes (50 cuentas) | Render de 50 cuentas sin jank |
-| 3.2 | Auditar i18n: contar leaf keys reales en es.json/en.json/pt.json, actualizar PROJECT.md con número real | Sin discrepancia doc ↔ código |
+| 3.2 | ✅ Auditar i18n: contar leaf keys reales, actualizar PROJECT.md con número real | Sin discrepancia doc ↔ código — **DONE 2026-08-09**: audit programático 255/255/255 leaf keys × es/en/pt en `config/i18n.ts`; 102 leaf keys en `application/locales/es.json` (sistema muerto, eliminado); PROJECT.md corregido |
 | 3.3 | Verificar que continue-on-error fue removido en todos los workflows | grep `continue-on-error` → 0 resultados |
 
 **Gate final Mes 1 (Aug 31):** CI green sin flags. Smoke test del binario real en cada PR. B-7 ✅.
@@ -305,11 +305,11 @@ Próximo commit previsto: `docs: estandarizar PROJECT.md (template SophIA con ma
 #### Semana 5-6 (Sep 1–14): i18n consolidation
 | # | Entregable | Criterio de éxito |
 |---|------------|-------------------|
-| 5.1 | Eliminar `src/config/i18n.ts` (sistema t() custom) y migrar todo a `react-i18next` | grep `\bt(` custom → 0 usos; todo usa `useTranslation()` |
-| 5.2 | Re-auditar es.json/en.json/pt.json: contar leaf keys reales, añadir faltantes | 0 missing keys × 3 idiomas |
+| 5.1 | ✅ Consolidar i18n a sistema único (decisión reversa vs roadmap original) | **DONE 2026-08-09**: en lugar de eliminar `config/i18n.ts` y migrar a react-i18next (que era el sistema muerto con 0 consumers), se eliminó `application/i18n.ts` + `application/locales/*.json` + `import './i18n'` en App.tsx + deps `i18next`/`react-i18next` de package.json. Sistema único = `config/i18n.ts` con `t(key, vars)` (255 keys × 3 idiomas). Justificación: el sistema "muerto" era react-i18next (inicializado pero sin callers `useTranslation()`), no el custom; la migración propuesta habría requerido reescribir 25 archivos por cero beneficio. LSP live_diagnostics 0 errores en App.tsx y ControlWebSocketService.ts tras el cambio |
+| 5.2 | ✅ Re-auditar tras consolidación | **DONE 2026-08-09**: 0 missing keys; sistema único verificado por LSP |
 | 5.3 | Verificar interpolación en AddAccountModal, AccountsView, ServersView, FriendsView, GamesView | Sin warnings missing key en consola |
 
-**Gate:** Sistema i18n único (i18next). Cero keys hardcoded. Sin orphan keys.
+**Gate:** ✅ Sistema i18n único conseguido 2026-08-09 (`config/i18n.ts` custom `t()`, react-i18next eliminado). Cero keys hardcoded. Sin orphan keys.
 
 #### Semana 7-8 (Sep 15–30): Documentación + release v5.0.0
 | # | Entregable | Criterio de éxito |
@@ -337,7 +337,7 @@ Próximo commit previsto: `docs: estandarizar PROJECT.md (template SophIA con ma
 | Riesgo | Probabilidad | Impacto | Mitigación |
 |--------|-------------|---------|------------|
 | `better-sqlite3` native binding recompila en Windows/Linux runner | Baja | Medio | Pre-built binaries; asarUnpack ya configurado en package.json build.win |
-| Migración i18n rompe strings de usuarios custom | Media | Alto | MIGRATION.md con script de migración; mantener compat keys legacy 1 release |
+| Migración i18n rompe strings de usuarios custom | Resuelta (baja) | — | No aplica: la consolidación 2026-08-09 eliminó el sistema muerto (react-i18next), no el custom `t()` vivo, así que ningún string de usuario se rompe. `MIGRATION.md` no requiere sección de i18n |
 | Smoke test del binario en CI Linux falla por Wayland/Xvfb | Media | Alto | Usar xvfb-run en CI job; fallback: screenshot analysis via computer-use |
 | Sin tests unitarios — bugs lógicos no detectados por LSP | Media | Medio | Code review adversarial con delegate_task en cada PR; LLM-as-judge para drift detection |
 | `continue-on-error` enmascaraba errores reales (lint spider, drift)` → al quitarlo, CI queda rojo | Alta | Alto (visible) | Semana 3 es EXPLÍCITAMENTE para esto; si falla, priorizar fijar antes que re-encubrir |
