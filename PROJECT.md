@@ -43,7 +43,7 @@ Gestor de cuentas Roblox de código abierto, 100% local, con encriptación AES-2
 1. Cementar el modelo de seguridad de cero-confianza (cifrado AES-256-GCM, branded type `EncryptedString`, CSP)
 2. Establecer Clean Architecture como base del código (domain / application / infrastructure / preload / renderer)
 3. Proveer una superficie IPC segura y auditada para el renderer (nunca exponer cookies ni secretos)
-4. Localización completa ES / EN / PT vía el sistema `t(key, vars)` personalizado (247 keys × 3 idiomas)
+4. Localización completa ES / EN / PT vía el sistema `t(key, vars)` personalizado (discrepancia documentada: 247 keys reclamadas vs ~84 leaf keys reales en es.json — dos sistemas i18n activos, consolidacion pendiente Sprint 5-6)
 5. Soporte multi-OS (Windows NSIS + MSIX, Linux AppImage + Snap)
 
 ---

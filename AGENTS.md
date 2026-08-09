@@ -53,7 +53,7 @@ Result pattern in IPC: `{ success, data }` | `{ success: false, error }` — nev
   - ServerBrowser → Dock → Servidores → `setActiveModal('servers')`
   - AccountControlPanel → AccountRow → botón "Control de cuenta" → `setShowAccountControl(true)` (modal independiente)
 - **Animations**: framer-motion (Reorder drag-drop, modal transitions, dock micro-interactions)
-- **Styling**: Tailwind CSS + custom CSS variables, no external UI library except shadcn-ui primitives
+- **Styling**: Tailwind CSS + custom CSS variables, Mantine v7 + custom CSS variables
 
 ## PROJECT.md — living document (PRIORITY)
 - PROJECT.md is the single source of truth for project state
@@ -198,6 +198,39 @@ thumbnails.roblox.com         → avatars
 economy.roblox.com            → Robux balance
 ```
 LRU cache 60s in main process — respect rate limits
+
+## Boundaries 3-tier
+
+**Always:**
+- LSP live_diagnostics en archivos modificados — 0 errores antes de commit
+- Code review via delegate_task antes de merge
+- gitleaks detect antes de commit
+- `npm run build` exit 0 (electron-builder + vite)
+- Actualizar PROJECT.md antes de commit
+- Commit via GitHub MCP (push_files)
+
+**Ask first:**
+- Agregar nuevas dependencias npm
+- Cambiar el design system (paleta, tipografia, border-radius)
+- Modificar IPC channel structure (breaking para revisores)
+- Cambiar arquitectura de encryption (AES-256-GCM es contrato de seguridad)
+- Agregar nuevos namespaces IPC
+
+**Never:**
+- Exponer cookies Roblox al renderer (contextBridge solo)
+- Commitear secrets, API keys, .env
+- Commitear dist/, build/, release/, node_modules
+- Modificar package-lock.json manualmente
+- Usar vitest, jest, playwright, tsc --noEmit directo
+- Deshabilitar contextIsolation, sandbox, o nodeIntegration:false
+- Exponer ipcRenderer.send/on (solo invoke/handle)
+
+## Definition of Done (estado observable)
+- `npm run build` exit 0
+- LSP live_diagnostics 0 errores en archivos modificados
+- gitleaks detect 0 findings
+- Code review PASS
+- PROJECT.md actualizado
 
 ## Human intervention — only if
 - Risk of permanent data loss
