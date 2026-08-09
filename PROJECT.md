@@ -1,6 +1,6 @@
 # PROJECT.md — NexoAccManager
 
-> **Estado:** Activo | **Versión:** 5.0.0 | **Última actualización:** 2026-08-09 — release prep v5.0.0 (CHANGELOG + MIGRATION + AGENTS.md hexagonal + i18n audit)
+> **Estado:** Activo | **Versión:** 5.0.0 | **Última actualización:** 2026-08-09 — CI repair (Semana 1 tareas 1.1-1.4 ✅), B-7 perf AccountsView (3.1 ✅), continue-on-error verificado 0 resultados (3.3 ✅); release prep v5.0.0 (CHANGELOG + MIGRATION + AGENTS.md hexagonal + i18n audit)
 
 ---
 

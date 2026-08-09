@@ -1,6 +1,6 @@
 // Application View: AccountsView — account grid with groups + editable description — Mantine v7
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, memo } from 'react';
 import { Plus, Users, LogOut, Tag } from 'lucide-react';
 import { useAccountStore } from '../store/accountStore';
 import { useLaunchStore } from '../store/launchStore';
@@ -17,7 +17,11 @@ interface AccountsViewProps {
   searchQuery: string;
 }
 
-export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
+// B-7: React.memo — skip re-render of the entire accounts grid (50+ cards) when
+// the parent re-renders but `searchQuery` is unchanged. Combined with the stable
+// useCallback handlers below and React.memo on AccountCard, this prevents each
+// AccountCard from re-rendering on unrelated parent state changes.
+function AccountsViewComponent({ searchQuery }: AccountsViewProps): JSX.Element {
   const accounts = useAccountStore((s) => s.accounts);
   const selectedId = useAccountStore((s) => s.selectedId);
   const select = useAccountStore((s) => s.select);
@@ -280,3 +284,8 @@ export function AccountsView({ searchQuery }: AccountsViewProps): JSX.Element {
     </div>
   );
 }
+
+// B-7: memoize the view — searchQuery is the only prop; shallow comparison is
+// sufficient because it is a string. Stable useCallback handlers below + the
+// memo wrapping on AccountCard already prevent per-card re-renders.
+export const AccountsView = memo(AccountsViewComponent);
