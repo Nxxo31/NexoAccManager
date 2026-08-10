@@ -16,6 +16,10 @@ const execAsync = require('node:util').promisify(exec);
 let server: http.Server | null = null;
 let wss: WebSocketServer | null = null;
 const accountRepo = new AccountRepositoryImpl();
+
+// runningInstances tracks account→PID for the HTTP/WS status endpoint.
+// MultiRobloxService.killInstance() handles its own map; we sync ours
+// by calling runningInstances.delete() on kill.
 const runningInstances = new Map<string, number>(); // accountId -> PID
 
 // Maximum allowed body size for HTTP requests — 1 MiB
@@ -161,9 +165,15 @@ export function start(port: number = 31415): Promise<void> {
           let running = false;
           if (pid !== undefined && Number.isInteger(pid) && pid > 0) {
             try {
-              const output = await execAsync(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`);
-              const lines = output.trim().split('\n');
-              running = lines.length > 0 && !lines[0].includes('INFO: No tasks are running');
+              if (process.platform === 'win32') {
+                const output = await execAsync(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`);
+                const lines = output.trim().split('\n');
+                running = lines.length > 0 && !lines[0].includes('INFO: No tasks are running');
+              } else {
+                // Unix: ps -p exits 0 if process exists, non-zero if not
+                await execAsync(`ps -p ${pid} -o pid=`);
+                running = true; // if ps didn't throw, process is alive
+              }
             } catch {
               running = false;
             }
@@ -302,9 +312,14 @@ export function start(port: number = 31415): Promise<void> {
               let running = false;
               if (pid !== undefined && Number.isInteger(pid) && pid > 0) {
                 try {
-                  const output = await execAsync(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`);
-                  const lines = output.trim().split('\n');
-                  running = lines.length > 0 && !lines[0].includes('INFO: No tasks are running');
+                  if (process.platform === 'win32') {
+                    const output = await execAsync(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`);
+                    const lines = output.trim().split('\n');
+                    running = lines.length > 0 && !lines[0].includes('INFO: No tasks are running');
+                  } else {
+                    await execAsync(`ps -p ${pid} -o pid=`);
+                    running = true;
+                  }
                 } catch { running = false; }
               }
               ws.send(JSON.stringify({ id: msg.id, ok: true, data: { running, pid } }));
