@@ -13,31 +13,7 @@
 import log from 'electron-log';
 import { app } from 'electron';
 
-// ---- Transport configuration ----
-// File logging: persists to userData/logs/ directory.
-log.transports.file.level = 'info';          // File: info, warn, error
-log.transports.file.maxSize = 5 * 1024 * 1024; // 5 MB per log file
-
-// Console logging: visible in dev (both main process terminal + renderer devtools)
-log.transports.console.level = 'debug';      // Console: debug, info, warn, error
-
-// ---- Format ----
-// File format: includes timestamp for forensic traceability
-log.transports.file.format = '[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {text}';
-// Console format: compact for readability
-log.transports.console.format = '[{level}] {text}';
-
-// ---- Initialize scoped logger ----
-// Set the logFile path as early as possible so it's ready before any module logs.
-try {
-  // Resolve userData path — electron-log uses this for file transport by default
-  // but we set it explicitly to guarantee /logs/ subdirectory.
-  const userDataPath = app.getPath('userData');
-  log.transports.file.resolvePathFn = () => `${userDataPath}/logs/main.log`;
-} catch {
-  // If app.getPath('userData') throws (e.g., called before app is ready),
-  // electron-log falls back to its default path. This is fine for startup.
-}
+// ---- Transport configuration ----\n// File logging: persists to userData/logs/ directory.\nlog.transports.file().level = 'info';          // File: info, warn, error\nlog.transports.file().maxSize = 5 * 1024 * 1024; // 5 MB per log file\n\n// Console logging: visible in dev (both main process terminal + renderer devtools)\nlog.transports.console().level = 'debug';      // Console: debug, info, warn, error\n\n// ---- Format ----\n// File format: includes timestamp for forensic traceability\nlog.transports.file().format = '[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {text}';\n// Console format: compact for readability\nlog.transports.console().format = '[{level}] {text}';\n\n// ---- Initialize scoped logger ----\n// Set the logFile path as early as possible so it's ready before any module logs.\ntry {\n  // Resolve userData path — electron-log uses this for file transport by default\n  // but we set it explicitly to guarantee /logs/ subdirectory.\n  const userDataPath = app.getPath('userData');\n  log.transports.file().resolvePathFn = () => `${userDataPath}/logs/main.log`;\n} catch {\n  // If app.getPath('userData') throws (e.g., called before app is ready),\n  // electron-log falls back to its default path. This is fine for startup.\n}
 
 // ---- Compatibility: redirect stray console.* to logger ----
 // Any code that still uses console.log/warn/error will be captured by electron-log.

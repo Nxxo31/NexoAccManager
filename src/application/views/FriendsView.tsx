@@ -1,6 +1,6 @@
 // Application View: FriendsView — friends, requests, send requests, follow/unfollow — Mantine v7
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAccountStore } from '../store/accountStore';
 import { notifications } from '@mantine/notifications';
 import { Group, Stack, Text, Badge, Button, Select, SegmentedControl, Card, ScrollArea, ActionIcon, Avatar, Skeleton, TextInput } from '@mantine/core';
@@ -33,9 +33,10 @@ export function FriendsView(): JSX.Element {
 
   useEffect(() => {
     if (selectedAccountId && api) loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAccountId, api, activeTab]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
       if (!selectedAccountId || !api) return;
       setLoading(true);
       try {
@@ -53,7 +54,7 @@ export function FriendsView(): JSX.Element {
       } finally {
         setLoading(false);
       }
-    };
+  }, [selectedAccountId, api, activeTab]);
 
   const handleRespond = async (requestId: number, accept: boolean) => {
     if (!api) return;

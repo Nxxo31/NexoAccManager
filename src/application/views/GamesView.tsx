@@ -70,7 +70,8 @@ export function GamesView(): JSX.Element {
 
   useEffect(() => {
     if (selectedAccountId && api) loadFavorites();
-  }, [selectedAccountId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAccountId, api]);
 
   const search = useCallback(async () => {
       if (!query.trim() || !selectedAccountId || !api) return;
