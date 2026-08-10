@@ -240,13 +240,14 @@ function AccountDetailPanelComponent({ account, onClose, onLaunch, onRefreshCook
  }
  };
 
- useEffect(() => { loadOutfits(); }, [account.id]);
+ useEffect(() => { loadOutfits(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [account.id]);
  useEffect(() => {
  if (activeTab === 'profile') loadProfile();
  if (activeTab === 'security') loadSecurity();
  if (activeTab === 'privacy') loadPrivacy();
  if (activeTab === 'notifications') loadNotifSettings();
  if (activeTab === 'control') handleControlStatus();
+ /* eslint-disable-next-line react-hooks/exhaustive-deps */
  }, [activeTab, account.id]);
 
  return (
