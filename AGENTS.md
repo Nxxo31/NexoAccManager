@@ -60,15 +60,32 @@ Result pattern in IPC: `{ success, data }` | `{ success: false, error }` — nev
 - Maximum 50 accounts per user
 - Hardcoded in the account counter
 
-## UI Architecture — v2.5.0 single-view (no routing)
-- **No sidebar, no router** — react-router-dom removed
-- **Layout**: Header (h-12) → main content → Dock (bottom bar)
-- **Modals**: SettingsPanel, ServerBrowser open via `activeModal` state in App.tsx
-  - SettingsPanel → Dock → Ajustes → `setActiveModal('settings')`
-  - ServerBrowser → Dock → Servidores → `setActiveModal('servers')`
-  - AccountControlPanel → AccountRow → botón "Control de cuenta" → `setShowAccountControl(true)` (modal independiente)
-- **Animations**: framer-motion (Reorder drag-drop, modal transitions, dock micro-interactions)
-- **Styling**: Tailwind CSS + custom CSS variables, Mantine v7 + custom CSS variables
+## UI Architecture — v5.0.0 multi-view with sidebar navigation
+- **Sidebar**: `src/application/layout/Sidebar.tsx` — 5-item nav (accounts, friends, games, servers, settings) with collapse/toggle
+- **TopBar**: `src/application/layout/TopBar.tsx` — search, theme toggle, add-account button
+- **ContentArea**: `src/application/layout/ContentArea.tsx` — lazy-loads views via `React.lazy()` based on `activeView` from `uiStore`
+- **Router**: manual state-based routing via `useUIStore.activeView` (no react-router-dom) — `setView()` switches content
+- **Views** (5): AccountsView, FriendsView, GamesView, ServersView, SettingsView — each `React.lazy()` loaded on demand
+- **Modals**: AddAccountModal (3-tab: login/cookie/bulk), SettingsPanel via SettingsView accordion (12 subcomponents), AccountControlPanel per-account
+- **LaunchDock**: Persistent bottom bar — Place ID propagation, shuffle, quick-launch
+- **Animations**: framer-motion (Reorder drag-drop, modal transitions, sidebar collapse, dock micro-interactions)
+- **Styling**: Mantine v7 + custom CSS variables, Lucide icons
+- **Perf**: React.memo on AccountsView + AccountCard (B-7), lazy loading per view, Vite code splitting (bundle 739KB→412KB)
+
+## MCP Tools — MANDATORY for this project
+
+| Task | Tool | NEVER use |
+|------|------|-----------|
+| Understand IPC structure | `mcp__lsp_intelligence__document_symbols` | `grep` |
+| Verify type safety after edit | `mcp__lsp_intelligence__live_diagnostics` | `tsc --noEmit` |
+| Find IPC handler implementations | `mcp__lsp_intelligence__find_code` | `grep -rn` |
+| Trace IPC channel usage | `mcp__lsp_intelligence__find_references` | `grep` |
+| Edit TSX/TS files | `mcp__zenith__edit_file` or `write_file` | `sed`, `patch` for code |
+| Search across codebase | `mcp__zenith__search_files` | `grep`, `rg` |
+| Commit to GitHub | `mcp__github__push_files` | `git commit` + `git push` |
+| List project files | `mcp__filesystem__directory_tree` | `ls`, `find` |
+| Code review | `mcp__mcp_code_review_pro__review_diff` | manual inspection only |
+| Visual QA | `computer_use` capture or `mcp__playwright__browser_take_screenshot` | guessing UI |
 
 ## PROJECT.md — living document (PRIORITY)
 - PROJECT.md is the single source of truth for project state
@@ -85,27 +102,24 @@ Result pattern in IPC: `{ success, data }` | `{ success: false, error }` — nev
 
 1. Read PROJECT.md → check active phase and known limitations
 2. `git status` → ver estado del repo
-3. Verificar LSP activo: `hermes lsp status` — si no hay clientes: `hermes lsp restart`
-   **Nota en WSL**: El servidor LSP de TypeScript está instalado, pero el cliente solo se conecta cuando un editor (VS Code, etc.) abre un archivo `.ts` o `.tsx`. Mientras no haya un archivo abierto, `hermes lsp status` mostrará `active clients: none`; esto es esperado y no indica un problema. La fuente de verdad para tipos es `mcp__lsp_intelligence__live_diagnostics`, que debe dar 0 errores antes de hacer commit.
-4. Skills loaded automatically by the agent before writing code: Electron + electron-desktop-dev (Electron stack), spec-creation (multi-file features), sketch (UI mockups). The agent does NOT need a file to remind it — it loads them.
-5. For tasks >1 archivo or UI work: the agent thinks first about what it's going to build, shows mockups if UI, and only then writes code. No intermediate .md files — design lives inline in PROJECT.md if needed.
-6. **LSP gate**: `mcp__lsp_intelligence__live_diagnostics` en archivos modificados — 0 errores
-7. **Code review gate**: `delegate_task` con skill `code-review-and-quality` — todos los findings addressados
+3. **LSP gate**: `mcp__lsp_intelligence__document_symbols` en archivos a modificar — entender estructura antes de editar
+4. Skills loaded by the agent before writing code: enterprise-dev-workflow, Electron, spec-creation, karpathy-guidelines. The agent loads them automatically.
+5. For tasks >1 archivo or UI work: think first about what to build, show mockups if UI, then write code via `mcp__zenith__edit_file` or `write_file`. No intermediate .md files — design lives inline in PROJECT.md.
+6. **LSP gate post-edit**: `mcp__lsp_intelligence__live_diagnostics` en archivos modificados — 0 errores
+7. **Code review gate**: `mcp__mcp_code_review_pro__review_diff` or `delegate_task` con skill `code-review-and-quality` — todos los findings addressados
 8. **Secret scan gate**: `gitleaks` en el staged diff
-9. Update PROJECT.md with results BEFORE commit (only project doc allowed)
-10. **Atomic commit gate**: `mcp__github__push_files feat scope "descripcion"` — commits atómicos, conventional commit, gitleaks integrado
-11. `git push` → next task immediately
+9. Update PROJECT.md with results BEFORE commit
+10. **Atomic commit gate**: `mcp__github__push_files` — commits atómicos, conventional commit
+11. Next task immediately
 
 NO vitest, NO jest, NO playwright, NO `tsc --noEmit` directo. Los gates son determinísticos: LSP live_diagnostics + delegate_task review + gitleaks.
 NO separate spec files, drift reports, docs/specs/, architecture overviews, or any .md outside PROJECT.md. Everything goes in PROJECT.md.
 
 ## Editing code files (TSX/JSX/TS/JS)
-- NEVER use `sed -i` with multiline regex or JSX/TSX tag replacements
-- For any change involving more than one line or JSX structure,
-  read the full file, apply the change in memory, and write the
-  entire file at once.
+- Use `mcp__zenith__edit_file` or `mcp__filesystem__write_file` — NEVER `sed -i`
+- For multiline/JSX changes: `mcp__filesystem__read_text_file` full file, apply change, `mcp__filesystem__write_file` whole file
 - NEVER create .bak files — git is the versioning system
-- After writing, validate: `mcp__lsp_intelligence__live_diagnostics` en el archivo modificado before marking complete
+- After writing: `mcp__lsp_intelligence__live_diagnostics` on modified file before marking complete
 - If an edit fails 2 times with the same approach, stop and report
 
 ## Key file structure — ACTUAL v5.0.0 (Hexagonal Architecture)
@@ -258,15 +272,57 @@ economy.roblox.com            → Robux balance
 ```
 LRU cache 60s in main process — respect rate limits
 
+## Test Strategy — v5.0.0 (Playwright + Electron + smoke)
+
+### Frontend UX/UI Testing — Playwright MCP
+- **Playwright MCP** (`mcp__playwright__*`) es la herramienta obligatoria para QA de frontend
+- Para NAM (Electron): Playwright puede lanzar el AppImage/electron binary y testar la UI real
+- **Flujos a testar automáticamente:**
+  1. App launch → Sidebar visible, 5 nav items, TopBar renderiza
+  2. Click cada nav item → ContentArea cambia, view carga sin crash
+  3. AddAccountModal → abrir, 3 tabs (login/cookie/bulk), validaciones
+  4. SettingsView → accordion expande, 12 subcomponentes renderizan
+  5. LaunchDock → persistente, Place ID propagation, shuffle button
+  6. Theme toggle → dark/light/roblox-classic cambian CSS variables
+  7. i18n → cambiar idioma, verificar strings cambian en UI
+  8. 50 cuentas → cargar, drag-drop reorder, React.memo perf
+- **Visual regression**: `mcp__playwright__browser_take_screenshot` antes/después de cambios UI
+- **A11y**: `mcp__playwright__browser_snapshot` captura accessibility tree para verificar roles/labels
+
+### Backend IPC Testing — Smoke + LSP
+- `mcp__lsp_intelligence__live_diagnostics` para type safety (0 errores)
+- `npm run build` exit 0 para compile
+- Smoke test del binario: `xvfb-run` AppImage 10s, exit 0
+- IPC handler verification: `mcp__lsp_intelligence__find_code` pattern="ipcMain.handle" → contar canales
+- **Flujos backend a testar:**
+  1. account:add → SQLite persiste, CryptoService encripta
+  2. account:list → retorna cuentas, cookies no se exponen al renderer
+  3. roblox:launch → process spawn, mutex en Windows
+  4. ControlWebSocketService → ws://connect, resend buffer en reconnect
+  5. theme:set/get → CSS variables persisten
+  6. settings:language:set → i18n cambia de idioma
+  7. ipc drift → extractor script, 0 drift
+
+### Integration Testing — Electron + Playwright
+- Playwright soporta Electron nativamente: lanza binario empaquetado, accede al main process
+- Testa IPC end-to-end: renderer click → IPC handler → service → response → UI update
+- **Flujos integration:**
+  1. Add account → verify SQLite row exists (encrypted)
+  2. Launch game → verify process spawned
+  3. WebSocket control → verify ws://connection + command resend
+  4. Cache clean → verify filesystem cleanup
+  5. Playtime tracking → verify SQLite playtime entries
+
 ## Boundaries 3-tier
 
 **Always:**
-- LSP live_diagnostics en archivos modificados — 0 errores antes de commit
-- Code review via delegate_task antes de merge
+- `mcp__lsp_intelligence__live_diagnostics` en archivos modificados — 0 errores antes de commit
+- Code review via `mcp__mcp_code_review_pro__review_diff` or `delegate_task` antes de merge
 - gitleaks detect antes de commit
 - `npm run build` exit 0 (electron-builder + vite)
+- Playwright MCP para QA de frontend (screenshots, A11y, flujos automatizados)
 - Actualizar PROJECT.md antes de commit
-- Commit via GitHub MCP (push_files)
+- Commit via `mcp__github__push_files` (GitHub MCP)
 
 **Ask first:**
 - Agregar nuevas dependencias npm
@@ -280,7 +336,7 @@ LRU cache 60s in main process — respect rate limits
 - Commitear secrets, API keys, .env
 - Commitear dist/, build/, release/, node_modules
 - Modificar package-lock.json manualmente
-- Usar vitest, jest, playwright, tsc --noEmit directo
+- Usar vitest, jest, tsc --noEmit directo (Playwright SI se usa para QA frontend+backend)
 - Deshabilitar contextIsolation, sandbox, o nodeIntegration:false
 - Exponer ipcRenderer.send/on (solo invoke/handle)
 

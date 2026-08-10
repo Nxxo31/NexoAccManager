@@ -1,6 +1,6 @@
 # PROJECT.md — NexoAccManager
 
-> **Estado:** Activo | **Versión:** 5.0.0 | **Última actualización:** 2026-08-09 — CI repair (Semana 1 tareas 1.1-1.4 ✅), B-7 perf AccountsView (3.1 ✅), continue-on-error verificado 0 resultados (3.3 ✅); release prep v5.0.0 (CHANGELOG + MIGRATION + AGENTS.md hexagonal + i18n audit)
+> **Estado:** Activo | **Versión:** 5.0.0 | **Última actualización:** 2026-08-10 — AGENTS.md actualizado completo (UI v5.0.0 multi-view, tabla MCP, development loop MCP-first, Test Strategy Playwright, línea "playwright" removida de Never, Playwright añadido a Boundaries Always)
 
 ---
 
@@ -190,9 +190,10 @@ El script extractor custom sincroniza preload ↔ handlers ↔ `window-api.d.ts`
 
 ### Verification Gates (sin tests tradicionales)
 1. **Layer 1 (compile-time determinístico)**: `mcp__lsp_intelligence__live_diagnostics` — type errors en tiempo real, 0 errores antes de commit. ESLint 0/0. Build exit 0.
-2. **Layer 2 (code review adversarial)**: `delegate_task` con skill `code-review-and-quality` — subagente independiente revisa el diff, busca bugs lógicos, edge cases, security issues.
-3. **Layer 3 (secret scanning)**: `gitleaks` en staged diff — previene leaks de secrets.
-4. **Layer 4 (smoke real)**: `build-verify.yml` lanza el `.exe` empaquetado por 5 segundos en tags `v*` — verifica que el binario real arranca, no solo que compila.
+2. **Layer 2 (code review adversarial)**: `mcp__mcp_code_review_pro__review_diff` or `delegate_task` con skill `code-review-and-quality`.
+3. **Layer 3 (secret scanning)**: `gitleaks` en staged diff.
+4. **Layer 4 (smoke real)**: `build-verify.yml` lanza el `.exe` empaquetado por 5 segundos en tags `v*`.
+5. **Layer 5 (frontend QA)**: `mcp__playwright__browser_take_screenshot` + `browser_snapshot` — screenshots, A11y tree, flujos automatizados (8 flujos UX, 7 flujos backend, 5 integration).
 
 > **Nota**: Los tests tradicionales (vitest/jest/playwright) fueron removidos el 2026-08-06. Razón: los 21 tests unitarios existentes mockeaban Electron, better-sqlite3 y servicios externos — verificaban el comportamiento del mock, no de la app real. La app descargada no funcionaba mientras los tests decían "21/21 pass". Los gates arriba reemplazan los tests con verificación determinística (LSP) + análisis semántico (code review IA) + smoke del binario real.
 

@@ -46,15 +46,20 @@ function extractFromWindowApi() {
 
   // Match method declarations in the api interface: methodName(args): Promise<IpcResult>
   // Look for patterns in the interface like: method: (args) => Promise<IpcResult>
-  const methodPattern = /(\w+(?::\w+)?)\s*(?:\:|\=\>)\s*[^:]*Promise<IpcResult/g;
+  const methodPattern = /(\w+(?::\w+)?)\s*(?:\:|=\>)\s*.*?Promise<IpcResult/g;
   let match;
 
   while ((match = methodPattern.exec(content)) !== null) {
     const fullName = match[1];
     // Skip if it's a TypeScript type or interface declaration
-    if (!fullName.includes('interface') && !fullName.includes('type') && fullName.includes(':')) {
-      const [namespace, method] = fullName.split(':', 2);
-      channels.push({ namespace, method, fullName });
+    if (!fullName.includes('interface') && !fullName.includes('type')) {
+      if (fullName.includes(':')) {
+        const [namespace, method] = fullName.split(':', 2);
+        channels.push({ namespace, method, fullName });
+      } else {
+        // Method without namespace — push as-is (namespace will be derived from context)
+        channels.push({ namespace: '', method: fullName, fullName });
+      }
     }
   }
 
