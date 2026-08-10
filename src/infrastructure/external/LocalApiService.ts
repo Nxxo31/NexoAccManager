@@ -125,7 +125,11 @@ export function start(port: number = 31415): Promise<void> {
           const cookie = decrypt(account.encryptedCookie);
           const placeId = account.savedPlaceId;
           const jobId = account.savedJobId;
-          await launchRobloxDirect(placeId ?? '', jobId ?? '', cookie);
+          const pid = await launchRobloxDirect(placeId ?? '', jobId ?? '', cookie);
+          // BUG FIX (BUG 1): populate runningInstances so status endpoint works
+          if (pid > 0) {
+            runningInstances.set(id, pid);
+          }
           await accountRepo.updateLastUsed(id);
           res.end(JSON.stringify({ success: true }));
           return;
@@ -278,7 +282,11 @@ export function start(port: number = 31415): Promise<void> {
               const cookie = decrypt(account.encryptedCookie);
               const placeId = account.savedPlaceId;
               const jobId = account.savedJobId;
-              await launchRobloxDirect(placeId ?? '', jobId ?? '', cookie);
+              const pid = await launchRobloxDirect(placeId ?? '', jobId ?? '', cookie);
+              // BUG FIX (BUG 1): populate runningInstances so WS status command works
+              if (pid > 0) {
+                runningInstances.set(msg.accountId, pid);
+              }
               await accountRepo.updateLastUsed(msg.accountId);
               ws.send(JSON.stringify({ id: msg.id, ok: true, data: { success: true } }));
               return;
