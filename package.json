@@ -80,31 +80,17 @@
     ],
     "win": {
       "target": [
-        "nsis"
+        "portable"
       ],
       "icon": "build/icon.png",
       "asarUnpack": [
         "node_modules/better-sqlite3/**",
         "node_modules/electron-store/**"
       ],
-      "sign": "build/windows-sign.js",
-      "signingHashAlgorithms": [
-        "sha256"
-      ],
       "signAndEditExecutable": false
     },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "NX-Manager"
-    },
-    "msi": {
-      "oneClick": false,
-      "perMachine": false,
-      "runAfterFinish": true
+    "portable": {
+      "artifactName": "NX-Manager-${version}-Portable.exe"
     },
     "linux": {
       "target": ["AppImage"],
