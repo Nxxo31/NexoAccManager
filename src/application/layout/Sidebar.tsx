@@ -27,7 +27,7 @@ export function Sidebar({ accountCount }: { accountCount: number }): JSX.Element
         width: collapsed ? 64 : 208,
         height: '100%',
         flexShrink: 0,
-        backgroundColor: theme.colors.dark[0],
+        backgroundColor: isDark ? '#0d0f12' : '#ffffff',
         borderRight: `1px solid ${theme.colors.gray[3]}`,
         display: 'flex',
         flexDirection: 'column',
