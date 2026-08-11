@@ -56,7 +56,7 @@ export function FriendsView(): JSX.Element {
       }
   }, [selectedAccountId, api, activeTab]);
 
-  const handleRespond = async (requestId: number, accept: boolean) => {
+  const handleRespond = useCallback(async (requestId: number, accept: boolean) => {
     if (!api) return;
     try {
       const result = await api.byAccount.friendsRespond(requestId, accept, selectedAccountId);
@@ -69,9 +69,9 @@ export function FriendsView(): JSX.Element {
     } catch {
       notifications.show({ message: t('friends.loadError'), color: 'red' });
     }
-  };
+  }, [api, selectedAccountId, requests]);
 
-  const handleFollowToggle = async (userId: number, isFollowing: boolean) => {
+  const handleFollowToggle = useCallback(async (userId: number, isFollowing: boolean) => {
     if (!api) return;
     try {
       const fn = isFollowing ? api.byAccount.unfollow : api.byAccount.follow;
@@ -84,9 +84,9 @@ export function FriendsView(): JSX.Element {
     } catch {
       notifications.show({ message: t('friends.loadError'), color: 'red' });
     }
-  };
+  }, [api, selectedAccountId]);
 
-  const handleSendRequest = async () => {
+  const handleSendRequest = useCallback(async () => {
     if (!api) return;
     try {
       const userIdNum = parseInt(searchUserId, 10);
@@ -104,10 +104,10 @@ export function FriendsView(): JSX.Element {
     } catch {
       notifications.show({ message: t('friends.loadError'), color: 'red' });
     }
-  };
+  }, [api, selectedAccountId, searchUserId]);
 
   if (accounts.length === 0) {
-    return (
+     return (
       <Stack align="center" justify="center" h="100%">
         <Text c="dimmed">{t('friends.addAccountFirst')}</Text>
       </Stack>

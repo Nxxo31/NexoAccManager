@@ -118,7 +118,7 @@ export function LaunchDock(): JSX.Element {
           <TextInput
             value={placeId}
             onChange={(e) => setSelectedPlaceId(e.currentTarget.value)}
-            placeholder={selectedGame ? selectedGame.name : '123456789'}
+            placeholder={selectedGame ? selectedGame.name : t('accounts.placeIdPlaceholder')}
             size="sm"
             disabled={isLaunching}
           />

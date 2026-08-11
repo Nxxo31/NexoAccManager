@@ -44,7 +44,7 @@ export function GamesView(): JSX.Element {
       thumbnail: game.thumbnail,
     });
     notifications.show({
-      message: `Place ID copiado: ${placeId}`,
+      message: t('games.placeIdCopied', { placeId }),
       color: 'blue',
       autoClose: 2000,
     });
@@ -65,7 +65,7 @@ export function GamesView(): JSX.Element {
       select(accounts[0].id);
     }
     setView('accounts');
-    notifications.show({ message: `Place ID copiado: ${fav.gameId}`, color: 'blue', autoClose: 2000 });
+    notifications.show({ message: t('games.placeIdCopied', { placeId: String(fav.gameId) }), color: 'blue', autoClose: 2000 });
   }, [setSelectedGame, setView, accounts, selectedAccountId, select]);
 
   useEffect(() => {

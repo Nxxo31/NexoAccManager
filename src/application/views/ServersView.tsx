@@ -114,7 +114,7 @@ export function ServersView(): JSX.Element {
             <Globe size={16} />
             <Text size="sm" fw={500}>{t('servers.region', { region: region.region })}</Text>
             {/* A-003: Color como unico indicador - anadir icono y texto a ping badge */}
-            <Badge size="sm" variant="light" color={region.ping < 100 ? 'green' : region.ping < 200 ? 'yellow' : 'red'}>
+            <Badge size="sm" variant="light" color={region.ping < 100 ? 'green' : region.ping < 200 ? 'yellow' : 'red'} aria-label={t('servers.pingAria', { ping: region.ping })}>
               <Group gap={4}>
                 <Wifi size={12} />
                 {region.ping}ms
@@ -152,7 +152,7 @@ export function ServersView(): JSX.Element {
                     <Text size="xs" ff="monospace" c="dimmed">{s.id.substring(0, 12)}...</Text>
                   </Group>
                   {/* A-003: Color como unico indicador - anadir icono y texto a ping badge */}
-                  <Badge size="xs" variant="light" color={s.ping < 100 ? 'green' : s.ping < 200 ? 'yellow' : 'red'}>
+                  <Badge size="xs" variant="light" color={s.ping < 100 ? 'green' : s.ping < 200 ? 'yellow' : 'red'} aria-label={t('servers.pingAria', { ping: s.ping })}>
                     <Group gap={4}>
                       <Wifi size={12} />
                       {s.ping}ms
