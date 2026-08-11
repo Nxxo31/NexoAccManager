@@ -28,18 +28,19 @@ export async function refreshCookie(cookie: string): Promise<string> {
   }
 
   // Cookie expires in <24h — open silent BrowserWindow to refresh session
-  const win = new BrowserWindow({
-    width: 1,
-    height: 1,
-    show: false,
-    webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
-  });
-
+  let win: BrowserWindow | null = null;
   try {
+    win = new BrowserWindow({
+      width: 1,
+      height: 1,
+      show: false,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+      },
+    });
+
     // Set the cookie in the window's session
     const cookieUrl = 'https://www.roblox.com';
     await win.webContents.session.cookies.set({
@@ -71,7 +72,7 @@ export async function refreshCookie(cookie: string): Promise<string> {
     if (expiry > now) return cookie;
     throw new Error('Cookie expirada — necesita re-login');
   } finally {
-    win.destroy();
+    if (win) win.destroy();
   }
 }
 

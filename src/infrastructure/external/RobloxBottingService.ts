@@ -4,6 +4,7 @@ import { logger } from '../logging/logger';
 import { promisify } from 'node:util';
 import { apiPost } from './RobloxHttp';
 import { apiGet } from './RobloxHttp';
+import { killInstance } from './MultiRobloxService';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -33,9 +34,11 @@ export async function launchRobloxDirect(placeId: string, jobId: string, _cookie
     // BUG FIX: capture PID of the newly launched Roblox process so status works
     try {
       const output = execSync('tasklist /FI "IMAGENAME eq RobloxPlayerBeta.exe" /FO CSV /NH', { encoding: 'utf8' });
-      const lines = output.trim().split('\n');
+      const lines = output.trim().split('\n').filter(l => l.trim() && !l.includes('INFO:'));
       if (lines.length > 0) {
-        const match = lines[lines.length - 1].match(/"(\d+)"/);
+        // CSV format: "RobloxPlayerBeta.exe","1234","Console","1","100,000 K"
+        // PID is the second quoted field
+        const match = lines[0].match(/"RobloxPlayerBeta\.exe","(\d+)"/);
         if (match) {
           return parseInt(match[1], 10);
         }
@@ -166,7 +169,6 @@ function handleOffline(accountId: string, maxInactivity: number): void {
       try {
         // BUG FIX (BUG 7): Use killInstance from MultiRobloxService to kill by accountId
         // instead of killing ALL Roblox processes
-        const { killInstance } = require('./MultiRobloxService');
         killInstance(accountId);
       } catch (err) {
         logger.error(`Failed to kill Roblox process for account ${accountId}:`, err);

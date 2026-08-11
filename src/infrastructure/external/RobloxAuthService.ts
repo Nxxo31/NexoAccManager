@@ -7,6 +7,7 @@
 
 import { BrowserWindow, session } from 'electron';
 import { apiGet, getCsrfToken } from './RobloxHttp';
+import { logger } from '../logging/logger';
 import type { RobloxAuthPort } from '../../domain/repositories/RobloxApiPort';
 
 export async function loginBrowser(): Promise<{ cookie: string; userId: number; username: string }> {
@@ -25,7 +26,7 @@ export async function loginBrowser(): Promise<{ cookie: string; userId: number; 
       if (!resolved) {
         resolved = true;
         win.close();
-        try { authSession.clearStorageData(); } catch { /* ignore */ }
+        try { authSession.clearStorageData(); } catch (e) { try { logger.warn(`[Auth] clearStorageData failed: ${(e as Error).message}`); } catch { /* ignore */ } }
         reject(new Error('Timeout'));
       }
     }, 120_000);
@@ -45,7 +46,7 @@ export async function loginBrowser(): Promise<{ cookie: string; userId: number; 
               clearTimeout(timeout);
               clearInterval(pollInterval);
               win.close();
-              try { authSession.clearStorageData(); } catch { /* ignore */ }
+              try { authSession.clearStorageData(); } catch (e) { try { logger.warn(`[Auth] clearStorageData failed: ${(e as Error).message}`); } catch { /* ignore */ } }
               resolve({ cookie, userId: info.userId, username: info.username });
               return;
             }
@@ -59,15 +60,16 @@ export async function loginBrowser(): Promise<{ cookie: string; userId: number; 
     win.loadURL('https://www.roblox.com/login');
 
     // Clean up partition storage if user closes the window manually
-    win.on('closed', () => {
+    const closedListener = () => {
       if (!resolved) {
         resolved = true;
         clearTimeout(timeout);
         clearInterval(pollInterval);
-        try { authSession.clearStorageData(); } catch { /* ignore */ }
+        try { authSession.clearStorageData(); } catch (e) { try { logger.warn(`[Auth] clearStorageData failed: ${(e as Error).message}`); } catch { /* ignore */ } }
         reject(new Error('Window closed by user'));
       }
-    });
+    };
+    win.on('closed', closedListener);
   });
 }
 
@@ -95,7 +97,7 @@ export async function loginUserPass(username: string, password: string): Promise
       if (!resolved) {
         resolved = true;
         win.close();
-        try { authSession.clearStorageData(); } catch { /* ignore */ }
+        try { authSession.clearStorageData(); } catch (e) { try { logger.warn(`[Auth] clearStorageData failed: ${(e as Error).message}`); } catch { /* ignore */ } }
         reject(new Error('Timeout'));
       }
     }, 120_000);
@@ -135,7 +137,7 @@ export async function loginUserPass(username: string, password: string): Promise
               clearTimeout(timeout);
               clearInterval(pollInterval);
               win.close();
-              try { authSession.clearStorageData(); } catch { /* ignore */ }
+              try { authSession.clearStorageData(); } catch (e) { try { logger.warn(`[Auth] clearStorageData failed: ${(e as Error).message}`); } catch { /* ignore */ } }
               resolve({ cookie, userId: info.userId, username: info.username });
               return;
             }
@@ -147,7 +149,7 @@ export async function loginUserPass(username: string, password: string): Promise
           resolved = true;
           clearTimeout(timeout);
           clearInterval(pollInterval);
-          try { authSession.clearStorageData(); } catch { /* ignore */ }
+          try { authSession.clearStorageData(); } catch (e) { try { logger.warn(`[Auth] clearStorageData failed: ${(e as Error).message}`); } catch { /* ignore */ } }
           reject(new Error('Window destroyed'));
           return;
         }
@@ -158,15 +160,16 @@ export async function loginUserPass(username: string, password: string): Promise
     win.loadURL('https://www.roblox.com/login');
 
     // Handle window closed by user
-    win.on('closed', () => {
+    const closedListener = () => {
       if (!resolved) {
         resolved = true;
         clearTimeout(timeout);
         clearInterval(pollInterval);
-        try { authSession.clearStorageData(); } catch { /* ignore */ }
+        try { authSession.clearStorageData(); } catch (e) { try { logger.warn(`[Auth] clearStorageData failed: ${(e as Error).message}`); } catch { /* ignore */ } }
         reject(new Error('Window closed by user'));
       }
-    });
+    };
+    win.on('closed', closedListener);
   });
 }
 

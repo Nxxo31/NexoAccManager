@@ -71,7 +71,7 @@ export async function getFriendRequests(cookie: string): Promise<FriendRequest[]
     username: r.requester.name,
     displayName: r.requester.displayName,
     avatarUrl: '',
-    sentAt: new Date(),
+    sentAt: null,
     status: 'Pending' as const,
   }));
 }

@@ -32,7 +32,7 @@ export interface FriendRequest {
   username: string;
   displayName: string;
   avatarUrl: string;
-  sentAt: Date;
+  sentAt: Date | null;
   status: 'Pending' | 'Accepted' | 'Declined';
 }
 

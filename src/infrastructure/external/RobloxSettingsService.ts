@@ -8,6 +8,7 @@ import { apiGet, apiPost } from './RobloxHttp';
 import type { RobloxSettingsPort } from '../../domain/repositories/RobloxApiPort';
 
 export async function getProfile(cookie: string): Promise<{ displayName: string; description: string }> {
+  if (!cookie || !cookie.trim()) throw new Error('Cookie required');
   const data = await apiGet<{ id: number; name: string; displayName: string; description: string }>(
     'https://users.roblox.com/v1/users/authenticated',
     cookie

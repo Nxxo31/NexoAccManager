@@ -19,11 +19,11 @@ export async function searchGames(query: string, cookie: string): Promise<{ id: 
     `https://apis.roblox.com/universes/v1/search?keyword=${encodeURIComponent(query)}&limit=20`,
     cookie
   );
-  return (data.data || []).map(g => ({
+  return Promise.all((data.data || []).map(async g => ({
     id: g.rootPlace?.id ?? 0,
     name: g.name,
-    thumbnail: '',
-  }));
+    thumbnail: await getGameThumbnail(g.rootPlace?.id ?? 0),
+  })));
 }
 
 export async function getGameThumbnail(placeId: number): Promise<string> {
@@ -37,6 +37,8 @@ export async function getGameThumbnail(placeId: number): Promise<string> {
     if (url) thumbnailCache.set(placeId, url);
     return url;
   } catch {
+    // Cache short-lived failure to avoid hammering the API on repeated calls
+    thumbnailCache.set(placeId, '', 30_000); // 30s TTL for failures
     return '';
   }
 }

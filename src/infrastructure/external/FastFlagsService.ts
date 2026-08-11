@@ -14,7 +14,11 @@ import type { FastFlag } from '../../domain/entities/FastFlag';
  */
 function getLatestRobloxVersionDir(): string | null {
   try {
-    const localAppData = process.env.LOCALAPPDATA || (process.env.HOME && `${process.env.HOME}/AppData/Local`);
+    if (process.platform !== 'win32') {
+      // Roblox only installs on Windows — no-op on other platforms
+      return null;
+    }
+    const localAppData = process.env.LOCALAPPDATA || path.join(process.env.USERPROFILE || process.env.HOME || '', 'AppData', 'Local');
     if (!localAppData) return null;
 
     const versionsDir = path.join(localAppData, 'Roblox', 'Versions');
@@ -201,14 +205,27 @@ export function exportFlagsToJson(): Record<string, unknown> {
  * @returns Espacio libre en bytes o 0 si no se puede determinar
  */
 export function getFreeSpaceInRobloxDir(): number {
+  // statfsSync only available on Linux/macOS — on Windows use drive space
+  if (process.platform === 'win32') {
+    try {
+      const versionDir = getLatestRobloxVersionDir();
+      if (!versionDir) return 0;
+      // Extract drive root (e.g. C:\) and use statfsSync if available, else 0
+      const driveRoot = path.parse(versionDir).root;
+      const stats = fs.statfsSync(driveRoot);
+      return stats.bfree * stats.bsize;
+    } catch {
+      try { logger.warn('[FastFlags] statfsSync failed on Windows — drive space unavailable'); } catch { /* ignore */ }
+      return 0;
+    }
+  }
   try {
     const versionDir = getLatestRobloxVersionDir();
     if (!versionDir) return 0;
-
     const stats = fs.statfsSync(versionDir);
     return stats.bfree * stats.bsize;
-  } catch {
-    // statfs no está disponible en todos los sistemas
+  } catch (e) {
+    try { logger.warn(`[FastFlags] statfsSync failed: ${(e as Error).message}`); } catch { /* ignore */ }
     return 0;
   }
 }
