@@ -1,5 +1,5 @@
-const { exec, execSync } = require('node:child_process');
-const { promisify } = require('node:util');
+import { exec, execSync } from 'node:child_process';
+import { promisify } from 'node:util';
 const execAsync = promisify(exec);
 const runningInstances = new Map<string, number>(); // accountId -> PID
 
@@ -26,9 +26,9 @@ export async function launchMulti(accountId: string, placeId: string, jobId: str
   // Try to find the PID of the newly launched process
   try {
     const output = execSync('tasklist /FI "IMAGENAME eq RobloxPlayerBeta.exe" /FO CSV /NH', { encoding: 'utf8' });
-    const lines = output.trim().split('\n');
+    const lines = output.trim().split('\n').filter(l => l.trim() && !l.includes('INFO:'));
     if (lines.length > 0) {
-      const match = lines[lines.length - 1].match(/"(\d+)"/);
+      const match = lines[0].match(/"RobloxPlayerBeta\.exe","(\d+)"/);
       if (match) {
         const pid = parseInt(match[1], 10);
         runningInstances.set(accountId, pid);

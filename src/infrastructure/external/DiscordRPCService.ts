@@ -9,10 +9,17 @@ let connected = false;
 export async function initializeDiscordRPC(clientId?: string): Promise<void> {
   const id = clientId ?? CLIENT_ID;
   if (client && connected) return;
-  RPC.register(id);
-  client = new RPC.Client({ transport: 'ipc' });
-  await client.login({ clientId: id });
-  connected = true;
+  if (client) { try { await client.destroy(); } catch { /* ignore */ } client = null; connected = false; }
+  try {
+    RPC.register(id);
+    client = new RPC.Client({ transport: 'ipc' });
+    await client.login({ clientId: id });
+    connected = true;
+  } catch (e) {
+    client = null;
+    connected = false;
+    throw new Error(`Discord RPC login failed: ${(e as Error).message}`);
+  }
 }
 
 export async function updateDiscordPresence(opts: {
