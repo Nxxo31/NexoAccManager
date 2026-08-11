@@ -1,6 +1,6 @@
 # NexoAccManager — PROJECT.md
 
-> **Estado:** Activo | **Versión:** 5.0.0 → 5.1.0 (roadmap) | **Última actualización:** 2026-08-10 — Roadmap paridad RAM/Bloxstrap/Fishstrap/BetterBlox, 22 features auditadas, 3 bugs críticos fixed
+> **Estado:** Activo | **Versión:** 5.0.0 → 5.1.0 (roadmap) | **Última actualización:** 2026-08-10 — Auditoría de verificación completa: 11/11 LSP clean, tsc exit 0, DB schema corregido, 4/6 features ⚠️ re-clasificadas
 
 ---
 
@@ -94,61 +94,77 @@ Gestor de cuentas Roblox más completo de código abierto: 100% local, AES-256-G
 
 El renderer NUNCA manipula cookies ni passwords — el main process las cifra y persiste.
 
-### DB Schema
+### DB Schema Real (verificado 2026-08-10)
 
 ```sql
--- Tabla: accounts
+-- Tabla: accounts (verificada en DatabaseManager.ts:23)
 CREATE TABLE IF NOT EXISTS accounts (
   id TEXT PRIMARY KEY,
-  userId INTEGER,
-  name TEXT,
-  displayName TEXT,
-  cookie TEXT,          -- EncryptedString (AES-256-GCM)
-  password TEXT,        -- EncryptedString (nullable)
-  group TEXT DEFAULT '',
+  roblox_user_id INTEGER NOT NULL,
+  username TEXT NOT NULL,
+  display_name TEXT DEFAULT '',
+  encrypted_cookie TEXT NOT NULL,
+  cookie_hash TEXT DEFAULT '',
+  group_name TEXT DEFAULT 'Default',
   description TEXT DEFAULT '',
-  cookieExpiresAt INTEGER,
-  autoRelaunch INTEGER DEFAULT 0,
-  createdAt INTEGER DEFAULT (strftime('%s','now') * 1000),
-  updatedAt INTEGER DEFAULT (strftime('%s','now') * 1000)
+  last_used TEXT,
+  created_at TEXT,
+  avatar_url TEXT DEFAULT '',
+  custom_fields TEXT DEFAULT '{}',
+  browser_tracker_id TEXT DEFAULT '',
+  cookie_expires_at TEXT,
+  saved_place_id TEXT DEFAULT '',
+  saved_job_id TEXT DEFAULT '',
+  password TEXT DEFAULT '',
+  auto_relaunch INTEGER DEFAULT 0,
+  is_favorite INTEGER DEFAULT 0
 );
 
--- Tabla: settings
+-- Tabla: recent_games (verificada en DatabaseManager.ts:45)
+CREATE TABLE IF NOT EXISTS recent_games (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  game_id INTEGER NOT NULL,
+  name TEXT, icon TEXT, last_played TEXT,
+  place_id TEXT, place_name TEXT, universe_id INTEGER,
+  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+
+-- Tabla: favorite_games (verificada en DatabaseManager.ts:58)
+CREATE TABLE IF NOT EXISTS favorite_games (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  game_id INTEGER NOT NULL,
+  name TEXT, icon TEXT, added_at TEXT,
+  FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
+
+-- Tabla: settings (verificada en DatabaseManager.ts:68)
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
-  value TEXT
+  value TEXT NOT NULL
 );
 
--- Tabla: fast_flags
-CREATE TABLE IF NOT EXISTS fast_flags (
-  id TEXT PRIMARY KEY,
-  accountId TEXT,
-  flags TEXT,  -- JSON
-  createdAt INTEGER,
-  updatedAt INTEGER
-);
-
--- Tabla: launch_presets
+-- Tabla: launch_presets (verificada en DatabaseManager.ts:73)
 CREATE TABLE IF NOT EXISTS launch_presets (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   placeId TEXT NOT NULL,
-  accountIds TEXT NOT NULL,  -- JSON array
-  options TEXT,              -- JSON: {multiRoblox, launchDelay, region, etc.}
-  createdAt INTEGER DEFAULT (strftime('%s','now') * 1000)
+  accountIds TEXT NOT NULL,
+  autoShuffle INTEGER DEFAULT 0,
+  createdAt TEXT NOT NULL,
+  updatedAt TEXT NOT NULL
 );
 
--- Tabla: playtime_log
-CREATE TABLE IF NOT EXISTS playtime_log (
+-- Tabla: playtime_sessions (creada dinámicamente por PlaytimeService.ts:12)
+CREATE TABLE IF NOT EXISTS playtime_sessions (
   id TEXT PRIMARY KEY,
-  accountId TEXT NOT NULL,
-  placeId TEXT,
-  placeName TEXT,
-  startedAt INTEGER,
-  endedAt INTEGER,
-  durationMs INTEGER
+  accountId TEXT, placeId TEXT,
+  startTime TEXT, endTime TEXT, duration TEXT
 );
 ```
+
+**NOTA:** FastFlags NO usa DB — lee/escribe `ClientAppSettings.json` directamente (FastFlagsService.ts). ContentMods usa filesystem (ContentModService.ts). Logs se parsean en tiempo real (RobloxLogService.ts).
 
 ### Frameworks Conceptuales
 
@@ -220,16 +236,16 @@ CREATE TABLE IF NOT EXISTS playtime_log (
 | FastFlags editor | SettingsFastFlags.tsx (2 refs) | Bloxstrap, Fishstrap |
 | Playtime tracking | SettingsPlaytime.tsx (23 refs) | BetterBlox |
 
-**⚠️ Backend existe, sin UI de settings (6):**
+**⚠️ Backend existe, sin UI de settings (verificado 2026-08-10):**
 
-| Feature | Backend | UI faltante |
-|---------|---------|-------------|
-| MultiRoblox | handler existe | Toggle en SettingsAdvanced |
-| PreventDuplicateInstances | handler existe | Toggle en SettingsAdvanced |
-| ServerRegion picker | getServerRegion existe | Selector UI en SettingsLaunch |
-| SystemTray | tray existe | Toggle en SettingsAdvanced |
-| LastOnline tracking | dato en DB | Display en AccountDetailPanel |
-| AutoRelaunch | campo en DB | Toggle per-account en AccountCard |
+| Feature | Backend real | UI faltante | Evidencia |
+|---------|-------------|-------------|-----------|
+| MultiRoblox | `MultiRobloxService.ts` — launchMulti(), killInstance(), getRunningInstances() | Toggle en SettingsAdvanced | robloxHandlers.ts:24 importa killInstance+getRunningInstances. LocalApiService.ts:6 importa killInstance. RobloxBottingService.ts:29 usa para multi-instance |
+| AutoRelaunch | Schema DB `auto_relaunch` + Account entity + AccountRepositoryImpl + RobloxBottingService intervalos | Toggle per-account en AccountCard | Account.ts:37 define campo. AccountRepositoryImpl.ts:27 mapea. BottingService.ts:54 usa Map de intervalos |
+| ServerRegion | `RobloxGamesService.getServerRegion()` + handlers + preload | Selector de region preferida en SettingsLaunch | RobloxApiPort.ts:35 port. robloxHandlers.ts:72 handler. ServersView.tsx:32 muestra region. NO hay selector de region preferida |
+| LastOnline | `PresenceData.lastOnline` + RobloxPresenceService lo popula | Display en AccountDetailPanel | PresenceData.ts:8 campo. RobloxPresenceService.ts:36 popula. NO se persiste en DB ni se muestra |
+| SystemTray | NO EXISTE | Toggle completo + Tray icon | 0 matches de `Tray` en todo src/ — solo "stray" en logger.ts |
+| PreventDuplicateInstances | NO EXISTE | Toggle + handler en roblox:launch | 0 matches en todo src/ |
 
 **❌ No implementado (16):**
 
@@ -258,18 +274,18 @@ CREATE TABLE IF NOT EXISTS playtime_log (
 
 > **Meta:** App más completa del ecosistema. Paridad RAM + features de bootstrappers + UX de BetterBlox.
 
-### Fase 1: v5.1.0 — Settings UI para backend existente (6 toggles)
+### Fase 1: v5.1.0 — Settings UI para backend existente (4 toggles) + 2 features nuevas
 
-> **Objetivo:** Conectar los 6 backends que existen pero no tienen UI. Cambios mínimos — solo settings components + i18n keys.
+> **Objetivo:** Conectar los 4 backends que existen, crear 2 backends faltantes + sus UIs.
 
-| Task | Feature | Archivos | Acceptance Criteria |
-|------|---------|----------|---------------------|
-| 1.1 | MultiRoblox toggle | SettingsAdvanced.tsx, i18n.ts | Switch visible, persiste en settings, `api.settings.get/set('multiRoblox')` funciona |
-| 1.2 | PreventDuplicateInstances toggle | SettingsAdvanced.tsx, i18n.ts | Switch visible, persiste, handler `roblox:launch` consulta el setting antes de lanzar |
-| 1.3 | ServerRegion selector | SettingsLaunch.tsx (nuevo), i18n.ts | Combobox con regiones, persiste `preferredRegion`, LaunchDock lo usa al hacer join |
-| 1.4 | SystemTray toggle | SettingsAdvanced.tsx, i18n.ts | Switch visible, minimize-to-tray activado/desactivado según setting |
-| 1.5 | LastOnline display | AccountDetailPanel.tsx, i18n.ts | Fecha "última vez online" visible en el panel de detalle de cuenta |
-| 1.6 | AutoRelaunch toggle per-account | AccountCard.tsx, i18n.ts | Switch en card de cuenta, persiste `autoRelaunch` en DB, handler de control lo respeta |
+| Task | Feature | Tipo | Archivos | Acceptance Criteria |
+|------|---------|------|----------|---------------------|
+| 1.1 | MultiRoblox toggle | UI only | SettingsAdvanced.tsx (nuevo), i18n.ts | Switch visible, persiste en settings. MultiRobloxService.launchMulti se invoca según toggle |
+| 1.2 | AutoRelaunch toggle per-account | UI only | AccountCard.tsx, i18n.ts | Switch en card de cuenta, persiste `auto_relaunch` en DB. BottingService respeta el valor |
+| 1.3 | ServerRegion preferida selector | UI only | SettingsLaunch.tsx (nuevo), i18n.ts | Combobox con regiones, persiste `preferredRegion` en settings. LaunchDock lo usa al join |
+| 1.4 | LastOnline display | UI + DB | AccountDetailPanel.tsx, AccountRepositoryImpl.ts, i18n.ts | Persistir PresenceData.lastOnline en accounts.last_online. Mostrar en panel. Actualizar en cada presence poll |
+| 1.5 | SystemTray | Full stack | main.ts (Tray icon), SettingsAdvanced.tsx, i18n.ts | Tray icon con menú (show/minimize/quit). Toggle en settings. Minimize-to-tray |
+| 1.6 | PreventDuplicateInstances | Full stack | robloxHandlers.ts (check before launch), SettingsAdvanced.tsx, i18n.ts | Handler `roblox:launch` verifica si la cuenta ya está running antes de lanzar. Toggle en settings |
 
 **Gate Fase 1:** LSP clean en los 6 archivos. Build exit 0. Commit atómico por task.
 
@@ -358,12 +374,12 @@ CREATE TABLE IF NOT EXISTS playtime_log (
 | R-10 | verifyCookie API response correcto | RobloxAuthService.ts | ✅ (fixed 08-10) |
 | R-11 | getProfile API response correcto | RobloxSettingsService.ts | ✅ (fixed 08-10) |
 | R-12 | Tabla launch_presets en schema | DatabaseManager.ts | ✅ (fixed 08-10) |
-| R-13 | MultiRoblox toggle en settings | SettingsAdvanced.tsx | ⏳ Fase 1.1 |
-| R-14 | PreventDuplicateInstances toggle | SettingsAdvanced.tsx | ⏳ Fase 1.2 |
-| R-15 | ServerRegion selector UI | SettingsLaunch.tsx | ⏳ Fase 1.3 |
-| R-16 | SystemTray toggle | SettingsAdvanced.tsx | ⏳ Fase 1.4 |
-| R-17 | LastOnline display | AccountDetailPanel.tsx | ⏳ Fase 1.5 |
-| R-18 | AutoRelaunch toggle per-account | AccountCard.tsx | ⏳ Fase 1.6 |
+| R-13 | MultiRoblox toggle en settings (backend existe) | SettingsAdvanced.tsx | ⏳ Fase 1.1 |
+| R-14 | AutoRelaunch toggle per-account (backend existe) | AccountCard.tsx | ⏳ Fase 1.2 |
+| R-15 | ServerRegion preferida selector (backend existe) | SettingsLaunch.tsx | ⏳ Fase 1.3 |
+| R-16 | LastOnline persist + display (backend parcial) | AccountDetailPanel.tsx | ⏳ Fase 1.4 |
+| R-17 | SystemTray (NUEVO — backend no existe) | main.ts, SettingsAdvanced.tsx | ⏳ Fase 1.5 |
+| R-18 | PreventDuplicateInstances (NUEVO — backend no existe) | robloxHandlers.ts, SettingsAdvanced.tsx | ⏳ Fase 1.6 |
 | R-19 | LaunchDelay configurable | SettingsLaunch.tsx | ⏳ Fase 2.1 |
 | R-20 | ShuffleLowestServer toggle | SettingsLaunch.tsx | ⏳ Fase 2.2 |
 | R-21 | FastFlagProfiles | SettingsFastFlags.tsx | ⏳ Fase 2.3 |
