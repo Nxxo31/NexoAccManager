@@ -3,7 +3,8 @@
 import { Globe, Gamepad2, Mail, Settings, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { useUIStore } from '../store/uiStore';
 import { PAGES, type PageKey, MAX_ACCOUNTS } from '../../config/constants';
-import { Box, Text, ActionIcon, Group, NavLink, useMantineTheme } from '@mantine/core';
+import { Box, Text, ActionIcon, Group, NavLink, useMantineTheme, useMantineColorScheme } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { t } from '../../config/i18n';
 
 const NAV: { key: PageKey; icon: typeof Users; labelKey: string }[] = [
@@ -20,6 +21,9 @@ export function Sidebar({ accountCount }: { accountCount: number }): JSX.Element
   const collapsed = useUIStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
+  const prefersDark = useMediaQuery('(prefers-color-scheme: dark)');
+  const isDark = colorScheme === 'dark' || (colorScheme === 'auto' && prefersDark);
 
   return (
     <Box

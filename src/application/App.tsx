@@ -21,8 +21,8 @@ export function App(): JSX.Element {
  const select = useAccountStore((state) => state.select);
  const { loadAccounts, loginBrowser } = useAccounts();
  const { colorScheme } = useMantineColorScheme();
- 
- const isDark = colorScheme === 'dark' || (colorScheme === 'auto' && useMediaQuery('(prefers-color-scheme: dark)'));
+ const prefersDark = useMediaQuery('(prefers-color-scheme: dark)');
+ const isDark = colorScheme === 'dark' || (colorScheme === 'auto' && prefersDark);
  const reducedMotion = useReducedMotion();
  const [searchQuery, setSearchQuery] = useState('');
  const [showAddModal, setShowAddModal] = useState(false);
