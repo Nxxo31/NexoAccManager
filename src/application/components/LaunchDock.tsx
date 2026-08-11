@@ -104,6 +104,7 @@ export function LaunchDock(): JSX.Element {
         borderTop: '1px solid var(--mantine-color-dark-4)',
         background: 'var(--mantine-color-dark-7)',
         minHeight: 64,
+        flexShrink: 0,
       }}
     >
     <Group
