@@ -69,6 +69,16 @@ function createTables(d: Database.Database): void {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS launch_presets (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      placeId TEXT NOT NULL,
+      accountIds TEXT NOT NULL,
+      autoShuffle INTEGER DEFAULT 0,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
   `);
 }
 

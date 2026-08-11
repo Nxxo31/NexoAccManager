@@ -172,12 +172,12 @@ export async function loginUserPass(username: string, password: string): Promise
 
 export async function verifyCookie(cookie: string): Promise<{ valid: boolean; userId: number; username: string }> {
   try {
-    const data = await apiGet<{ data: { id: number; name: string }[] }>(
+    const data = await apiGet<{ id: number; name: string }>(
       'https://users.roblox.com/v1/users/authenticated',
       cookie
     );
-    if (data.data && data.data.length > 0) {
-      return { valid: true, userId: data.data[0].id, username: data.data[0].name };
+    if (data.id && data.name) {
+      return { valid: true, userId: data.id, username: data.name };
     }
     return { valid: false, userId: 0, username: '' };
   } catch {

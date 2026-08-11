@@ -229,6 +229,9 @@ export const translations: Record<LangId, Record<string, string>> = {
     'modal.import': 'Importar',
     'modal.bulkFormatError': 'Formato: usuario:password por línea',
     'modal.accountsAdded': '{count} cuentas agregadas',
+    'modal.accountAdded': 'Cuenta agregada correctamente',
+    'modal.loginFailed': 'Error al iniciar sesión: {error}',
+    'modal.advancedImportNote': 'Las opciones de importación avanzada (cookie/bulk) están disponibles en la configuración avanzada de ajustes.',
 
     // AccountDetailPanel
     'detail.closePanel': 'Cerrar panel de detalles',

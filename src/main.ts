@@ -32,8 +32,24 @@ function createWindow(): BrowserWindow {
   if (app.isPackaged || process.env.NODE_ENV === 'test') {
     win.loadFile(path.join(__dirname, '../renderer/index.html'));
   } else {
-    win.loadURL('http://localhost:5173');
-    win.webContents.openDevTools();
+    // Esperar a que Vite dev server esté listo antes de cargar
+    const devServerUrl = 'http://localhost:5173';
+    const tryLoad = async (retries: number) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          await win.loadURL(devServerUrl);
+          win.webContents.openDevTools();
+          return;
+        } catch {
+          await new Promise((r) => setTimeout(r, 500));
+        }
+      }
+      // Si Vite no responde, cargar igual (mostrará error en DevTools)
+      win.loadURL(devServerUrl).catch(() => {
+        logger?.error?.(`Failed to load dev server at ${devServerUrl}`);
+      });
+    };
+    tryLoad(10);
   }
 
   // Abrir links externos en navegador, no en Electron
@@ -50,12 +66,16 @@ function createWindow(): BrowserWindow {
 
 app.whenReady().then(() => {
   // CSP: bloquear inline scripts y conexiones externas no autorizadas
+  // En dev, permitir localhost para Vite HMR
+  const isDev = !app.isPackaged && process.env.NODE_ENV !== 'test';
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.roblox.com;",
+          isDev
+            ? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' http://localhost:5173 ws://localhost:5173 https://*.roblox.com;"
+            : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.roblox.com;",
         ],
       },
     });
