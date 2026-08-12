@@ -101,3 +101,9 @@ PDR.md
 
 # Design sketches (internal)
 sketches/
+
+# Sensitive data — NEVER commit account data
+*.sqlite
+nx-manager.db
+app-data
+AppData
