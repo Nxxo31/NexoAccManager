@@ -1,10 +1,11 @@
 // Application Component: AccountCard — individual account display (Mantine v7)
 // Extracted from AccountsView for performance — React.memo prevents unnecessary re-renders.
 // P-001: extracted to its own file so React.memo works; parent passes memoized callbacks.
+// Multi-select: checkbox visible when isMultiSelectMode is active.
 
 import { memo } from 'react';
 import { Star, Pencil, Trash2 } from 'lucide-react';
-import { Card, Group, Stack, Text, Badge, Avatar, ActionIcon } from '@mantine/core';
+import { Card, Group, Stack, Text, Badge, Avatar, ActionIcon, Checkbox } from '@mantine/core';
 import type { Account } from '../../../domain/entities/Account';
 import { t } from '../../../config/i18n';
 
@@ -17,6 +18,9 @@ interface AccountCardProps {
   onEdit: (account: Account) => void;
   isRemoving?: boolean;
   isTogglingFavorite?: boolean;
+  isMultiSelectMode?: boolean;
+  isBulkSelected?: boolean;
+  onToggleBulkSelect?: (id: string) => void;
 }
 
 function AccountCardComponent({
@@ -28,6 +32,9 @@ function AccountCardComponent({
   onEdit,
   isRemoving = false,
   isTogglingFavorite = false,
+  isMultiSelectMode = false,
+  isBulkSelected = false,
+  onToggleBulkSelect,
 }: AccountCardProps): JSX.Element {
   return (
     <Card
@@ -36,21 +43,41 @@ function AccountCardComponent({
       padding="sm"
       style={{
         cursor: 'pointer',
-        borderColor: selected ? 'var(--mantine-color-primary-5)' : undefined,
-        borderWidth: selected ? 2 : 1,
+        borderColor: isBulkSelected ? 'var(--mantine-color-primary-5)' : selected ? 'var(--mantine-color-primary-5)' : undefined,
+        borderWidth: isBulkSelected || selected ? 2 : 1,
+        backgroundColor: isBulkSelected ? 'var(--mantine-color-primary-1)' : undefined,
       }}
-      onClick={() => onSelect(account)}
+      onClick={() => {
+        if (isMultiSelectMode && onToggleBulkSelect) {
+          onToggleBulkSelect(account.id);
+        } else {
+          onSelect(account);
+        }
+      }}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onSelect(account);
+          if (isMultiSelectMode && onToggleBulkSelect) {
+            onToggleBulkSelect(account.id);
+          } else {
+            onSelect(account);
+          }
         }
       }}
     >
       <Group justify="space-between" align="center">
         <Group gap="sm" align="center">
+          {isMultiSelectMode && (
+            <Checkbox
+              checked={isBulkSelected}
+              onChange={() => onToggleBulkSelect?.(account.id)}
+              onClick={(e) => e.stopPropagation()}
+              aria-label={t('accounts.selectAccount', { name: account.username })}
+              size="sm"
+            />
+          )}
           <Avatar size="sm" radius="xl" style={{ backgroundColor: 'var(--mantine-color-gray-4)' }}>
             {account.username.charAt(0).toUpperCase()}
           </Avatar>
@@ -65,32 +92,36 @@ function AccountCardComponent({
           <Badge size="xs" variant="light" color={account.cookieExpiresAt ? 'green' : 'red'}>
             {account.cookieExpiresAt ? t('accounts.cookieValid') : t('accounts.cookieExpired')}
           </Badge>
-          <ActionIcon
-            variant="subtle"
-            color={account.isFavorite ? 'yellow' : 'gray'}
-            onClick={(e) => { e.stopPropagation(); onToggleFavorite(account); }}
-            disabled={isTogglingFavorite}
-            aria-label={account.isFavorite ? t('accounts.removeFavorite') : t('accounts.addFavorite')}
-          >
-            <Star size={14} fill={account.isFavorite ? 'currentColor' : 'none'} />
-          </ActionIcon>
-          <ActionIcon
-            variant="subtle"
-            color="gray"
-            onClick={(e) => { e.stopPropagation(); onEdit(account); }}
-            aria-label={t('accounts.editAccount')}
-          >
-            <Pencil size={14} />
-          </ActionIcon>
-          <ActionIcon
-            variant="subtle"
-            color="red"
-            onClick={(e) => { e.stopPropagation(); onRemove(account); }}
-            disabled={isRemoving}
-            aria-label={t('accounts.deleteAccount')}
-          >
-            <Trash2 size={14} />
-          </ActionIcon>
+          {!isMultiSelectMode && (
+            <>
+              <ActionIcon
+                variant="subtle"
+                color={account.isFavorite ? 'yellow' : 'gray'}
+                onClick={(e) => { e.stopPropagation(); onToggleFavorite(account); }}
+                disabled={isTogglingFavorite}
+                aria-label={account.isFavorite ? t('accounts.removeFavorite') : t('accounts.addFavorite')}
+              >
+                <Star size={14} fill={account.isFavorite ? 'currentColor' : 'none'} />
+              </ActionIcon>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                onClick={(e) => { e.stopPropagation(); onEdit(account); }}
+                aria-label={t('accounts.editAccount')}
+              >
+                <Pencil size={14} />
+              </ActionIcon>
+              <ActionIcon
+                variant="subtle"
+                color="red"
+                onClick={(e) => { e.stopPropagation(); onRemove(account); }}
+                disabled={isRemoving}
+                aria-label={t('accounts.deleteAccount')}
+              >
+                <Trash2 size={14} />
+              </ActionIcon>
+            </>
+          )}
         </Group>
       </Group>
     </Card>

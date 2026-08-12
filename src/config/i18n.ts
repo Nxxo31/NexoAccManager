@@ -124,6 +124,13 @@ export const translations: Record<LangId, Record<string, string>> = {
 
     // Settings
     'settings.title': 'Ajustes',
+    'settings.tabAccounts': 'Cuentas',
+    'settings.tabRoblox': 'Roblox',
+    'settings.tabIntegrations': 'Integraciones',
+    'settings.tabGeneral': 'General',
+    'settings.cookieManagement': 'Gestión de Cookies',
+    'settings.cookieManagementDesc': 'Importa, refresca y administra cookies de múltiples cuentas. Selecciona varias cuentas para configurarlas en lote (próximamente).',
+    'settings.comingSoon': 'Próximamente — selección múltiple y configuración en lote',
     'settings.appearance': 'Apariencia',
     'settings.darkTheme': 'Tema oscuro',
     'settings.primaryColor': 'Color principal de NAM',
@@ -411,6 +418,13 @@ export const translations: Record<LangId, Record<string, string>> = {
 
     // Settings
     'settings.title': 'Settings',
+    'settings.tabAccounts': 'Accounts',
+    'settings.tabRoblox': 'Roblox',
+    'settings.tabIntegrations': 'Integrations',
+    'settings.tabGeneral': 'General',
+    'settings.cookieManagement': 'Cookie Management',
+    'settings.cookieManagementDesc': 'Import, refresh, and manage cookies across multiple accounts. Select multiple accounts to configure them in bulk (coming soon).',
+    'settings.comingSoon': 'Coming soon — multi-select and bulk configuration',
     'settings.appearance': 'Appearance',
     'settings.darkTheme': 'Dark theme',
     'settings.primaryColor': 'NAM primary color',
@@ -695,6 +709,13 @@ export const translations: Record<LangId, Record<string, string>> = {
 
     // Settings
     'settings.title': 'Configurações',
+    'settings.tabAccounts': 'Contas',
+    'settings.tabRoblox': 'Roblox',
+    'settings.tabIntegrations': 'Integrações',
+    'settings.tabGeneral': 'Geral',
+    'settings.cookieManagement': 'Gestão de Cookies',
+    'settings.cookieManagementDesc': 'Importe, atualize e gerencie cookies de várias contas. Selecione várias contas para configurá-las em massa (em breve).',
+    'settings.comingSoon': 'Em breve — seleção múltipla e configuração em massa',
     'settings.appearance': 'Aparência',
     'settings.darkTheme': 'Tema escuro',
     'settings.primaryColor': 'Cor principal do NAM',

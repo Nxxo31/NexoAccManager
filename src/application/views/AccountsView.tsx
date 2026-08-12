@@ -1,13 +1,14 @@
 // Application View: AccountsView — account grid with groups + editable description — Mantine v7
 
 import { useState, useMemo, useEffect, useCallback, memo } from 'react';
-import { Plus, Users, LogOut, Tag } from 'lucide-react';
+import { Plus, Users, LogOut, Tag, CheckSquare, X, Mail } from 'lucide-react';
 import { useAccountStore } from '../store/accountStore';
 import { useLaunchStore } from '../store/launchStore';
+import { useSelectionStore } from '../store/selectionStore';
 import { useAccounts } from '../hooks/useAccounts';
 import { AccountCard } from '../components/accounts/AccountCard';
 import { AccountDetailPanel } from '../components/AccountDetailPanel';
-import { Group, Stack, Text, Button, TextInput, ScrollArea, Tooltip, Checkbox, Modal, Textarea, FocusTrap } from '@mantine/core';
+import { Group, Stack, Text, Button, TextInput, ScrollArea, Tooltip, Checkbox, Modal, Textarea, FocusTrap, Badge } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { modals } from '@mantine/modals';
 import type { Account } from '../../domain/entities/Account';
@@ -38,6 +39,8 @@ function AccountsViewComponent({ searchQuery }: AccountsViewProps): JSX.Element 
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
   const [togglingFavorites, setTogglingFavorites] = useState<Set<string>>(new Set());
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
+  // Multi-select for bulk operations
+  const { isMultiSelectMode, selectedIds, toggleMultiSelect, toggle: toggleBulkSelect, clearAll: clearBulkSelection, selectAll: selectAllBulk, isSelected } = useSelectionStore();
 
   // Debounce search input — 300ms wait before filtering
   useEffect(() => {
@@ -211,8 +214,32 @@ function AccountsViewComponent({ searchQuery }: AccountsViewProps): JSX.Element 
           <Checkbox checked={shuffle} onChange={(e) => setShuffle(e.currentTarget.checked)} label={t('accounts.shuffle')} size="sm" />
         </Tooltip>
         <div style={{ flex: 1 }} />
+        {/* Multi-select toggle */}
+        <Button
+          variant={isMultiSelectMode ? 'filled' : 'light'}
+          color={isMultiSelectMode ? 'primary' : 'gray'}
+          size="sm"
+          leftSection={isMultiSelectMode ? <X size={14} /> : <CheckSquare size={14} />}
+          onClick={toggleMultiSelect}
+        >
+          {isMultiSelectMode ? t('accounts.exitMultiSelect') : t('accounts.multiSelect')}
+        </Button>
         <Button variant="light" size="sm" color="red" leftSection={<LogOut size={14} />} onClick={handleKillAll}>{t('accounts.killAll')}</Button>
       </Group>
+
+      {/* Multi-select action bar */}
+      {isMultiSelectMode && (
+        <Group h={40} px="md" gap="sm" align="center" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)', backgroundColor: 'var(--mantine-color-primary-0)' }}>
+          <Badge size="sm" color="primary">{t('accounts.selectedCount', { count: selectedIds.size })}</Badge>
+          <Button variant="subtle" size="xs" onClick={() => selectAllBulk(filtered.map((a) => a.id))}>{t('accounts.selectAll')}</Button>
+          <Button variant="subtle" size="xs" onClick={clearBulkSelection}>{t('accounts.clearSelection')}</Button>
+          <div style={{ flex: 1 }} />
+          {/* Bulk actions — placeholder for future: set email, set cookie, launch all */}
+          <Button variant="light" size="xs" color="blue" leftSection={<Mail size={12} />} disabled={selectedIds.size === 0}>
+            {t('accounts.setBulkEmail')}
+          </Button>
+        </Group>
+      )}
 
       {/* Content area */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
@@ -229,6 +256,9 @@ function AccountsViewComponent({ searchQuery }: AccountsViewProps): JSX.Element 
                   key={account.id}
                   account={account}
                   selected={account.id === selectedId}
+                  isMultiSelectMode={isMultiSelectMode}
+                  isBulkSelected={isSelected(account.id)}
+                  onToggleBulkSelect={toggleBulkSelect}
                   onSelect={handleCardSelect}
                   onRemove={handleCardRemove}
                   onToggleFavorite={handleToggleFavorite}
