@@ -1,14 +1,14 @@
 // Application View: AccountsView — account grid with groups + editable description — Mantine v7
 
 import { useState, useMemo, useEffect, useCallback, memo } from 'react';
-import { Plus, Users, LogOut, Tag, CheckSquare, X, Mail } from 'lucide-react';
+import { Plus, Users, LogOut, Tag, CheckSquare, X, Mail, ArrowDownUp } from 'lucide-react';
 import { useAccountStore } from '../store/accountStore';
 import { useLaunchStore } from '../store/launchStore';
 import { useSelectionStore } from '../store/selectionStore';
 import { useAccounts } from '../hooks/useAccounts';
 import { AccountCard } from '../components/accounts/AccountCard';
 import { AccountDetailPanel } from '../components/AccountDetailPanel';
-import { Group, Stack, Text, Button, TextInput, ScrollArea, Tooltip, Checkbox, Modal, Textarea, FocusTrap, Badge } from '@mantine/core';
+import { Group, Stack, Text, Button, TextInput, ScrollArea, Tooltip, Checkbox, Modal, Textarea, FocusTrap, Badge, Select } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { modals } from '@mantine/modals';
 import type { Account } from '../../domain/entities/Account';
@@ -39,6 +39,8 @@ function AccountsViewComponent({ searchQuery }: AccountsViewProps): JSX.Element 
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
   const [togglingFavorites, setTogglingFavorites] = useState<Set<string>>(new Set());
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
+  // Sort
+  const [sortBy, setSortBy] = useState<'name' | 'favorite' | 'cookie' | 'date' | 'group'>('date');
   // Multi-select for bulk operations
   const { isMultiSelectMode, selectedIds, toggleMultiSelect, toggle: toggleBulkSelect, clearAll: clearBulkSelection, selectAll: selectAllBulk, isSelected } = useSelectionStore();
 
@@ -51,14 +53,45 @@ function AccountsViewComponent({ searchQuery }: AccountsViewProps): JSX.Element 
   const selected = useMemo(() => accounts.find((a) => a.id === selectedId) ?? null, [accounts, selectedId]);
 
   const filtered = useMemo(() => {
-    if (!debouncedQuery.trim()) return accounts;
-    const q = debouncedQuery.toLowerCase();
-    return accounts.filter((a) =>
-      a.username.toLowerCase().includes(q) ||
-      a.group.toLowerCase().includes(q) ||
-      (a.description ?? '').toLowerCase().includes(q)
-    );
-  }, [accounts, debouncedQuery]);
+    let result = accounts;
+    if (debouncedQuery.trim()) {
+      const q = debouncedQuery.toLowerCase();
+      result = result.filter((a) =>
+        a.username.toLowerCase().includes(q) ||
+        a.group.toLowerCase().includes(q) ||
+        (a.description ?? '').toLowerCase().includes(q)
+      );
+    }
+    // Sort
+    const sorted = [...result];
+    switch (sortBy) {
+      case 'name':
+        sorted.sort((a, b) => a.username.localeCompare(b.username));
+        break;
+      case 'favorite':
+        sorted.sort((a, b) => Number(b.isFavorite) - Number(a.isFavorite));
+        break;
+      case 'cookie':
+        sorted.sort((a, b) => {
+          if (a.cookieExpiresAt && !b.cookieExpiresAt) return -1;
+          if (!a.cookieExpiresAt && b.cookieExpiresAt) return 1;
+          return 0;
+        });
+        break;
+      case 'date':
+        // Most recent first — assumes createdAt exists as ISO string or timestamp
+        sorted.sort((a, b) => {
+          const da = new Date(a.createdAt ?? 0).getTime();
+          const db = new Date(b.createdAt ?? 0).getTime();
+          return db - da;
+        });
+        break;
+      case 'group':
+        sorted.sort((a, b) => a.group.localeCompare(b.group));
+        break;
+    }
+    return sorted;
+  }, [accounts, debouncedQuery, sortBy]);
 
   const handleLaunch = useCallback(async () => {
     if (!selected || !api) return;
@@ -214,6 +247,23 @@ function AccountsViewComponent({ searchQuery }: AccountsViewProps): JSX.Element 
           <Checkbox checked={shuffle} onChange={(e) => setShuffle(e.currentTarget.checked)} label={t('accounts.shuffle')} size="sm" />
         </Tooltip>
         <div style={{ flex: 1 }} />
+        {/* Sort dropdown */}
+        <Select
+          size="sm"
+          w={160}
+          leftSection={<ArrowDownUp size={12} />}
+          label={null}
+          placeholder={t('accounts.sortBy')}
+          value={sortBy}
+          onChange={(val) => val && setSortBy(val as typeof sortBy)}
+          data={[
+            { value: 'date', label: t('accounts.sortByDate') },
+            { value: 'name', label: t('accounts.sortByName') },
+            { value: 'favorite', label: t('accounts.sortByFavorite') },
+            { value: 'cookie', label: t('accounts.sortByCookie') },
+            { value: 'group', label: t('accounts.sortByGroup') },
+          ]}
+        />
         {/* Multi-select toggle */}
         <Button
           variant={isMultiSelectMode ? 'filled' : 'light'}

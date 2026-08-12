@@ -1,5 +1,7 @@
 import { exec, execSync } from 'node:child_process';
 import { promisify } from 'node:util';
+import { getAuthTicket } from './RobloxHttp';
+import { logger } from '../logging/logger';
 const execAsync = promisify(exec);
 const runningInstances = new Map<string, number>(); // accountId -> PID
 
@@ -14,12 +16,39 @@ function isValidPid(pid: unknown): pid is number {
   return typeof pid === 'number' && Number.isInteger(pid) && pid > 0;
 }
 
-export async function launchMulti(accountId: string, placeId: string, jobId: string, _cookie: string): Promise<number> {
+// FIX: launchMulti now uses auth ticket + correct placelauncherurl with placeId/jobId
+export async function launchMulti(accountId: string, placeId: string, jobId: string, cookie: string): Promise<number> {
   // Validate jobId to prevent command injection via the URL
-  if (!isValidJobId(jobId)) {
+  if (jobId && !isValidJobId(jobId)) {
+    logger.error('[launchMulti] Invalid jobId format');
     return 0;
   }
-  const url = `roblox-player://1+launchmode=play+gameinfo=${jobId}+launchtime=${Date.now()}+placelauncherurl=https://assetgame.roblox.com/v1/placelauncher/placelauncher`;
+
+  if (!cookie || !cookie.trim()) {
+    logger.error('[launchMulti] Cookie required for auth ticket');
+    return 0;
+  }
+
+  // 1. Get one-time auth ticket
+  let authTicket: string;
+  try {
+    authTicket = await getAuthTicket(cookie);
+  } catch (err) {
+    logger.error('[launchMulti] Failed to get auth ticket:', err);
+    return 0;
+  }
+
+  // 2. Construct placelauncherurl with correct query params
+  const launcherParams = jobId
+    ? `request=RequestGameJob&placeId=${placeId}&gameId=${jobId}`
+    : `request=RequestGame&placeId=${placeId}`;
+  const placelauncherurl = `https://assetgame.roblox.com/game/PlaceLauncher.ashx?${launcherParams}`;
+
+  // 3. Build URI with proper format
+  const launchtime = Date.now();
+  const browsertrackerid = Math.floor(Math.random() * 1000000);
+  const url = `roblox-player://1+launchmode:play+gameinfo:${authTicket}+launchtime:${launchtime}+placelauncherurl:${encodeURIComponent(placelauncherurl)}+browsertrackerid:${browsertrackerid}+robloxLocale:en_us+gameLocale:en_us+channel:+LaunchExp:InApp`;
+
   if (process.platform === 'win32') {
     execSync(`start "" "${url}"`, { shell: 'cmd.exe' });
   }

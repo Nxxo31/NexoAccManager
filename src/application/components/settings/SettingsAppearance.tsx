@@ -35,12 +35,30 @@ export function SettingsAppearance(): JSX.Element | null {
   const savePrimaryColor = async (color: string) => {
     setPrimaryColor(color);
     await api.settings.set('primaryColor', color);
+    // Apply to CSS variables in real-time
+    document.documentElement.style.setProperty('--mantine-color-primary-0', color);
+    document.documentElement.style.setProperty('--mantine-color-primary-5', color);
+    document.documentElement.style.setProperty('--mantine-color-primary-6', color);
+    document.documentElement.style.setProperty('--mantine-color-primary-7', color);
+    // Also set the Mantine primary color by updating the root
+    const root = document.documentElement;
+    // Generate shades (simplified — main color + opacity variations)
+    root.style.setProperty('--nam-primary', color);
   };
 
   // Initial load — primaryColor + persisted lang
   useEffect(() => {
     api.settings.get('primaryColor').then((r) => {
-      if (r.success && r.data) setPrimaryColor(String(r.data));
+      if (r.success && r.data) {
+        const color = String(r.data);
+        setPrimaryColor(color);
+        // Apply persisted color on load
+        document.documentElement.style.setProperty('--mantine-color-primary-0', color);
+        document.documentElement.style.setProperty('--mantine-color-primary-5', color);
+        document.documentElement.style.setProperty('--mantine-color-primary-6', color);
+        document.documentElement.style.setProperty('--mantine-color-primary-7', color);
+        document.documentElement.style.setProperty('--nam-primary', color);
+      }
     }).catch(() => { /* defaults remain */ });
     api.settings.get('lang').then((r) => {
       if (r.success && r.data) {

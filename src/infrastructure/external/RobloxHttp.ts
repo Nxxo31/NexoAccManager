@@ -81,3 +81,33 @@ export async function apiPost<T>(url: string, cookie: string, body?: unknown): P
 }
 
 export { httpClient, ROBLOX_BASE, AUTH_BASE };
+
+/**
+ * Get a one-time authentication ticket for Roblox launch protocol.
+ * Required as the `gameinfo` parameter in the roblox-player:// URI.
+ * The ticket expires in ~60 seconds — call right before launch.
+ */
+export async function getAuthTicket(cookie: string): Promise<string> {
+  const csrf = await getCsrfToken(cookie);
+
+  const res = await httpClient.post(`${AUTH_BASE}/v1/authentication-ticket`, null, {
+    headers: {
+      Cookie: cookieHeader(cookie),
+      'X-CSRF-TOKEN': csrf,
+      'Referer': 'https://www.roblox.com/',
+    },
+    validateStatus: () => true,
+  });
+
+  const headers = res.headers as Record<string, unknown>;
+  const raw = headers?.['rbx-authentication-ticket'];
+  let ticket: string | undefined;
+  if (Array.isArray(raw)) ticket = typeof raw[0] === 'string' ? raw[0] : undefined;
+  else if (typeof raw === 'string') ticket = raw;
+
+  if (!ticket) {
+    throw new Error('No se pudo obtener el authentication ticket');
+  }
+
+  return ticket;
+}

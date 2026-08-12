@@ -2,8 +2,7 @@
 import { exec, execSync } from 'node:child_process';
 import { logger } from '../logging/logger';
 import { promisify } from 'node:util';
-import { apiPost } from './RobloxHttp';
-import { apiGet } from './RobloxHttp';
+import { apiPost, apiGet, getAuthTicket } from './RobloxHttp';
 import { killInstance } from './MultiRobloxService';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,35 +17,57 @@ export async function killAllRoblox(): Promise<void> {
   }
 }
 
-// BUG FIX (BUG 2 + BUG 4 + BUG 5): launchRobloxDirect now returns PID (number),
-// uses placeId in the URL for logging/debugging, and logs on non-win32 instead
-// of silent no-op. The PID is needed by LocalApiService to populate runningInstances.
-export async function launchRobloxDirect(placeId: string, jobId: string, _cookie: string): Promise<number> {
-  // Validate jobId to prevent command injection via the URL (UUID v4 hex+hyphens, 36 chars)
+// FIX: launchRobloxDirect now obtains auth ticket via getAuthTicket(cookie),
+// constructs the placelauncherurl with correct query params (placeId + jobId),
+// and uses the proper URI format with separator `:` instead of `=`.
+export async function launchRobloxDirect(placeId: string, jobId: string, cookie: string): Promise<number> {
+  // Validate jobId to prevent command injection (UUID v4 hex+hyphens, 36 chars)
   const JOB_ID_REGEX = /^[a-f0-9-]{36}$/;
   if (jobId && !JOB_ID_REGEX.test(jobId)) {
+    logger.error('[launchRobloxDirect] Invalid jobId format');
     return 0;
   }
-  // Launch Roblox using the protocol handler — needs MultiRobloxService for multi-instance
-  const url = `roblox-player://1+launchmode=play+gameinfo=${jobId}+launchtime=${Date.now()}+placelauncherurl=https://assetgame.roblox.com/v1/placelauncher/placelauncher`;
+
+  if (!cookie || !cookie.trim()) {
+    logger.error('[launchRobloxDirect] Cookie required for auth ticket');
+    return 0;
+  }
+
+  // 1. Get one-time auth ticket from Roblox
+  let authTicket: string;
+  try {
+    authTicket = await getAuthTicket(cookie);
+  } catch (err) {
+    logger.error('[launchRobloxDirect] Failed to get auth ticket:', err);
+    return 0;
+  }
+
+  // 2. Construct placelauncherurl with correct query params
+  const launcherParams = jobId
+    ? `request=RequestGameJob&placeId=${placeId}&gameId=${jobId}`
+    : `request=RequestGame&placeId=${placeId}`;
+  const placelauncherurl = `https://assetgame.roblox.com/game/PlaceLauncher.ashx?${launcherParams}`;
+
+  // 3. Build URI with proper format (separator `:` not `=`)
+  const launchtime = Date.now();
+  const browsertrackerid = Math.floor(Math.random() * 1000000);
+  const url = `roblox-player://1+launchmode:play+gameinfo:${authTicket}+launchtime:${launchtime}+placelauncherurl:${encodeURIComponent(placelauncherurl)}+browsertrackerid:${browsertrackerid}+robloxLocale:en_us+gameLocale:en_us+channel:+LaunchExp:InApp`;
+
   if (process.platform === 'win32') {
     try { execSync(`start "" "${url}"`, { shell: 'cmd.exe' }); } catch { /* ignore */ }
-    // BUG FIX: capture PID of the newly launched Roblox process so status works
+    // Capture PID of the newly launched Roblox process
     try {
       const output = execSync('tasklist /FI "IMAGENAME eq RobloxPlayerBeta.exe" /FO CSV /NH', { encoding: 'utf8' });
       const lines = output.trim().split('\n').filter(l => l.trim() && !l.includes('INFO:'));
       if (lines.length > 0) {
-        // CSV format: "RobloxPlayerBeta.exe","1234","Console","1","100,000 K"
-        // PID is the second quoted field
         const match = lines[0].match(/"RobloxPlayerBeta\.exe","(\d+)"/);
         if (match) {
           return parseInt(match[1], 10);
         }
       }
-    } catch { /* PID detection failed — return 0 */ }
+    } catch { /* PID detection failed */ }
   } else {
-    // BUG FIX (BUG 5): Linux/macOS — log instead of silent no-op
-    logger.warn(`[launchRobloxDirect] Platform ${process.platform} not supported for direct launch — placeId=${placeId} jobId=${jobId}`);
+    logger.warn(`[launchRobloxDirect] Platform ${process.platform} not supported — placeId=${placeId}`);
   }
   return 0;
 }
