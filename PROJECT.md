@@ -387,3 +387,53 @@ Próximo commit previsto: `docs: estandarizar PROJECT.md (template SophIA con ma
 ---
 
 *Generado por SophIA — Sebastian Velasco's autonomous operating system*
+
+---
+
+## Roadmap v6.0.0 — Feature Parity Audit (RAM / Bloxstrap / Fishstrap)
+
+> Basado en investigación de proyectos de referencia realizada 2026-08-11.
+> Objetivo: cerrar brechas de feature parity con RAM, Bloxstrap y Fishstrap
+> manteniendo la arquitectura hexagonal, seguridad AES-256-GCM y 100% local.
+
+### Tier 1 — Critical (launch + core UX)
+
+| # | Feature | Origen | Descripción | Estado |
+|---|---------|--------|-------------|--------|
+| 1 | Launch fix: auth ticket + placelauncherurl | NAM bug | FIX ya aplicado — getAuthTicket() + URI correcto | ✅ DONE |
+| 2 | Cookie auto-refresh on expiry | RAM | Detectar cookie por expirar y refrescar automáticamente antes del launch | Pending |
+| 3 | Aging alert | RAM | Notificación visual cuando cookie está por expirar (< 7 días) | Pending |
+| 4 | Bulk launch desde multi-select | User request | Seleccionar varias cuentas → lanzar todas al mismo Place ID/server | Pending |
+| 5 | Profile config en lote (privacidad/seguridad/control) | User request | Desde Settings > Cuentas, aplicar cambios a cuentas seleccionadas | Pending |
+
+### Tier 2 — Feature Parity (Bloxstrap / Fishstrap)
+
+| # | Feature | Origen | Descripción | Estado |
+|---|---------|--------|-------------|--------|
+| 6 | FastFlag editor GUI | Bloxstrap | Editor visual de FastFlags (no solo import/export JSON) | Pending |
+| 7 | FastFlag Profiles múltiples | Fishstrap | Guardar/cargar presets de FastFlags (ej: "FPS unlock", "Graphics max", "Low spec") | Pending |
+| 8 | Content Mods system | Bloxstrap | Instalar/desinstalar mods de assets (custom textures, sounds, UI) | Pending |
+| 9 | Test Mode | Bloxstrap | Lanzar Roblox en modo test para debugging | Pending |
+| 10 | Update pinning | Fishstrap | Bloquear updates de Roblox en una versión específica | Pending |
+
+### Tier 3 — Quality of Life (RAM parity)
+
+| # | Feature | Origen | Descripción | Estado |
+|---|---------|--------|-------------|--------|
+| 11 | Async join | RAM | Lanzar múltiples cuentas sin esperar a que la anterior termine | Pending |
+| 12 | Recent games history | RAM | Lista de últimos Place IDs usados, guardado entre sesiones | Pending |
+| 13 | Region format selection | RAM | Selector de formato de región para timestamps/ping | Pending |
+| 14 | API permissions granular | RAM | Control de qué operaciones del WebServer API están permitidas | Pending |
+| 15 | Auto-update checker | RAM | Verificar si hay nueva versión de NAM al iniciar | Pending |
+
+### Tier 4 — UI/UX Improvements (Linear/Superhuman patterns)
+
+| # | Feature | Descripción | Estado |
+|---|---------|-------------|--------|
+| 16 | Keyboard shortcuts | Ctrl+N nueva cuenta, Ctrl+F buscar, Ctrl+L lanzar, etc. | Pending |
+| 17 | Drag-and-drop account reorder | Reorder accounts via drag, persistir el orden | Pending |
+| 18 | Account groups/tags visuales | Tags de color para organizar cuentas por categoría | Pending |
+| 19 | Command palette (Ctrl+K) | Búsqueda rápida de cuentas, settings, acciones | Pending |
+| 20 | Toast notifications mejoradas | Notificaciones con acciones inline (refrescar cookie, reintentar launch) | Pending |
+| 21 | Sidebar collapse remember | Persistir si el sidebar está colapsado entre sesiones | Pending |
+| 22 | Empty states ilustrados | Estados vacíos con ilustraciones ASCII/SVG en AccountsView, FriendsView, etc. | Pending |
