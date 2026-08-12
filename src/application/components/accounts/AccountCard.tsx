@@ -4,8 +4,8 @@
 // Multi-select: checkbox visible when isMultiSelectMode is active.
 
 import { memo } from 'react';
-import { Star, Pencil, Trash2 } from 'lucide-react';
-import { Card, Group, Stack, Text, Badge, Avatar, ActionIcon, Checkbox } from '@mantine/core';
+import { Star, Pencil, Trash2, Shirt } from 'lucide-react';
+import { Card, Group, Stack, Text, Badge, Avatar, ActionIcon, Checkbox, Tooltip } from '@mantine/core';
 import type { Account } from '../../../domain/entities/Account';
 import { t } from '../../../config/i18n';
 
@@ -16,6 +16,7 @@ interface AccountCardProps {
   onRemove: (account: Account) => void;
   onToggleFavorite: (account: Account) => void;
   onEdit: (account: Account) => void;
+  onSkinEdit?: (account: Account) => void;
   isRemoving?: boolean;
   isTogglingFavorite?: boolean;
   isMultiSelectMode?: boolean;
@@ -30,6 +31,7 @@ function AccountCardComponent({
   onRemove,
   onToggleFavorite,
   onEdit,
+  onSkinEdit,
   isRemoving = false,
   isTogglingFavorite = false,
   isMultiSelectMode = false,
@@ -111,6 +113,18 @@ function AccountCardComponent({
               >
                 <Pencil size={14} />
               </ActionIcon>
+              {onSkinEdit && (
+                <Tooltip label={t('accounts.skinEditor')} position="bottom">
+                  <ActionIcon
+                    variant="subtle"
+                    color="grape"
+                    onClick={(e) => { e.stopPropagation(); onSkinEdit(account); }}
+                    aria-label={t('accounts.skinEditor')}
+                  >
+                    <Shirt size={14} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
               <ActionIcon
                 variant="subtle"
                 color="red"

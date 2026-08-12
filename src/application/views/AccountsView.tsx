@@ -7,6 +7,7 @@ import { useLaunchStore } from '../store/launchStore';
 import { useSelectionStore } from '../store/selectionStore';
 import { useAccounts } from '../hooks/useAccounts';
 import { AccountCard } from '../components/accounts/AccountCard';
+import { SkinEditorModal } from '../components/accounts/SkinEditorModal';
 import { AccountDetailPanel } from '../components/AccountDetailPanel';
 import { Group, Stack, Text, Button, TextInput, ScrollArea, Tooltip, Checkbox, Modal, Textarea, FocusTrap, Badge, Select } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
@@ -34,6 +35,7 @@ function AccountsViewComponent({ searchQuery }: AccountsViewProps): JSX.Element 
   const shuffle = useLaunchStore((s) => s.shuffle);
   const setShuffle = useLaunchStore((s) => s.setShuffle);
   const [editAccount, setEditAccount] = useState<Account | null>(null);
+  const [skinEditAccount, setSkinEditAccount] = useState<Account | null>(null);
   const [editGroup, setEditGroup] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
@@ -313,6 +315,7 @@ function AccountsViewComponent({ searchQuery }: AccountsViewProps): JSX.Element 
                   onRemove={handleCardRemove}
                   onToggleFavorite={handleToggleFavorite}
                   onEdit={openEdit}
+                  onSkinEdit={(acc) => setSkinEditAccount(acc)}
                   isRemoving={removingIds.has(account.id)}
                   isTogglingFavorite={togglingFavorites.has(account.id)}
                 />
@@ -361,6 +364,13 @@ function AccountsViewComponent({ searchQuery }: AccountsViewProps): JSX.Element 
             </Stack>
           </FocusTrap>
         </Modal>
+
+      {/* Skin editor modal */}
+      <SkinEditorModal
+        account={skinEditAccount}
+        opened={skinEditAccount !== null}
+        onClose={() => setSkinEditAccount(null)}
+      />
     </div>
   );
 }
