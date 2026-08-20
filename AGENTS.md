@@ -1,355 +1,191 @@
-# NexoAccManager — OpenSource Account Manager
+# AGENTS.md — Global SophIA
+**Version:** 2026.08.10 | **Applies to:** all sessions, all profiles
+**Overridden by:** project-level or profile-level AGENTS.md when explicitly contradicting.
 
-## Project
-Open-source multi-account manager for gaming platforms.
-Modern, secure evolution of RAM (ic3w0lf22) focused on privacy.
-Repository: https://github.com/Nxxo31/NexoAccManager
-Max accounts: 50 per user
-License: MIT
+---
 
-## Stack
-- **App**: Electron 30 + React 18 + TypeScript 5 + Zustand 5 + framer-motion 12
-- **Main process**: Node.js + better-sqlite3
-- **Encryption**: AES-256-GCM hardware-derived
-- **IPC**: Typed contextBridge — invoke/handle only, never send/on
-- **i18n**: custom flat resolver `t(key, vars)` in `src/config/i18n.ts` — sole system since v5.0.0 (i18next/react-i18next removed; 255 leaf keys × 3 locales with ES fallback, single-brace `{var}` placeholders)
-- **Themes**: CSS variables in :root via IPC theme:set
-- **Build**: electron-builder (AppImage, snap, NSIS)
-- **Verification gates**: `mcp__lsp_intelligence__live_diagnostics` + `delegate_task` review + `gitleaks` (staged diff) — NO vitest, NO jest, NO playwright, NO `tsc --noEmit` directo
-- **No backend**: 100% local, no servers, no cloud
+## Communication
 
-## Critical rules — NEVER violate
-- Roblox cookies NEVER leave the user's PC
-- contextIsolation: true + nodeIntegration: false + sandbox: true — never disable
-- 100% local — no backend, no server, no cloud
-- Never dangerouslySetInnerHTML with external data
-- Never expose raw ipcRenderer — only contextBridge
-- Never commit with unresolved type errors — verify via `mcp__lsp_intelligence__live_diagnostics`
-- Never weaken gates to make them pass — fix the code, not the gate
-- Never create .bak files — use git for versioning
-- Never write code without reading PROJECT.md first
+- **Reasoning:** English. **Output:** Spanish. Mix English technical terms freely.
+- Address user as "tú". Never "usted".
+- Assertive, objective. Lead with answer, follow with evidence.
+- No preamble, sycophancy, or "great question."
+- Distinguish: certain / probable / speculative. Label speculation.
+- Keep responses proportional to the question.
+- Complex explanations include a concrete analogy (max 2 sentences).
+- **Environment:** WSL2 Ubuntu — NexoPC | **Projects:** `~/proyectos/` | **GitHub:** Nxxo31
 
-## IPC Architecture — mandatory namespacing (v5.0.0 — 21 namespaces, 92 channels in preload)
-```
-account:*     → account management (CRUD + encryption + login + control)
-roblox:*      → platform API (launch, kill, instances, servers, outfits, vip)
-settings:*    → local preferences, theme, language (key 'language')
-theme:*       → CSS theme system (theme:get / theme:set)
-cookie:*      → cookie expiry + refresh
-friends:*     → friend list / requests / send / respond
-follow:*      → follow / unfollow (companion: unfollow:*)
-servers:*     → server list + users by account
-games:*       → search + favorites management
-advanced:*    → cache, export, devmode, delete-all, local-api start/stop
-botting:*     → botting start / stop / status
-cache:*       → cache analyze / clean
-captcha:*     → captcha solve
-discord:*     → Discord RPC initialize / update / clear / shutdown
-fflags:*      → FastFlags get/set/delete/import/export
-logs:*        → recent logs / clear-old
-mods:*       → content mods install/uninstall/list/backup/restore
-playtime:*    → session tracking + history + totals
-presets:*     → launch presets CRUD + launchPreset
-shell:*       → open-external (sandbox-safe)
-```
-Pattern: invoke/handle (Promise-based) — never send/on for request-response
-Result pattern in IPC: `{ success, data }` | `{ success: false, error }` — never throw without catch
-`account:control` transport is WebSocket-only since v4.2.0 (smart-polling HTTP fallback removed; v5.0.0 adds resend-on-reconnect buffer). See MIGRATION.md.
+---
 
-## Account limit
-- Maximum 50 accounts per user
-- Hardcoded in the account counter
+## Providers
 
-## UI Architecture — v5.0.0 multi-view with sidebar navigation
-- **Sidebar**: `src/application/layout/Sidebar.tsx` — 5-item nav (accounts, friends, games, servers, settings) with collapse/toggle
-- **TopBar**: `src/application/layout/TopBar.tsx` — search, theme toggle, add-account button
-- **ContentArea**: `src/application/layout/ContentArea.tsx` — lazy-loads views via `React.lazy()` based on `activeView` from `uiStore`
-- **Router**: manual state-based routing via `useUIStore.activeView` (no react-router-dom) — `setView()` switches content
-- **Views** (5): AccountsView, FriendsView, GamesView, ServersView, SettingsView — each `React.lazy()` loaded on demand
-- **Modals**: AddAccountModal (3-tab: login/cookie/bulk), SettingsPanel via SettingsView accordion (12 subcomponents), AccountControlPanel per-account
-- **LaunchDock**: Persistent bottom bar — Place ID propagation, shuffle, quick-launch
-- **Animations**: framer-motion (Reorder drag-drop, modal transitions, sidebar collapse, dock micro-interactions)
-- **Styling**: Mantine v7 + custom CSS variables, Lucide icons
-- **Perf**: React.memo on AccountsView + AccountCard (B-7), lazy loading per view, Vite code splitting (bundle 739KB→412KB)
+NVIDIA NIM primary. 7 keys in auth.json, round_robin (`NVIDIA_API_KEY_1` through `7`).
+- 2-3 transient 403 errors at startup = normal credential rotation.
+- All credentials exhausted → pause and report. No infinite retry.
+- API keys only via environment variables — never in code or commits.
+- Fallbacks: Anthropic (`ANTHROPIC_API_KEY`), OpenRouter (`OPENROUTER_API_KEY`).
 
-## MCP Tools — MANDATORY for this project
+---
 
-| Task | Tool | NEVER use |
-|------|------|-----------|
-| Understand IPC structure | `mcp__lsp_intelligence__document_symbols` | `grep` |
-| Verify type safety after edit | `mcp__lsp_intelligence__live_diagnostics` | `tsc --noEmit` |
-| Find IPC handler implementations | `mcp__lsp_intelligence__find_code` | `grep -rn` |
-| Trace IPC channel usage | `mcp__lsp_intelligence__find_references` | `grep` |
-| Edit TSX/TS files | `mcp__zenith__edit_file` or `write_file` | `sed`, `patch` for code |
-| Search across codebase | `mcp__zenith__search_files` | `grep`, `rg` |
-| Commit to GitHub | `mcp__github__push_files` | `git commit` + `git push` |
-| List project files | `mcp__filesystem__directory_tree` | `ls`, `find` |
-| Code review | `mcp__mcp_code_review_pro__review_diff` | manual inspection only |
-| Visual QA | `computer_use` capture or `mcp__playwright__browser_take_screenshot` | guessing UI |
+## Context Sources — Lookup Order
 
-## PROJECT.md — living document (PRIORITY)
-- PROJECT.md is the single source of truth for project state
-- Read PROJECT.md FIRST at session start, before any action
-- Complete task → mark ✅ with date immediately
-- New subtasks discovered → add immediately
-- Technical decisions → document with rationale immediately
-- Known limitations → document immediately
-- PROJECT.md vs code inconsistency → code wins, update PROJECT.md
-- Never let PROJECT.md be outdated by more than one commit
-- Never claim "done" without verifying with real tool output
+1. **Persistent memory** (`memory` tool) | 2. **This AGENTS.md** | 3. **Project AGENTS.md** | 4. **Profile AGENTS.md** | 5. **PROJECT.md** | 6. **Progressive AGENTS.md** | 7. Git | 8. Skill | 9. MCP | 10. Web.
+Memory = cross-session brain. Save: preferences, decisions, patterns. NOT: PR numbers, temporary state.
 
-## Development loop for this project
+---
 
-1. Read PROJECT.md → check active phase and known limitations
-2. `git status` → ver estado del repo
-3. **LSP gate**: `mcp__lsp_intelligence__document_symbols` en archivos a modificar — entender estructura antes de editar
-4. Skills loaded by the agent before writing code: enterprise-dev-workflow, Electron, spec-creation, karpathy-guidelines. The agent loads them automatically.
-5. For tasks >1 archivo or UI work: think first about what to build, show mockups if UI, then write code via `mcp__zenith__edit_file` or `write_file`. No intermediate .md files — design lives inline in PROJECT.md.
-6. **LSP gate post-edit**: `mcp__lsp_intelligence__live_diagnostics` en archivos modificados — 0 errores
-7. **Code review gate**: `mcp__mcp_code_review_pro__review_diff` or `delegate_task` con skill `code-review-and-quality` — todos los findings addressados
-8. **Secret scan gate**: `gitleaks` en el staged diff
-9. Update PROJECT.md with results BEFORE commit
-10. **Atomic commit gate**: `mcp__github__push_files` — commits atómicos, conventional commit
-11. Next task immediately
+## Agency Architecture
 
-NO vitest, NO jest, NO playwright, NO `tsc --noEmit` directo. Los gates son determinísticos: LSP live_diagnostics + delegate_task review + gitleaks.
-NO separate spec files, drift reports, docs/specs/, architecture overviews, or any .md outside PROJECT.md. Everything goes in PROJECT.md.
+### Profiles
 
-## Editing code files (TSX/JSX/TS/JS)
-- Use `mcp__zenith__edit_file` or `mcp__filesystem__write_file` — NEVER `sed -i`
-- For multiline/JSX changes: `mcp__filesystem__read_text_file` full file, apply change, `mcp__filesystem__write_file` whole file
-- NEVER create .bak files — git is the versioning system
-- After writing: `mcp__lsp_intelligence__live_diagnostics` on modified file before marking complete
-- If an edit fails 2 times with the same approach, stop and report
+| Profile | Role | MCPs obligatorios |
+|---------|------|--------------------|
+| `default` | Orchestrator — dispatch, gate enforcement, architecture. Does NOT write code. | dark-memory, chroma, github, lsp-intelligence |
+| `dev` | Developer — 8-phase cycle: SPEC→IMPL→LSP→REVIEW→SELF-REVIEW→VALIDATION→COMMIT | lsp-intelligence, zenith, filesystem, github, mcp-code-review-pro |
+| `gatekeeper` | Tech Lead + Release Manager + QA Engineer — 10-phase verification: code gates + E2E visual/backend QA + safety audit. Does NOT write code. | lsp-intelligence, github, mcp-code-review-pro, dark-memory, playwright, visual-parity |
+| `research` | Investigator — multi-source pipeline with confidence levels | firecrawl, web_extract, chroma, dark-memory |
+| `designer` | AI visual designer — mockups, assets, prototyping + visual QA | playwright, visual-parity, firecrawl, dark-memory, chroma |
+| `trader` | Trading bot operator — 4-phase: strategy→backtest→paper→live | (domain MCPs when enabled) |
+| `ciberseguridad` | Security analyst — pentesting, OSINT, hardening | filesystem, github, firecrawl |
 
-## Key file structure — ACTUAL v5.0.0 (Hexagonal Architecture)
-```
-src/
-  main.ts                       → Electron main process entry (single file since v4.0.0 split)
-  renderer.tsx                  → React renderer entry (MantineProvider + Modals + Notifications)
-  theme.ts                      → Mantine v7 theme export
-  config/
-    constants.ts                → app-wide constants (ports, paths, limits)
-    i18n.ts                     → SOLE i18n system: custom t(key, vars) — 255 leaf keys × 3 locales (ES/EN/PT), ES fallback, single-brace {var} interpolation
-  domain/                       → pure business logic, zero Electron/React/Side-effect imports
-    entities/
-      Account.ts                → Account entity + value objects
-      FastFlag.ts               → FastFlag entity
-      GameData.ts               → Game/search result entity
-      LaunchPreset.ts           → preset entity
-      PlaytimeEntry.ts          → playtime tracking entry
-      PresenceData.ts           → presence/online-state entity
-      ServerInfo.ts             → server list entry entity
-    repositories/
-      RepositoryInterfaces.ts   → AccountRepository / SettingsRepository port contracts
-      RobloxApiPort.ts          → Roblox API port — segregated into 6 capability sub-ports (Auth, Games, Presence, Social, Settings, Cookie) since v4.1.0
-    types/
-      EncryptedString.ts        → branded type — runtime guard against plaintext credentials (invariant-validated factory)
-  application/                  → React/UX layer (renderer-side state, views, components)
-    App.tsx                     → app root
-    ErrorBoundary.tsx           → React error boundary
-    components/
-      AddAccountModal.tsx       → login/cookie/bulk-import 3-tab modal (uses t() interpolation: modal.accountsAdded)
-      AccountDetailPanel.tsx   → expandable per-account detail panel
-      LaunchDock.tsx            → persistent launch dock (Place ID via launchStore)
-      accounts/
-        AccountCard.tsx          → inline-editable account card
-      settings/
-        SettingsGeneral.tsx      → General settings (language picker → settings:set key='language')
-        SettingsAppearance.tsx   → theme selection
-        SettingsBotting.tsx     → botting toggles
-        SettingsCache.tsx       → cache analyze/clean
-        SettingsContentMods.tsx → content mods install/uninstall
-        SettingsData.tsx        → export/delete-all
-        SettingsDiscordRPC.tsx  → Discord RPC on/off
-        SettingsFastFlags.tsx   → FastFlags editor
-        SettingsLaunchPresets.tsx → preset manager
-        SettingsLogs.tsx        → recent logs viewer
-        SettingsPlaytime.tsx    → playtime history + clear
-        SettingsWebServer.tsx   → advanced: local-api start/stop
-    hooks/
-      useAccounts.ts            → Zustand-bound selectors hook
-    layout/
-      Sidebar.tsx               → navigation sidebar
-      TopBar.tsx                → top bar
-      ContentArea.tsx           → active-view switcher
-    store/
-      accountStore.ts           → Zustand account state
-      launchStore.ts            → Zustand persistent launch state (last Place ID)
-      uiStore.ts                → Zustand ephemeral UI state
-    views/
-      AccountsView.tsx          → main hub (uses t() interpolation: accounts.launched, accounts.deleteConfirmBody)
-      ServersView.tsx           → server search (t() interpolation: servers.count/region/players/fps)
-      FriendsView.tsx           → friends list (t() interpolation: friends.onlineCount)
-      GamesView.tsx             → games search & favorites (t() interpolation: games.count)
-      SettingsView.tsx          → accordion wrapper routing to 12 settings/ subcomponents (SRP since v4.1.0)
-    window-api.d.ts             → typed preloaded window.api (preload bridge contract)
-  infrastructure/               → adapters/implementations (side-effects live here)
-    database/
-      DatabaseManager.ts        → better-sqlite3 init, 4 tables (accounts, recent_games, favorite_games, settings) — schema unchanged since v4.0.0 (CREATE TABLE IF NOT EXISTS, no ALTER)
-      AccountRepositoryImpl.ts  → AccountRepository impl
-      SettingsRepositoryImpl.ts  → SettingsRepository impl
-      CryptoService.ts          → AES-256-GCM encryption (hardware-derived salt)
-      LRUCache.ts               → in-process 60s LRU for Roblox API rate-limit respect
-    external/
-      RobloxAuthService.ts       → RobloxAuthPort: cookie verification, CSRF, login
-      RobloxCookieService.ts    → RobloxCookiePort: cookie expiry + refresh (<24h)
-      RobloxGamesService.ts     → RobloxGamesPort: search, servers, users, outfits, universes
-      RobloxPresenceService.ts   → RobloxPresencePort: presence, recent games, Robux
-      RobloxSettingsService.ts   → RobloxSettingsPort: profile, 2FA, sessions, password, privacy, notifications
-      RobloxBottingService.ts   → botting start/stop/status executor
-      RobloxHttp.ts              → shared HTTPS client + cookie-forwarding helpers
-      RobloxLogService.ts        → pulled Roblox client log reader
-      ControlWebSocketService.ts → account:control transport, WS-only since v4.2.0 (ws://127.0.0.1:<port>/control); pending-command resend-on-reconnect added v5.0.0 — see MIGRATION.md
-      LocalApiService.ts        → local control surface host (loopback)
-      MultiRobloxService.ts     → multi-instance launcher (Windows mutex/profiles)
-      CaptchaService.ts          → captcha solver
-      CacheCleanerService.ts    → cache filesystem cleanup
-      ContentModService.ts      → mods install/restore
-      FastFlagsService.ts       → FastFlags persistence
-      DiscordRPCService.ts      → Discord RPC integration
-      LaunchPresetService.ts    → preset persistence (SQLite)
-      PlaytimeService.ts        → playtime session tracking (SQLite)
-      ThemeService.ts           → CSS-variable theme system
-    ipc/
-      IPCAdapter.ts              → registers all 92 channels by namespace (single entry-point called from main.ts)
-      handlers/
-        accountHandlers.ts       → account:* namespace
-        robloxHandlers.ts        → roblox:* namespace
-        settingsHandlers.ts     → settings:* + theme:* namespace
-        advancedHandlers.ts      → advanced:* + botting:* + cache:* + discord:* + fflags:* + logs:* + mods:* + playtime:* + presets:* namespaces
-        shared.ts                → shared IPC result-shaping helpers (okResult/errResult) + validation
-    logging/
-      logger.ts                 → electron-log wrapper (structured, request IDs; B-4)
-  preload/
-    index.ts                    → contextBridge — channel whitelist (all 92 invoke channels exposed via window.api.*; never send/on)
-  types/
-    ws.d.ts                     → WebSocket message type declarations (account:control payload shapes)
-```
+### Dispatch Rules
 
-## Design system — do not improvise
-```css
---primary:        #DE350D;  /* Roblox Red — CTAs */
---accent:         #6347FF;  /* Purple — secondaries */
---bg-dark:        #0D0D0D;  /* Main background */
---bg-card:        #161616;  /* Cards */
---bg-surface:     #1E1E1E;  /* Elevated surfaces */
---success:        #2ED573;
---warning:        #FFA502;
---error:          #FF4757;
---border:         #2A2A2A;
-```
-- Typography: Inter (UI) + JetBrains Mono (data)
-- Border radius: 8px cards / 4px inputs
-- Animations: framer-motion (200ms transitions)
-- Icons: Lucide Icons
+| Task type | Target | Tool |
+|-----------|--------|------|
+| Research, analysis, OSINT | `research` | `delegate_task` |
+| Code, refactor, debug | `dev` | `delegate_task` |
+| UI mockups, images | `designer` | `delegate_task` |
+| Visual QA (UI renders correctly) | `designer` | `delegate_task` |
+| Gate enforcement, code review | `gatekeeper` | `delegate_task` |
+| E2E QA (visual + backend integration) | `gatekeeper` | `delegate_task` |
+| Deploy decision, release management | `gatekeeper` | `delegate_task` |
+| Trading, backtesting | `trader` | `delegate_task` |
+| Security, pentesting | `ciberseguridad` | `delegate_task` |
+| Brainstorm, architecture | `default` | Execute directly |
 
-## Themes
-```
-Dark (default)  → bg: #0D0D0D
-Light           → bg: #F5F5F5, dark text
-Roblox Classic  → dominant red #DE350D with black
-Custom          → primary + accent color picker
-```
+**Dispatch context (MANDATORY):** pass project path, stack, task description, constraints from PROJECT.md, MCPs available, skills to load.
+**Max 3 concurrent subagents.** Context isolation — fresh context per subagent.
+**Never delegate understanding** — give exact paths, lines, change descriptions.
+**Self-grading is a failure mode** — ALWAYS use fresh-context subagent for review.
 
-## i18n
-- Default language: Spanish (es)
-- IPC: `settings:language:get` / `settings:language:set`
-- Persistence: SQLite `settings` table, key `language`
-- Detection: navigator.language on first launch, then stored preference
+### LLM-as-Judge Gate — dark_memory_consensus
 
-## Roblox APIs used
-```
-auth.roblox.com               → verify cookie, auth ticket
-accountsettings.roblox.com    → privacy, notifications
-accountinformation.roblox.com → profile
-users.roblox.com              → user info
-friends.roblox.com            → friends, requests
-presence.roblox.com           → online status (polling 30s)
-games.roblox.com              → servers, player count
-thumbnails.roblox.com         → avatars
-economy.roblox.com            → Robux balance
-```
-LRU cache 60s in main process — respect rate limits
+After dev completes implementation, before code review: run `dark_memory_consensus` (N=3 shots).
+Evaluates: correctness, architecture, security, error handling, idiomacy, complexity, verification.
+Verdict: PASS / FAIL (with issues) / NOTES (<80% confidence).
+Persist verdicts in `dark_memory_judgment_history` for meta-evaluation.
 
-## Test Strategy — v5.0.0 (Playwright + Electron + smoke)
+**NOT for:** trivial edits, research/analysis, changes already verified by LSP+build.
 
-### Frontend UX/UI Testing — Playwright MCP
-- **Playwright MCP** (`mcp__playwright__*`) es la herramienta obligatoria para QA de frontend
-- Para NAM (Electron): Playwright puede lanzar el AppImage/electron binary y testar la UI real
-- **Flujos a testar automáticamente:**
-  1. App launch → Sidebar visible, 5 nav items, TopBar renderiza
-  2. Click cada nav item → ContentArea cambia, view carga sin crash
-  3. AddAccountModal → abrir, 3 tabs (login/cookie/bulk), validaciones
-  4. SettingsView → accordion expande, 12 subcomponentes renderizan
-  5. LaunchDock → persistente, Place ID propagation, shuffle button
-  6. Theme toggle → dark/light/roblox-classic cambian CSS variables
-  7. i18n → cambiar idioma, verificar strings cambian en UI
-  8. 50 cuentas → cargar, drag-drop reorder, React.memo perf
-- **Visual regression**: `mcp__playwright__browser_take_screenshot` antes/después de cambios UI
-- **A11y**: `mcp__playwright__browser_snapshot` captura accessibility tree para verificar roles/labels
+### Kanban Integration
 
-### Backend IPC Testing — Smoke + LSP
-- `mcp__lsp_intelligence__live_diagnostics` para type safety (0 errores)
-- `npm run build` exit 0 para compile
-- Smoke test del binario: `xvfb-run` AppImage 10s, exit 0
-- IPC handler verification: `mcp__lsp_intelligence__find_code` pattern="ipcMain.handle" → contar canales
-- **Flujos backend a testar:**
-  1. account:add → SQLite persiste, CryptoService encripta
-  2. account:list → retorna cuentas, cookies no se exponen al renderer
-  3. roblox:launch → process spawn, mutex en Windows
-  4. ControlWebSocketService → ws://connect, resend buffer en reconnect
-  5. theme:set/get → CSS variables persisten
-  6. settings:language:set → i18n cambia de idioma
-  7. ipc drift → extractor script, 0 drift
+Each project with `.git` gets a kanban board. `default_assignee: dev`. Dispatcher runs in gateway.
+Tasks assigned to profiles by name. Board per project = hard isolation.
 
-### Integration Testing — Electron + Playwright
-- Playwright soporta Electron nativamente: lanza binario empaquetado, accede al main process
-- Testa IPC end-to-end: renderer click → IPC handler → service → response → UI update
-- **Flujos integration:**
-  1. Add account → verify SQLite row exists (encrypted)
-  2. Launch game → verify process spawned
-  3. WebSocket control → verify ws://connection + command resend
-  4. Cache clean → verify filesystem cleanup
-  5. Playtime tracking → verify SQLite playtime entries
+---
 
-## Boundaries 3-tier
+## Skills — Mandatory Tiers
 
-**Always:**
-- `mcp__lsp_intelligence__live_diagnostics` en archivos modificados — 0 errores antes de commit
-- Code review via `mcp__mcp_code_review_pro__review_diff` or `delegate_task` antes de merge
-- gitleaks detect antes de commit
-- `npm run build` exit 0 (electron-builder + vite)
-- Playwright MCP para QA de frontend (screenshots, A11y, flujos automatizados)
-- Actualizar PROJECT.md antes de commit
-- Commit via `mcp__github__push_files` (GitHub MCP)
+**T0 (session start — ALWAYS load first):** karpathy-guidelines, spanish-communication-protocol, sophia-mcp-stack-protocol, deep-reasoning, dispatching-parallel-agents, sophia-prompt-engineering, sophia-llm-as-judge-protocol.
+**T1 (work begins):** enterprise-dev-workflow, profile-execution-protocol, context-engineering, verification-before-completion, chromadb-project-indexing, reasoning-preload.
+**T2 (complex tasks):** spec-driven-development, execplan, planning-and-task-breakdown, code-review-and-quality, systematic-debugging, doubt-driven-development, brainstorming, frontend-ui-engineering, hermes-agent.
+**Rules:** T0 at session start. T1 when work begins. T2 on demand.
 
-**Ask first:**
-- Agregar nuevas dependencias npm
-- Cambiar el design system (paleta, tipografia, border-radius)
-- Modificar IPC channel structure (breaking para revisores)
-- Cambiar arquitectura de encryption (AES-256-GCM es contrato de seguridad)
-- Agregar nuevos namespaces IPC
+---
 
-**Never:**
-- Exponer cookies Roblox al renderer (contextBridge solo)
-- Commitear secrets, API keys, .env
-- Commitear dist/, build/, release/, node_modules
-- Modificar package-lock.json manualmente
-- Usar vitest, jest, tsc --noEmit directo (Playwright SI se usa para QA frontend+backend)
-- Deshabilitar contextIsolation, sandbox, o nodeIntegration:false
-- Exponer ipcRenderer.send/on (solo invoke/handle)
+## MCPs — MANDATORY Usage Table (USE THESE, NOT terminal/grep/sed)
 
-## Definition of Done (estado observable)
-- `npm run build` exit 0
-- LSP live_diagnostics 0 errores en archivos modificados
-- gitleaks detect 0 findings
-- Code review PASS
-- PROJECT.md actualizado
+**Principle:** MCPs > native tools. ALWAYS use MCPs first. `terminal` is for builds, installs, git, processes — NOT for code analysis or editing.
+**Access pattern:** `tool_search(query)` → `tool_describe(name)` → `tool_call(name, args)`
 
-## Human intervention — only if
-- Risk of permanent data loss
-- Product decision missing from PROJECT.md
-- Contradiction with "Critical rules" section above
-- Missing credentials or external access
-- Architectural change affecting more than one core module
+| Task | MCP tool | NEVER use |
+|------|----------|-----------|
+| Understand file structure | `mcp__lsp_intelligence__document_symbols` | `cat`, `head`, `grep` |
+| Find symbol definition | `mcp__lsp_intelligence__goto_definition` | `grep -rn` |
+| Find all usages of symbol | `mcp__lsp_intelligence__find_references` | `grep -rn` |
+| Find implementations of interface | `mcp__lsp_intelligence__find_implementations` | `grep` |
+| Search code semantically | `mcp__lsp_intelligence__find_code` | `grep -r` |
+| List all symbols in workspace | `mcp__lsp_intelligence__workspace_symbols` | `find` |
+| Analyze git diff semantically | `mcp__lsp_intelligence__semantic_diff` | `git diff` |
+| Type check after edit | `mcp__lsp_intelligence__live_diagnostics` | `tsc --noEmit` |
+| Gather context for task | `mcp__lsp_intelligence__gather_context` | manual file reading |
+| Explain TS error | `mcp__lsp_intelligence__explain_error` | guessing |
+| Edit code file | `mcp__zenith__edit_file` or `mcp__filesystem__write_file` | `sed`, `patch` for code |
+| Search file content | `mcp__zenith__search_files` or `mcp__filesystem__search_files` | `grep`, `rg` |
+| Refactor across files | `mcp__zenith__refactor_batch` | manual sed loops |
+| Find unused exports | `mcp__lsp_intelligence__find_unused_exports` | manual grep |
+| Trace call hierarchy | `mcp__lsp_intelligence__call_hierarchy` | manual grep |
+| Commit + push to GitHub | `mcp__github__push_files` or `mcp__github__create_or_update_file` | `git commit` + `git push` |
+| Read GitHub issue | `mcp__github__issue_read` | `gh issue view` |
+| Update GitHub issue | `mcp__github__issue_write` | `gh issue edit` |
+| List project files | `mcp__filesystem__directory_tree` or `mcp__filesystem__list_directory` | `ls`, `find` |
+| Read file content | `mcp__filesystem__read_text_file` or `read_file` tool | `cat` |
+| Code review | `mcp__mcp_code_review_pro__review_diff` or `review_file` | manual inspection only |
+| Consensus evaluation | `mcp__dark_memory_mcp__dark_memory_consensus` | self-grading |
+| Visual QA frontend | `mcp__playwright__browser_take_screenshot` + `browser_snapshot` | guessing UI |
+| Integration testing Electron | `mcp__playwright__browser_navigate` + `browser_click` + `browser_snapshot` | manual only |
+| A11y tree audit | `mcp__playwright__browser_snapshot` (accessibility tree) | guessing |
+| Test web pages | `mcp__playwright__browser_navigate` → `browser_fill_form` → `browser_click` → `browser_snapshot` | manual browser |
+| Visual parity | `mcp__visual_parity__compare_pages` | manual screenshot diff |
+
+**14 enabled** (24 total): lsp-intelligence, zenith, filesystem, dark-memory, reforge, nucleus, playwright, firecrawl, context7, visual-parity, chroma, sequential-thinking, github, mcp-code-review-pro.
+**10 disabled** (domain-specific): ccxt, deriv, yfinance, blender, pollinations, postgres, docker, dokploy, linear, agent-lsp.
+**Image gen fallback:** pollinations MCP → fal.ai (FAL_KEY) → xAI → OpenAI.
+
+### MCP Enforcement — HARD RULES
+
+1. **Before editing code**: `mcp__lsp_intelligence__document_symbols` on target file → understand structure
+2. **After editing code**: `mcp__lsp_intelligence__live_diagnostics` on modified file → 0 type errors
+3. **For commits**: use `mcp__github__push_files` (atomic, conventional commit) — NOT `git commit` in terminal
+4. **For code search**: use `mcp__lsp_intelligence__find_code` or `mcp__zenith__search_files` — NOT `grep`
+5. **For file operations**: use `mcp__filesystem__*` tools — NOT `cat`, `sed`, `find`
+6. **For architecture analysis**: use `mcp__lsp_intelligence__gather_context` — NOT manual file reading
+7. **For refactoring**: use `mcp__zenith__refactor_batch` — NOT manual sed loops
+8. **For code review**: use `mcp__mcp_code_review_pro__review_diff` — NOT manual inspection only
+
+`terminal` is ONLY for: builds (`npm run build`), installs (`npm install`), git status (`git status`), processes, network, package managers, and anything that genuinely needs a shell.
+
+---
+
+## Development Protocol
+
+**Lifecycle (mandatory, no skips):** SPEC → IMPLEMENT → LSP REVIEW → CODE REVIEW (subagent) → SELF-REVIEW → VALIDATION → COMMIT
+
+1. **Spec** — Define problem, files, acceptance criteria before coding. Read PROJECT.md first.
+2. **Implement** — LSP active (`mcp__lsp_intelligence__document_symbols` to understand structure). Match conventions. Surgical changes (karpathy-guidelines). Edit via `mcp__zenith__edit_file` or `mcp__filesystem__write_file`.
+3. **LSP Review** — `mcp__lsp_intelligence__live_diagnostics` clean after every edit. 0 errors.
+4. **Code Review** — `mcp__mcp_code_review_pro__review_diff` or fresh-context subagent with `code-review-and-quality` skill. Returns PASS/FAIL/NOTES.
+5. **Self-Review** — Diff matches spec? Dead code? Error handling? No new deps?
+6. **Validation** — (1) compile: build exit 0, (2) runtime: system runs, endpoints respond, (3) adversarial: edge cases.
+7. **Commit** — All gates pass. Use `mcp__github__push_files` for atomic conventional commit. `git status --porcelain` clean.
+
+**No test files** — NEVER create `*.test.ts/spec.ts` unless required. Verification = running the real system.
+**No completion without runtime evidence** — "LSP 0 errors" ≠ "funciona".
+**Prohibited in commits:** test files, coverage, logs, temp, snapshots, build artifacts, `__pycache__`, `.DS_Store`.
+**NEVER use `tsc --noEmit`** — use `mcp__lsp_intelligence__live_diagnostics` instead.
+
+---
+
+## Security & Autonomy
+
+- Never commit secrets, credentials, or API keys. Never log passwords/tokens/cookies.
+- Validate input on client AND server. Verify scope before any destructive operation.
+- Continue automatically with next pending task. Pause ONLY if: real risk of data loss, missing credentials, architectural decision absent from PROJECT.md, or contradiction with documented decisions.
+
+---
+
+## Documentation
+
+- Update **PROJECT.md** after significant task (Operational State section).
+- Write report at `~/proyectos/reports/YYYY-MM-DD-[project].md` on sprint close.
+- AGENTS.md = HOW (rules, architecture, tooling). PROJECT.md = WHAT (state, progress, metrics, use-case studies).
+- Never leave AGENTS.md stale after PROJECT.md changes. AGENTS.md must reflect actual code architecture.
+- When PROJECT.md contains use-case studies that determine design patterns, AGENTS.md must reference and enforce those patterns.
+
+---
+
+## Contract — RFC 2119 Compliance Gates
+
+**MUST:** LSP active before edits (C1) | Code review before commit (C2) | No commits to main without all gates (C4) | MCPs via tool_search before native (C5) | Skills via skill_view before tasks (C6) | No context inheritance to subagents (C7) | Safety audit before deploy (C11) | MCP usage table enforced — no terminal for code analysis/editing (C13).
+**SHOULD:** trust-ledger fixtures (C3) | Prompt injection resistance (C8) | Provider fallback (C9) | Context overflow → compaction (C10) | Clarify on ambiguous goals (C12).
+**Levels:** L1=C1,C5,C6,C13 | L2=+C2,C4,C7 | L3=+C8,C11 | L4=all 13.
