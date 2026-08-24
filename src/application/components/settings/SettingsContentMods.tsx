@@ -30,7 +30,7 @@ export function SettingsContentMods(): JSX.Element | null {
   // Initial load
   useEffect(() => {
     loadMods();
-  }, []);
+  }, [api]);
 
   const toggleMod = async (modName: string) => {
     if (modsInstalled.has(modName)) {

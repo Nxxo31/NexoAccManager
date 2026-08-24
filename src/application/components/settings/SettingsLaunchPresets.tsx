@@ -29,7 +29,7 @@ export function SettingsLaunchPresets(): JSX.Element | null {
   // Initial load
   useEffect(() => {
     loadPresets();
-  }, []);
+  }, [presetName, presetPlaceId]);
 
   const savePreset = async () => {
     if (!presetName.trim() || !presetPlaceId.trim()) return;

@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { Modal, Stack, Group, Text, TextInput, Button, Avatar, Divider, Alert } from '@mantine/core';
-import { Shirt, Info, Download, RefreshCw } from 'lucide-react';
+import { Shirt, Info, Download } from 'lucide-react';
 import { t } from '../../../config/i18n';
 import type { Account } from '../../../domain/entities/Account';
 

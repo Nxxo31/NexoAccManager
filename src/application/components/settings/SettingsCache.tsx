@@ -24,7 +24,7 @@ export function SettingsCache(): JSX.Element | null {
   // Initial load
   useEffect(() => {
     loadCacheAnalysis();
-  }, []);
+  }, [api]);
 
   const cleanCache = async () => {
     const r = await api.byAccount.cacheClean({ temp: true, logs: true, cache: true });
