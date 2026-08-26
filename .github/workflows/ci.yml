@@ -89,6 +89,36 @@ jobs:
       - name: IPC channel drift detection
         run: npx tsx scripts/extract-ipc-channels.ts
 
+# 1.5 — Windows build for PR verification
+  windows-pr-build:
+    needs: detect
+    if: needs.detect.outputs.is-node == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Type check
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npm run lint -- --max-warnings=0
+      - name: Build Windows portable
+        run: npx electron-builder --win nsis --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify Windows executable exists
+        run: |
+          if ! ls release/*.exe 1> /dev/null 2>&1; then
+            echo "ERROR: No .exe found in release/"
+            exit 1
+          fi
+          echo "Windows build successful:"
+          ls -lh release/*.exe
+
   compile-node:
     needs: detect
     if: needs.detect.outputs.is-node == 'true'

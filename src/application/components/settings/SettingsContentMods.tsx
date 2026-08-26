@@ -1,7 +1,7 @@
 // Application Component: SettingsContentMods — content mod backup/restore/install/uninstall
 // DT-6: extraído de SettingsView.tsx (SRP)
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { notifications } from '@mantine/notifications';
 import { Group, Stack, Text, Button, Card, Badge } from '@mantine/core';
 import { Download, Upload } from 'lucide-react';
@@ -14,7 +14,7 @@ export function SettingsContentMods(): JSX.Element | null {
   const [modsAvailable, setModsAvailable] = useState<string[]>([]);
   const [modsInstalled, setModsInstalled] = useState<Set<string>>(new Set());
 
-  const loadMods = async () => {
+  const loadMods = useCallback(async () => {
     const r = await api.byAccount.modsListAvailable();
     if (r.success && Array.isArray(r.data)) {
       setModsAvailable(r.data as string[]);
@@ -25,12 +25,12 @@ export function SettingsContentMods(): JSX.Element | null {
       }
       setModsInstalled(installed);
     }
-  };
+  }, [api]);
 
   // Initial load
   useEffect(() => {
     loadMods();
-  }, [api]);
+  }, [loadMods]);
 
   const toggleMod = async (modName: string) => {
     if (modsInstalled.has(modName)) {

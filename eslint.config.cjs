@@ -1,5 +1,6 @@
 const js = require('@eslint/js');
 const tseslint = require('typescript-eslint');
+const reactHooks = require('eslint-plugin-react-hooks');
 
 module.exports = [
   js.configs.recommended,
@@ -7,6 +8,7 @@ module.exports = [
   {
     ignores: [
       'dist/**',
+      'dist-electron/**',
       'release/**',
       'node_modules/**',
       'tests/**',
@@ -27,6 +29,9 @@ module.exports = [
         tsconfigRootDir: __dirname,
       },
     },
+    plugins: {
+      'react-hooks': reactHooks,
+    },
     rules: {
       // TypeScript
       '@typescript-eslint/no-explicit-any': 'warn',
@@ -45,6 +50,8 @@ module.exports = [
       'no-useless-escape': 'warn',
       'no-useless-assignment': 'off',
       'no-undef': 'off',
+      // React hooks
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
   // Main process — Node environment with require

@@ -3,8 +3,8 @@
 // Synchronizes preload/index.ts, window-api.d.ts, and IPC handlers
 // Exits with code 1 if drift != 0 (mismatch between sources)
 
-const fs = require('fs');
-const path = require('path');
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Extract IPC channels from preload/index.ts
 function extractFromPreload() {
@@ -44,21 +44,61 @@ function extractFromWindowApi() {
   const content = fs.readFileSync(windowApiPath, 'utf-8');
   const channels = [];
 
-  // Match method declarations in the api interface: methodName(args): Promise<IpcResult>
-  // Look for patterns in the interface like: method: (args) => Promise<IpcResult>
-  const methodPattern = /(\w+(?::\w+)?)\s*(?:\:|=\>)\s*.*?Promise<IpcResult/g;
-  let match;
+  // Find the api interface content
+  const apiStart = content.indexOf('api: {');
+  if (apiStart === -1) {
+    console.error('❌ Could not find api interface in window-api.d.ts');
+    process.exit(1);
+  }
 
-  while ((match = methodPattern.exec(content)) !== null) {
-    const fullName = match[1];
-    // Skip if it's a TypeScript type or interface declaration
-    if (!fullName.includes('interface') && !fullName.includes('type')) {
-      if (fullName.includes(':')) {
-        const [namespace, method] = fullName.split(':', 2);
-        channels.push({ namespace, method, fullName });
-      } else {
-        // Method without namespace — push as-is (namespace will be derived from context)
-        channels.push({ namespace: '', method: fullName, fullName });
+  // Find the matching closing brace for api: {
+  let braceCount = 0;
+  let apiEnd = apiStart;
+  for (let i = apiStart; i < content.length; i++) {
+    if (content[i] === '{') braceCount++;
+    else if (content[i] === '}') {
+      braceCount--;
+      if (braceCount === 0) {
+        apiEnd = i;
+        break;
+      }
+    }
+  }
+
+  const apiContent = content.substring(apiStart, apiEnd + 1);
+  
+  // Parse the nested structure to extract full namespaced channel names
+  const lines = apiContent.split('\n');
+  const namespaceStack: string[] = [];
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    // Count opening/closing braces to track nesting
+    const closeBraces = (line.match(/\}/g) || []).length;
+    
+    // Check for method declarations: "methodName: (...) => Promise<IpcResult>"
+    const methodMatch = trimmed.match(/^([\w-]+)\s*:\s*\(.*?\)\s*=>\s*.*?Promise<IpcResult/);
+    
+    if (methodMatch) {
+      const methodName = methodMatch[1];
+      // Build full namespaced name
+      const fullName = [...namespaceStack, methodName].join(':');
+      channels.push({ namespace: namespaceStack.join(':'), method: methodName, fullName });
+    }
+    
+    // Check for namespace declarations: "namespaceName: {"
+    // But skip if it's a method that returns an object (like controlSubscribe)
+    const namespaceMatch = trimmed.match(/^([\w-]+)\s*:\s*\{/);
+    if (namespaceMatch && !trimmed.includes('=>')) {
+      const namespaceName = namespaceMatch[1];
+      namespaceStack.push(namespaceName);
+    }
+    
+    // Pop namespaces for closing braces
+    for (let i = 0; i < closeBraces; i++) {
+      if (namespaceStack.length > 0) {
+        namespaceStack.pop();
       }
     }
   }
@@ -109,8 +149,14 @@ function extractFromHandlers() {
 }
 
 // Count unique channels by full name
-function countUniqueChannels(channels) {
-  const uniqueSet = new Set();
+interface ChannelEntry {
+  namespace: string;
+  method: string;
+  fullName: string;
+}
+
+function countUniqueChannels(channels: ChannelEntry[]): number {
+  const uniqueSet = new Set<string>();
   for (const channel of channels) {
     uniqueSet.add(channel.fullName);
   }
@@ -140,9 +186,7 @@ function main() {
   // Check for drift
   const preloadToWindowApiDrift = Math.abs(preloadCount - windowApiCount);
   const preloadToHandlerDrift = Math.abs(preloadCount - handlerCount);
-  const totalDrift = preloadToWindowApiDrift + preloadToHandlerDrift;
   
-  // If window-api.d.ts is 0, it might just need to be generated - warn but don't fail on that alone
   let shouldFail = false;
   
   if (preloadToHandlerDrift > 0) {

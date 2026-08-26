@@ -1,7 +1,7 @@
 // Application Component: SettingsCache — cache analysis + clean
 // DT-6: extraído de SettingsView.tsx (SRP)
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { notifications } from '@mantine/notifications';
 import { Group, Stack, Text, Button } from '@mantine/core';
 import { Trash } from 'lucide-react';
@@ -13,18 +13,18 @@ export function SettingsCache(): JSX.Element | null {
 
   const [cacheSize, setCacheSize] = useState<string>('');
 
-  const loadCacheAnalysis = async () => {
+  const loadCacheAnalysis = useCallback(async () => {
     const r = await api.byAccount.cacheAnalyze();
     if (r.success && r.data) {
       const d = r.data as { totalSizeMB?: number };
       setCacheSize(d.totalSizeMB ? `${d.totalSizeMB.toFixed(1)} MB` : 'N/A');
     }
-  };
+  }, [api]);
 
   // Initial load
   useEffect(() => {
     loadCacheAnalysis();
-  }, [api]);
+  }, [loadCacheAnalysis]);
 
   const cleanCache = async () => {
     const r = await api.byAccount.cacheClean({ temp: true, logs: true, cache: true });

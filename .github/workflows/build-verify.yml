@@ -16,6 +16,7 @@ jobs:
           node-version: 20
       - run: npm ci
       - run: npx tsc --noEmit
+      - run: npm run lint -- --max-warnings=0
       - run: npm run build
       - name: Verify ASAR paths
         run: |
@@ -70,6 +71,7 @@ jobs:
           node-version: 20
       - run: npm ci
       - run: npx tsc --noEmit
+      - run: npm run lint -- --max-warnings=0
       - run: npm run build
       - name: Verify AppImage exists
         run: |

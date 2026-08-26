@@ -1,7 +1,7 @@
 // Application Component: SettingsLaunchPresets — presets CRUD + launch
 // DT-6: extraído de SettingsView.tsx (SRP)
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { notifications } from '@mantine/notifications';
 import { Group, Stack, Text, TextInput, Button, Card, ActionIcon } from '@mantine/core';
 import { Trash } from 'lucide-react';
@@ -21,15 +21,15 @@ export function SettingsLaunchPresets(): JSX.Element | null {
   const [presetName, setPresetName] = useState('');
   const [presetPlaceId, setPresetPlaceId] = useState('');
 
-  const loadPresets = async () => {
+  const loadPresets = useCallback(async () => {
     const r = await api.byAccount.presetsGetAll();
     if (r.success && Array.isArray(r.data)) setPresets(r.data as Preset[]);
-  };
+  }, [api]);
 
   // Initial load
   useEffect(() => {
     loadPresets();
-  }, [presetName, presetPlaceId]);
+  }, [loadPresets]);
 
   const savePreset = async () => {
     if (!presetName.trim() || !presetPlaceId.trim()) return;

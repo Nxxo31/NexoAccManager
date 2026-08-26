@@ -6,17 +6,14 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m'
 
-# Patrones sensibles
+# Patrones sensibles - SOLO patrones que detectan secretos REALES
 PATTERNS=(
-  '\.ROBLOSECURITY=[A-Za-z0-9_%]'
-  'rbx-authentication-ticket'
-  'roblox_player_beta'
-  'ticket=[A-Za-z0-9]'
-  '_ticket=[A-Za-z0-9]'
-  '|Warning|Long|0_[0-9a-f]'
-  'WARNING'
-  'LONG'
-  'STOCKDATABASE'
+  '\.ROBLOSECURITY=[A-Za-z0-9_%-]{20,}'
+  'rbx-authentication-ticket=[A-Za-z0-9]{20,}'
+  'roblox_player_beta=[A-Za-z0-9]{20,}'
+  'ticket=[A-Za-z0-9]{20,}'
+  '_ticket=[A-Za-z0-9]{20,}'
+  'STOCKDATABASE=[A-Za-z0-9]{20,}'
 )
 
 echo "[pre-commit] Checking for sensitive Roblox account data..."

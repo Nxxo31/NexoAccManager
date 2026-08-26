@@ -56,6 +56,17 @@ function parseBody(req: http.IncomingMessage): Promise<unknown> {
   });
 }
 
+export function isSafeId(id: string | undefined | null): id is string {
+  return typeof id === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(id);
+}
+
+/** Validate a PID is a non-negative integer before interpolating into a shell
+ *  command — prevents command injection if runningInstances ever holds a
+ *  hostile value. */
+function isSafePid(pid: unknown): pid is number {
+  return typeof pid === 'number' && Number.isInteger(pid) && pid > 0;
+}
+
 export function start(port: number = 31415): Promise<void> {
   return new Promise((resolve) => {
     server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
@@ -63,6 +74,16 @@ export function start(port: number = 31415): Promise<void> {
       const { method, url } = req;
 
       try {
+        // Origin allow-list: block requests whose Origin is not loopback
+        // (DNS-rebinding / malicious web page protection). Legacy clients that
+        // omit Origin entirely (curl, local Node fetch) are unaffected.
+        const origin = req.headers.origin;
+        if (origin && !/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(origin)) {
+          res.statusCode = 403;
+          res.end(JSON.stringify({ error: 'Forbidden' }));
+          return;
+        }
+
         if (!url) {
           res.statusCode = 400;
           res.end(JSON.stringify({ error: 'Invalid request' }));
@@ -90,9 +111,9 @@ export function start(port: number = 31415): Promise<void> {
         if (method === 'GET' && url.startsWith('/accounts/') && !url.includes('/launch') && !url.includes('/kill') && !url.includes('/status') && !url.includes('/refresh-cookie')) {
           const parts = url.split('/');
           const id = parts[2];
-          if (!id) {
+          if (!isSafeId(id)) {
             res.statusCode = 400;
-            res.end(JSON.stringify({ error: 'Account ID required' }));
+            res.end(JSON.stringify({ error: 'Invalid account ID' }));
             return;
           }
           const account = await accountRepo.getById(id);
@@ -115,9 +136,9 @@ export function start(port: number = 31415): Promise<void> {
         if (method === 'POST' && url.startsWith('/accounts/') && url.endsWith('/launch')) {
           const parts = url.split('/');
           const id = parts[2];
-          if (!id) {
+          if (!isSafeId(id)) {
             res.statusCode = 400;
-            res.end(JSON.stringify({ error: 'Account ID required' }));
+            res.end(JSON.stringify({ error: 'Invalid account ID' }));
             return;
           }
           const account = await accountRepo.getById(id);
@@ -142,9 +163,9 @@ export function start(port: number = 31415): Promise<void> {
         if (method === 'POST' && url.startsWith('/accounts/') && url.endsWith('/kill')) {
           const parts = url.split('/');
           const id = parts[2];
-          if (!id) {
+          if (!isSafeId(id)) {
             res.statusCode = 400;
-            res.end(JSON.stringify({ error: 'Account ID required' }));
+            res.end(JSON.stringify({ error: 'Invalid account ID' }));
             return;
           }
           await killInstance(id);
@@ -156,14 +177,14 @@ export function start(port: number = 31415): Promise<void> {
         if (method === 'GET' && url.startsWith('/accounts/') && url.endsWith('/status')) {
           const parts = url.split('/');
           const id = parts[2];
-          if (!id) {
+          if (!isSafeId(id)) {
             res.statusCode = 400;
-            res.end(JSON.stringify({ error: 'Account ID required' }));
+            res.end(JSON.stringify({ error: 'Invalid account ID' }));
             return;
           }
           const pid = runningInstances.get(id);
           let running = false;
-          if (pid !== undefined && Number.isInteger(pid) && pid > 0) {
+          if (isSafePid(pid)) {
             try {
               if (process.platform === 'win32') {
                 const output = await execAsync(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`);
@@ -185,9 +206,9 @@ export function start(port: number = 31415): Promise<void> {
         if (method === 'POST' && url.startsWith('/accounts/') && url.endsWith('/refresh-cookie')) {
           const parts = url.split('/');
           const id = parts[2];
-          if (!id) {
+          if (!isSafeId(id)) {
             res.statusCode = 400;
-            res.end(JSON.stringify({ error: 'Account ID required' }));
+            res.end(JSON.stringify({ error: 'Invalid account ID' }));
             return;
           }
           const account = await accountRepo.getById(id);
@@ -280,7 +301,7 @@ export function start(port: number = 31415): Promise<void> {
           let msg: { id?: number; accountId?: string; command?: string };
           try { msg = JSON.parse(text); }
           catch { return; /* malformed — drop silently */ }
-          if (typeof msg.id !== 'number' || typeof msg.accountId !== 'string' || typeof msg.command !== 'string') return;
+          if (typeof msg.id !== 'number' || typeof msg.accountId !== 'string' || typeof msg.command !== 'string' || !isSafeId(msg.accountId)) return;
 
           try {
             // Dispatch the command to the same handlers used by the HTTP routes
@@ -310,7 +331,7 @@ export function start(port: number = 31415): Promise<void> {
             if (msg.command === 'status') {
               const pid = runningInstances.get(msg.accountId);
               let running = false;
-              if (pid !== undefined && Number.isInteger(pid) && pid > 0) {
+              if (isSafePid(pid)) {
                 try {
                   if (process.platform === 'win32') {
                     const output = await execAsync(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`);

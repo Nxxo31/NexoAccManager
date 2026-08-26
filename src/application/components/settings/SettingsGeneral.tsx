@@ -1,7 +1,7 @@
 // Application Component: SettingsGeneral — devmode + savePasswords + autoRejoin
 // DT-6: extraído de SettingsView.tsx (SRP)
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { notifications } from '@mantine/notifications';
 import { Group, Stack, Text, Switch } from '@mantine/core';
 import { t } from '../../../config/i18n';
@@ -14,19 +14,23 @@ export function SettingsGeneral(): JSX.Element | null {
   const [autoRejoin, setAutoRejoin] = useState(false);
   const [savePasswords, setSavePasswords] = useState(false);
 
-  // Initial load
-  useEffect(() => {
-    Promise.allSettled([
-      api.settings.get('devmode'),
-      api.settings.get('autoRejoin'),
-      api.settings.get('savePasswords'),
-    ]).then((results) => {
-      const [devmodeR, autoRejoinR, savePasswordsR] = results;
+  const loadSettings = useCallback(async () => {
+    try {
+      const [devmodeR, autoRejoinR, savePasswordsR] = await Promise.allSettled([
+        api.settings.get('devmode'),
+        api.settings.get('autoRejoin'),
+        api.settings.get('savePasswords'),
+      ]);
       if (devmodeR.status === 'fulfilled' && devmodeR.value.success) setDevmode(Boolean(devmodeR.value.data));
       if (autoRejoinR.status === 'fulfilled' && autoRejoinR.value.success) setAutoRejoin(Boolean(autoRejoinR.value.data));
       if (savePasswordsR.status === 'fulfilled' && savePasswordsR.value.success) setSavePasswords(Boolean(savePasswordsR.value.data));
-    }).catch(() => { /* defaults remain */ });
-  }, []);
+    } catch { /* defaults remain */ }
+  }, [api]);
+
+  // Initial load
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const handleToggleDevmode = async (val: boolean) => {
     setDevmode(val);

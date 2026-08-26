@@ -1,7 +1,7 @@
 // Application Component: SettingsFastFlags — FastFlags CRUD + import/export
 // DT-6: extraído de SettingsView.tsx (SRP)
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { notifications } from '@mantine/notifications';
 import {
   Group, Stack, Text, Select, TextInput, Button, ScrollArea, Card, ActionIcon,
@@ -22,16 +22,16 @@ export function SettingsFastFlags(): JSX.Element | null {
   const [fflagKey, setFflagKey] = useState('');
   const [fflagValue, setFflagValue] = useState('');
 
-  const loadFflags = async () => {
+  const loadFflags = useCallback(async () => {
     const r = await api.byAccount.fflagsGetAll(fflagsAccountId);
     if (r.success && r.data) setFflags(r.data as Record<string, unknown>);
     else setFflags({});
-  };
+  }, [api, fflagsAccountId]);
 
   // Auto-load fflags when account selected
   useEffect(() => {
     if (fflagsAccountId) loadFflags();
-  }, [fflagsAccountId]);
+  }, [fflagsAccountId, loadFflags]);
 
   const setFflag = async () => {
     if (!fflagKey.trim() || !fflagsAccountId) return;

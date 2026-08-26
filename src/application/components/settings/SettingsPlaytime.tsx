@@ -1,7 +1,7 @@
 // Application Component: SettingsPlaytime — playtime tracking viewer + clear history
 // DT-6: extraído de SettingsView.tsx (SRP)
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { notifications } from '@mantine/notifications';
 import { Group, Stack, Text, Select, Button, ScrollArea, Card, Badge } from '@mantine/core';
 import { Trash } from 'lucide-react';
@@ -21,17 +21,17 @@ export function SettingsPlaytime(): JSX.Element | null {
   const [totalPlaytime, setTotalPlaytime] = useState<number>(0);
   const [playtimeHistory, setPlaytimeHistory] = useState<PlaytimeEntry[]>([]);
 
-  const loadPlaytime = async () => {
+  const loadPlaytime = useCallback(async () => {
     const r = await api.byAccount.playtimeGetTotalPlaytime(playtimeAccountId);
     if (r.success && r.data) setTotalPlaytime(Number(r.data));
     const hist = await api.byAccount.playtimeGetSessionHistory(playtimeAccountId, 10);
     if (hist.success && Array.isArray(hist.data)) setPlaytimeHistory(hist.data as PlaytimeEntry[]);
-  };
+  }, [api, playtimeAccountId]);
 
   // Auto-load when account selected
   useEffect(() => {
     if (playtimeAccountId) loadPlaytime();
-  }, [playtimeAccountId]);
+  }, [playtimeAccountId, loadPlaytime]);
 
   const clearPlaytime = async () => {
     const r = await api.byAccount.playtimeClearHistory(playtimeAccountId);

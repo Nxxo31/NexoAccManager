@@ -1,7 +1,7 @@
 // Application Component: SettingsLogs — recent Roblox logs viewer + clear old
 // DT-6: extraído de SettingsView.tsx (SRP)
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { notifications } from '@mantine/notifications';
 import { Group, Stack, Text, Button, ScrollArea, Card, Badge } from '@mantine/core';
 import { t } from '../../../config/i18n';
@@ -15,15 +15,15 @@ export function SettingsLogs(): JSX.Element | null {
 
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
 
-  const loadRecentLogs = async () => {
+  const loadRecentLogs = useCallback(async () => {
     const r = await api.byAccount.logsGetRecent(1, 50);
     if (r.success && Array.isArray(r.data)) setLogEntries(r.data as LogEntry[]);
-  };
+  }, [api]);
 
   // Initial load
   useEffect(() => {
     loadRecentLogs();
-  }, []);
+  }, [loadRecentLogs]);
 
   const clearOldLogs = async () => {
     const r = await api.byAccount.logsClearOld(7);

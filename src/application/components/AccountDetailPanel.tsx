@@ -1,6 +1,6 @@
 // Application Component: AccountDetailPanel — full detail with profile/security/privacy tabs — Mantine v7
 
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { X, Eye, Shield, User, Bell, Lock, Key, LogOut, Activity } from 'lucide-react';
 import {
@@ -53,7 +53,7 @@ function AccountDetailPanelComponent({ account, onClose, onLaunch, onRefreshCook
  const [controlStatus, setControlStatus] = useState<'idle' | 'running' | 'stopped' | 'checking'>('idle');
  const [controlLoading, setControlLoading] = useState<string | null>(null);
 
- const loadOutfits = async () => {
+ const loadOutfits = useCallback(async () => {
  if (!api) return;
  setLoadingOutfits(true);
  try {
@@ -62,9 +62,9 @@ function AccountDetailPanelComponent({ account, onClose, onLaunch, onRefreshCook
  else setOutfits([]);
  } catch { setOutfits([]); }
  finally { setLoadingOutfits(false); }
- };
+ }, [api, account.id]);
 
- const loadProfile = async () => {
+const loadProfile = async () => {
  try {
  const r = await api!.account.profile.get(account.id);
  // Note: byAccount returns profile data — we use the generic IPC
@@ -240,7 +240,7 @@ function AccountDetailPanelComponent({ account, onClose, onLaunch, onRefreshCook
  }
  };
 
- useEffect(() => { loadOutfits(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [account.id]);
+ useEffect(() => { loadOutfits(); }, [loadOutfits]);
  useEffect(() => {
  if (activeTab === 'profile') loadProfile();
  if (activeTab === 'security') loadSecurity();
