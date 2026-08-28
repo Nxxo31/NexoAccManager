@@ -117,6 +117,20 @@ const api = {
     },
   },
 
+  // Backup
+  backup: {
+    create: (description?: string, includeSecret?: boolean) => ipcRenderer.invoke('backup:create', { description, includeSecret }),
+    list: () => ipcRenderer.invoke('backup:list'),
+    restore: (backupId: string, confirm: boolean) => ipcRenderer.invoke('backup:restore', { backupId, confirm }),
+    delete: (backupId: string) => ipcRenderer.invoke('backup:delete', { backupId }),
+    verify: (backupId: string) => ipcRenderer.invoke('backup:verify', { backupId }),
+    scheduleGet: () => ipcRenderer.invoke('backup:schedule:get'),
+    scheduleSet: (enabled: boolean, frequency: 'daily' | 'weekly' | 'monthly', time: string) => ipcRenderer.invoke('backup:schedule:set', { enabled, frequency, time }),
+    selectFolder: () => ipcRenderer.invoke('backup:select-folder'),
+    folderGet: () => ipcRenderer.invoke('backup:folder:get'),
+    stats: () => ipcRenderer.invoke('backup:stats'),
+  },
+
   // Cookie
   cookie: {
     expiry: (accountId: string) => ipcRenderer.invoke('cookie:expiry', { accountId }),

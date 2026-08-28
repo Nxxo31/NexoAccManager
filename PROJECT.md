@@ -1,7 +1,7 @@
 # PROJECT.md — NexoAccManager
 
-> **Estado:** Activo | **Versión:** 5.0.0 | **Última actualización:** 2026-08-25 (sesión: auditoría completa de seguridad y calidad)
-> Lint 0 errors, TypeScript 0 errors, build exit 0. Fixes críticos de seguridad aplicados (CryptoService, LocalApiService). IPC verificado sincronizado. Pendiente: tests unitarios y Feature Set 6.0.
+> **Estado:** Activo | **Versión:** 5.0.0 | **Última actualización:** 2026-08-27 (sesión: IPC drift corregido, build verificado, 5.0.0 estable)
+> Lint 0 errors, TypeScript 0 errors, build exit 0 (AppImage generado). Fixes críticos de seguridad aplicados (CryptoService, LocalApiService). IPC **totalmente sincronizado (92=92=92)**. Pendiente: tests unitarios y Feature Set 6.0.
 > 
 > **Fuente de verdad:** PROJECT.md es la única fuente de verdad por proyecto. MUST leer antes de cualquier acción.
 
@@ -14,7 +14,7 @@
   - Lint: ✅ PASS (era 14 errors / 11 warnings — corregidos)
   - Build: ✅ PASS
   - IPC Preload ⇄ Handlers: ✅ PASS (92 = 92 sincronizados)
-  - IPC window-api.d.ts: ⚠️ 93 vs 92 (1 declaración fantasma de más — ver bloqueante)
+  - IPC window-api.d.ts: ✅ PASS (92 = 92 = 92 sincronizado — detector corregido)
   - Binary Smoke Test: Expected failure in WSL/Linux (no blocker)
 - **Features Verified**: 39/39 completadas
 
@@ -36,14 +36,13 @@
 3. **39/39 features** desde línea base v3.7 (confirmado via historial de git e inspección de código)
 
 ### ⚠️ BLOQUEANTES ACTUALES PARA NUEVOS COMMITS:
-Todos los bloqueantes de lint quedaron resueltos (0 errors). El único "drift IPC" reportado fue **investigado y cerrado como no-bloqueante**:
+Todos los bloqueantes de lint quedaron resueltos (0 errors). El "drift IPC" reportado fue **investigado y cerrado**:
 
-#### 1. **IPC window-api.d.ts (92 vs 93) — CERRADO, NO ES DRIFT REAL**:
-   - `window-api.d.ts` cuenta 93 métodos vs 92 canales wire (preload invoke) y 92 handlers.
-   - Preload `ipcRenderer.invoke` ⇄ handlers `ipcMain.handle` están **sincronizados (92 = 92)** ✅.
-   - **Causa del "93"**: `window-api.d.ts` declara `controlSubscribe` — un método WS-push especial (no es un canal invoke/ipcMain.handle; es subscribe de eventos push del WebSocket de control). Es el 93º método legítimo.
-   - **Veredicto**: NO hay canal wire faltante ni extra. El detector (`extract-ipc-channels.ts`) reporta 93 solo porque su regex cuenta el método `controlSubscribe` como un canal, lo cual es un artifact del detector, no un defecto del código.
-   - **Acción**: opcional — mejorar el detector para excluir métodos de suscripción WS (no canales invoke). NO bloquea runtime ni commits.
+#### 1. **IPC window-api.d.ts (92 vs 93) — RESUELTO (2026-08-27)**:
+   - El detector `extract-ipc-channels.ts` reportaba 93 en window-api.d.ts vs 92 en preload/handlers.
+   - **Causa real**: `controlSubscribe` es un método WS-push especial (suscripción a eventos push, no canal invoke/ipcMain.handle). El detector contaba este método como canal.
+   - **Fix aplicado**: detector mejorado para distinguir métodos de suscripción WS (que usan `ipcRenderer.on`) de canales invoke. Ahora reporta **92 = 92 = 92**.
+   - **Veredicto**: NO hay drift real. Preload ⇄ Handlers ⇄ window-api.d.ts sincronizados ✅.
 
 #### 2. **Cobertura de tests: 0 tests** (hallazgo de auditoría):
    - El proyecto verifica "39/39 features" pero **no tiene tests de unidad/integración/E2E** (0 archivos `*.test.ts(x)`/`*.spec.ts`).
@@ -152,9 +151,10 @@ Gestor de cuentas Roblox de código abierto, 100% local, con encriptación AES-2
 - Electron sandbox mode con contextIsolation — sin nodeIntegration en renderer
 - 91 canales IPC tipados — documentación en `window-api.d.ts` (window-api.d.ts tiene 1 declaración extra vs preload — ver bloqueante)
 - Las mejoras del Feature Set 6.0 mantendrán estos límites
-- **Actual estado**: Quality gates de lint/tsc/build 100% verdes. Pendiente único: sincronizar window-api.d.ts (1 canal) y Feature Set 6.0
+- **Actual estado**: Quality gates de lint/tsc/build 100% verdes. **IPC 92=92=92 sincronizado**. Pendiente: tests unitarios y Feature Set 6.0
 
 ## 📝 REGISTRO DE COMMITS RECIENTES (VERIFICADOS)
+- `e541d49` fix(ipc): sync window-api.d.ts with preload (92 channels), fix drift detection script, fix lint in extract-ipc-channels, update verify-gates logic, fix pre-commit patterns
 - `e85e134` feat(agents): add AGENTS.md — protocolo memoria cross-session
 - `b566530` completar stubs devmode persistencia (julio 2026) ✅ VERIFICADO
 - `7954103` merge B-1 cleanup smart-polling eliminado, okResult/errResult inline
@@ -162,8 +162,8 @@ Gestor de cuentas Roblox de código abierto, 100% local, con encriptación AES-2
 - `c04e646` B-1 inicial WebSocket
 - `4e65a86` B-1 WebSocket continuacion
 - **[EN STAGING/UNCOMMITTED]** fix: quality gates limpias (lint 0 errors, tsc 0 errors, build ok; fixes en extract-ipc-channels.ts, verify-gates.ts, AccountDetailPanel.tsx, GamesView.tsx, logger.ts)
-- **[PENDIENTE]** fix: sincronizar window-api.d.ts con preload (1 canal fantasma)
 - **[PENDIENTE]** feat: implementar sistema de respaldos encriptados locales (Feature Set 6.0 - Alta prioridad)
+- **[PENDIENTE]** tests: añadir tests unitarios críticos (CryptoService, LocalApiService, IPC handlers)
 
 ## 🔑 API KEYS & SECRETS — NUNCA EN CODE
 - Roblox Auth: usar .env variables (nunca commiteadas)

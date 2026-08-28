@@ -7,6 +7,7 @@ import { registerAccountHandlers } from './handlers/accountHandlers';
 import { registerRobloxHandlers } from './handlers/robloxHandlers';
 import { registerSettingsHandlers } from './handlers/settingsHandlers';
 import { registerAdvancedHandlers } from './handlers/advancedHandlers';
+import { registerBackupHandlers } from './handlers/backupHandlers';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -28,6 +29,7 @@ export function registerAllHandlers(): void {
   registerRobloxHandlers();
   registerSettingsHandlers();
   registerAdvancedHandlers();
+  registerBackupHandlers();
 }
 
 /** Alias de registerAllHandlers — preservado para no romper main.ts. */

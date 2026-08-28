@@ -20,6 +20,7 @@ import { SettingsLaunchPresets } from '../components/settings/SettingsLaunchPres
 import { SettingsCache } from '../components/settings/SettingsCache';
 import { SettingsLogs } from '../components/settings/SettingsLogs';
 import { SettingsData } from '../components/settings/SettingsData';
+import { SettingsBackups } from '../components/settings/SettingsBackups';
 
 export function SettingsView(): JSX.Element {
   const api = typeof window !== 'undefined' ? window.api : undefined;
@@ -236,6 +237,13 @@ export function SettingsView(): JSX.Element {
                   <Group gap="sm"><Download size={16} /><Text size="sm" fw={500}>{t('settings.data')}</Text></Group>
                 </Accordion.Control>
                 <Accordion.Panel><SettingsData /></Accordion.Panel>
+              </Accordion.Item>
+
+              <Accordion.Item value="backups">
+                <Accordion.Control>
+                  <Group gap="sm"><Layers size={16} /><Text size="sm" fw={500}>{t('settings.backupCreate')}</Text></Group>
+                </Accordion.Control>
+                <Accordion.Panel><SettingsBackups /></Accordion.Panel>
               </Accordion.Item>
             </Accordion>
           </ScrollArea>

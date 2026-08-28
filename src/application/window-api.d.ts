@@ -2,6 +2,8 @@
 // Auto-generated from preload/index.ts — DO NOT EDIT MANUALLY.
 // Instead, update preload/index.ts and re-run the generation script.
 
+import type { BackupMetadata, BackupSchedule, BackupFolderConfig } from '../domain/entities/BackupMetadata';
+
 export {};
 
 declare global {
@@ -71,6 +73,18 @@ declare global {
     };
     shell: {
         openExternal: (url: string) => Promise<IpcResult>;
+    };
+    backup: {
+        create: (description?: string, includeSecret?: boolean) => Promise<IpcResult<BackupMetadata>>;
+        list: () => Promise<IpcResult<BackupMetadata[]>>;
+        restore: (backupId: string, confirm: boolean) => Promise<IpcResult<{ success: boolean; restoredTables: string[] }>>;
+        delete: (backupId: string) => Promise<IpcResult<boolean>>;
+        verify: (backupId: string) => Promise<IpcResult<boolean>>;
+        scheduleGet: () => Promise<IpcResult<{ schedule: BackupSchedule | null; nextRun: string | null }>>;
+        scheduleSet: (enabled: boolean, frequency: 'daily' | 'weekly' | 'monthly', time: string) => Promise<IpcResult<BackupSchedule>>;
+        selectFolder: () => Promise<IpcResult<BackupFolderConfig | null>>;
+        folderGet: () => Promise<IpcResult<BackupFolderConfig | null>>;
+        stats: () => Promise<IpcResult<{ totalBackups: number; totalSize: number; oldestBackup: string | null; newestBackup: string | null }>>;
     };
     byAccount: {
         friendsList: (accountId: string) => Promise<IpcResult>;

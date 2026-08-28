@@ -121,6 +121,7 @@ function extractFromHandlers() {
     'robloxHandlers.ts',
     'settingsHandlers.ts',
     'advancedHandlers.ts',
+    'backupHandlers.ts',
     'shared.ts'
   ];
 
