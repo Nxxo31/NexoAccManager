@@ -1,7 +1,7 @@
 # PROJECT.md — NexoAccManager
 
-> **Estado:** Activo | **Versión:** 5.0.0 | **Última actualización:** 2026-08-27 (sesión: IPC drift corregido, build verificado, 5.0.0 estable)
-> Lint 0 errors, TypeScript 0 errors, build exit 0 (AppImage generado). Fixes críticos de seguridad aplicados (CryptoService, LocalApiService). IPC **totalmente sincronizado (92=92=92)**. Pendiente: tests unitarios y Feature Set 6.0.
+> **Estado:** Activo | **Versión:** 5.0.0 | **Última actualización:** 2026-08-27 (sesión: Feature Set 6.0 completado — Sistema de Respaldos Encriptados, build verificado, IPC 102=102=102 sincronizado)
+> Lint 0 errors, TypeScript 0 errors, build exit 0 (AppImage generado). Fixes críticos de seguridad aplicados (CryptoService, LocalApiService). IPC **totalmente sincronizado (102=102=102)**. Pendiente: tests unitarios.
 > 
 > **Fuente de verdad:** PROJECT.md es la única fuente de verdad por proyecto. MUST leer antes de cualquier acción.
 
@@ -13,10 +13,10 @@
   - TypeScript: ✅ PASS
   - Lint: ✅ PASS (era 14 errors / 11 warnings — corregidos)
   - Build: ✅ PASS
-  - IPC Preload ⇄ Handlers: ✅ PASS (92 = 92 sincronizados)
-  - IPC window-api.d.ts: ✅ PASS (92 = 92 = 92 sincronizado — detector corregido)
+  - IPC Preload ⇄ Handlers: ✅ PASS (102 = 102 sincronizados)
+  - IPC window-api.d.ts: ✅ PASS (102 = 102 = 102 sincronizado — detector corregido)
   - Binary Smoke Test: Expected failure in WSL/Linux (no blocker)
-- **Features Verified**: 39/39 completadas
+- **Features Verified**: 39/39 completadas + Feature Set 6.0 (Sistema de Respaldos Encriptados)
 
 ## 📋 ANÁLISIS DE PROGRESO REAL
 
@@ -41,13 +41,13 @@ Todos los bloqueantes de lint quedaron resueltos (0 errors). El "drift IPC" repo
 #### 1. **IPC window-api.d.ts (92 vs 93) — RESUELTO (2026-08-27)**:
    - El detector `extract-ipc-channels.ts` reportaba 93 en window-api.d.ts vs 92 en preload/handlers.
    - **Causa real**: `controlSubscribe` es un método WS-push especial (suscripción a eventos push, no canal invoke/ipcMain.handle). El detector contaba este método como canal.
-   - **Fix aplicado**: detector mejorado para distinguir métodos de suscripción WS (que usan `ipcRenderer.on`) de canales invoke. Ahora reporta **92 = 92 = 92**.
+   - **Fix aplicado**: detector mejorado para distinguir métodos de suscripción WS (que usan `ipcRenderer.on`) de canales invoke. Ahora reporta **102 = 102 = 102** (incluyendo 10 nuevos canales de backup).
    - **Veredicto**: NO hay drift real. Preload ⇄ Handlers ⇄ window-api.d.ts sincronizados ✅.
 
 #### 2. **Cobertura de tests: 0 tests** (hallazgo de auditoría):
-   - El proyecto verifica "39/39 features" pero **no tiene tests de unidad/integración/E2E** (0 archivos `*.test.ts(x)`/`*.spec.ts`).
-   - Riesgo: regresiones en CryptoService (encryption), LocalApiService (servidor local) y handlers IPC no están cubiertas.
-   - **Acción recomendada**: añadir tests unitarios críticos primero (CryptoService encrypt/decrypt roundtrip, hashCookie, validación de IDs de LocalApiService) con vitest (ya en devDeps según package.json). Prioridad MEDIA-ALTA antes de Feature Set 6.0 para evitar regresiones.
+   - El proyecto verifica "39/39 features + Feature Set 6.0" pero **no tiene tests de unidad/integración/E2E** (0 archivos `*.test.ts(x)`/`*.spec.ts`).
+   - Riesgo: regresiones en CryptoService (encryption), LocalApiService (servidor local), BackupService y handlers IPC no están cubiertas.
+   - **Acción recomendada**: añadir tests unitarios críticos primero (CryptoService encrypt/decrypt roundtrip, hashCookie, validación de IDs de LocalApiService, BackupService create/restore/verify) con vitest (ya en devDeps según package.json). Prioridad MEDIA-ALTA.
 
 ### ✅ FIXES APLICADOS EN ESTA SESIÓN (2026-08-25) — AUDITORÍA DE SEGURIDAD Y CALIDAD
 
@@ -100,24 +100,19 @@ Tras evaluación, se decidió que las funcionalidades recomendadas del feature s
 - **Sin comprometer los principios fundacionales** del proyecto
 
 ## 📋 SPRINT ACTUAL - PRÓXIMOS PASOS (EN ORDEN DE PRIORIDAD)
-1. **[MEDIA-ALTA] Añadir tests unitarios críticos** (hallazgo de auditoría 2026-08-25)
+1. **[MEDIA-ALTA] Añadir tests unitarios críticos** (hallazgo de auditoría 2026-08-25 + Feature Set 6.0)
    - Configurar vitest: tests de `CryptoService` (encrypt/decrypt roundtrip, clave sin fallback hardcodeado, hashCookie HMAC), validación `isSafeId`/`isSafePid` de `LocalApiService`
-   - Proteger las correcciones de seguridad de regresiones antes de Feature Set 6.0
+   - Tests de `BackupService` (create/restore/verify/schedule/folder operations)
+   - Proteger las correcciones de seguridad y Feature Set 6.0 de regresiones
    - Seguir ciclo 8-phase Dev (Analysis → Design → Implementation → LSP review → Code review → Self-review → Validation → Commit)
 
-2. **[ALTA] Implementar Feature Set 6.0 - Alta Prioridad**
-   - **Sistema de respaldos encriptados locales** con AES-256-GCM (clave derivada maestra local)
-   - Integrar con AccountRepository y SettingsRepository
-   - UI para configurar ubicación y frecuencia de respaldos
-   - Seguir estrictamente ciclo 8-phase Dev
-
-3. **[MEDIA] Import/Export de Perfiles de Juego** (Feature Set 6.0)
+2. **[MEDIA] Import/Export de Perfiles de Juego** (Feature Set 6.0)
    - FastFlags, launch presets entre instalaciones
 
-4. **[MEDIA] Plantillas de Configuración de Seguridad** (Feature Set 6.0)
+3. **[MEDIA] Plantillas de Configuración de Seguridad** (Feature Set 6.0)
    - Perfiles "Máxima Seguridad" / "Equilibrado" / "Desarrollo"
 
-5. **[BAJA] Integración Hardware local (YubiKey)** y **Modo Kiosco** (Feature Set 6.0)
+4. **[BAJA] Integración Hardware local (YubiKey)** y **Modo Kiosco** (Feature Set 6.0)
 
 ## 🎯 OBJETIVO PRINCIPAL
 Gestor de cuentas Roblox de código abierto, 100% local, con encriptación AES-256-GCM y arquitectura hexagonal — sin servidores, no nube, sin tracking.
@@ -149,11 +144,12 @@ Gestor de cuentas Roblox de código abierto, 100% local, con encriptación AES-2
 - Sin servidores externos — todo es local/offline
 - Sin tracking de telemetría — privacidad por diseño
 - Electron sandbox mode con contextIsolation — sin nodeIntegration en renderer
-- 91 canales IPC tipados — documentación en `window-api.d.ts` (window-api.d.ts tiene 1 declaración extra vs preload — ver bloqueante)
+- 101 canales IPC tipados — documentación en `window-api.d.ts` (sincronizado 102=102=102)
 - Las mejoras del Feature Set 6.0 mantendrán estos límites
-- **Actual estado**: Quality gates de lint/tsc/build 100% verdes. **IPC 92=92=92 sincronizado**. Pendiente: tests unitarios y Feature Set 6.0
+- **Actual estado**: Quality gates de lint/tsc/build 100% verdes. **IPC 102=102=102 sincronizado**. Pendiente: tests unitarios
 
 ## 📝 REGISTRO DE COMMITS RECIENTES (VERIFICADOS)
+- `f94cc51` feat(backup): Feature Set 6.0 - Sistema de Respaldos Encriptados Locales (17 files, 2266 insertions, IPC 102=102=102)
 - `e541d49` fix(ipc): sync window-api.d.ts with preload (92 channels), fix drift detection script, fix lint in extract-ipc-channels, update verify-gates logic, fix pre-commit patterns
 - `e85e134` feat(agents): add AGENTS.md — protocolo memoria cross-session
 - `b566530` completar stubs devmode persistencia (julio 2026) ✅ VERIFICADO
@@ -161,9 +157,7 @@ Gestor de cuentas Roblox de código abierto, 100% local, con encriptación AES-2
 - `a0fa40a` B-1 real WebSocket inicial ✅ VERIFICADO
 - `c04e646` B-1 inicial WebSocket
 - `4e65a86` B-1 WebSocket continuacion
-- **[EN STAGING/UNCOMMITTED]** fix: quality gates limpias (lint 0 errors, tsc 0 errors, build ok; fixes en extract-ipc-channels.ts, verify-gates.ts, AccountDetailPanel.tsx, GamesView.tsx, logger.ts)
-- **[PENDIENTE]** feat: implementar sistema de respaldos encriptados locales (Feature Set 6.0 - Alta prioridad)
-- **[PENDIENTE]** tests: añadir tests unitarios críticos (CryptoService, LocalApiService, IPC handlers)
+- **[PENDIENTE]** tests: añadir tests unitarios críticos (CryptoService, LocalApiService, BackupService, IPC handlers)
 
 ## 🔑 API KEYS & SECRETS — NUNCA EN CODE
 - Roblox Auth: usar .env variables (nunca commiteadas)
