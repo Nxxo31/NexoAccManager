@@ -1,8 +1,8 @@
 // Infrastructure: BackupRepositoryImpl
 // Implementación filesystem del repositorio de backups
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, readdirSync, statSync } from 'node:fs';
-import { join, basename } from 'node:path';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
 import { app } from 'electron';
 import crypto from 'node:crypto';
 import type { BackupMetadata, BackupSchedule, BackupFolderConfig } from '../../domain/entities/BackupMetadata';

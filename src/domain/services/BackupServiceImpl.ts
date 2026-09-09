@@ -5,10 +5,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { app } from 'electron';
+import { getDb } from '../../infrastructure/database/DatabaseManager';
 import type { BackupMetadata, BackupSchedule, BackupFolderConfig } from '../entities/BackupMetadata';
 import type { BackupService, BackupRepository, BackupCrypto } from './BackupService';
 import { BackupRepositoryImpl, BackupCryptoImpl } from '../../infrastructure/database/BackupRepositoryImpl';
-import { getDb } from '../../infrastructure/database/DatabaseManager';
 import { encrypt, decrypt } from '../../infrastructure/database/CryptoService';
 
 export class BackupServiceImpl implements BackupService {

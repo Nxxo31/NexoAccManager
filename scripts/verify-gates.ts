@@ -40,10 +40,14 @@ check(tscOutput.includes('error') === false || tscOutput === '',
 
 // 2. Lint
 console.log('\n--- Step 2: Lint Check ---');
-const lintOutput = runCommand('npm run lint 2>&1');
-const lintErrorCount = (lintOutput.match(/error/g) || []).length;
-check(lintErrorCount === 0,
-  'Lint: 0 errors found (found ' + lintErrorCount + ')');
+try {
+  execSync('npm run lint 2>&1', { stdio: 'pipe', encoding: 'utf-8' });
+  check(true, 'Lint: 0 errors found (exit code 0)');
+} catch (err: unknown) {
+  const output = (err as { stdout?: string; stderr?: string }).stdout || (err as { stdout?: string; stderr?: string }).stderr || '';
+  const lintErrorCount = (output.match(/\berror\b/g) || []).length;
+  check(false, 'Lint: ' + lintErrorCount + ' errors found (exit code 1)');
+}
 
 // 3. Build
 console.log('\n--- Step 3: Build Check ---');
