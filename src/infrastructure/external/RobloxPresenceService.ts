@@ -1,0 +1,172 @@
+// Infrastructure: RobloxPresenceService — presencia, amigos, robux, recent games
+//
+// DT-4 (DIP): este módulo implementa DOS sub-ports de RobloxApiPort:
+//   - RobloxPresencePort (getPresence, getRecentGames, getRobuxBalance)
+//   - RobloxSocialPort   (getFriends, getFriendRequests, respondFriendRequest,
+//                         getBlockedUsers, blockUser, unblockUser, followUser,
+//                         unfollowUser)
+// Se añaden dos adapter classes — `RobloxPresenceApiImpl` y `RobloxSocialApiImpl` —
+// que envuelven las funciones sueltas. Las funciones exportadas se mantienen para
+// no romper imports existentes en IPCAdapter.ts.
+
+import { apiGet, apiPost } from './RobloxHttp';
+import { LRUCache } from '../database/LRUCache';
+import type { PresenceData, RobuxBalance, Friend, FriendRequest, BlockedUser } from '../../domain/entities/PresenceData';
+import type { RobloxPresencePort, RobloxSocialPort } from '../../domain/repositories/RobloxApiPort';
+
+const presenceCache = new LRUCache<string, PresenceData[]>(100, 30_000); // 30s
+const friendCache = new LRUCache<number, Friend[]>(50, 60_000); // 1min
+
+export async function getPresence(userIds: number[], cookie: string): Promise<PresenceData[]> {
+  const cacheKey = userIds.join(',');
+  const cached = presenceCache.get(cacheKey);
+  if (cached) return cached;
+
+  const data = await apiPost<{ userPresences: { userId: number; presenceType: string; lastLocation: string; placeId: number | null; universeId: number | null; lastOnline: string | null; gameId: string | null }[] }>(
+    'https://presence.roblox.com/v1/presence/users',
+    cookie,
+    { userIds }
+  );
+  const result: PresenceData[] = (data.userPresences || []).map(p => ({
+    userId: p.userId,
+    presenceType: p.presenceType as 'Offline' | 'Online' | 'InGame' | 'InStudio',
+    lastLocation: p.lastLocation,
+    placeId: p.placeId,
+    universeId: p.universeId,
+    lastOnline: p.lastOnline ? new Date(p.lastOnline) : null,
+    gameId: p.gameId,
+  }));
+  presenceCache.set(cacheKey, result);
+  return result;
+}
+
+export async function getFriends(userId: number, cookie: string): Promise<Friend[]> {
+  const cached = friendCache.get(userId);
+  if (cached) return cached;
+
+  const data = await apiGet<{ data: { id: number; name: string; displayName: string; isOnline: boolean }[] }>(
+    `https://friends.roblox.com/v1/users/${userId}/friends`,
+    cookie
+  );
+  const friends: Friend[] = (data.data || []).map(f => ({
+    userId: f.id,
+    username: f.name,
+    displayName: f.displayName,
+    avatarUrl: '',
+    isOnline: f.isOnline,
+    presence: null,
+  }));
+  friendCache.set(userId, friends);
+  return friends;
+}
+
+export async function getFriendRequests(cookie: string): Promise<FriendRequest[]> {
+  const data = await apiGet<{ data: { id: number; requester: { id: number; name: string; displayName: string } }[] }>(
+    'https://friends.roblox.com/v1/my/friends/requests',
+    cookie
+  );
+  return (data.data || []).map(r => ({
+    id: r.id,
+    requesterId: r.requester.id,
+    username: r.requester.name,
+    displayName: r.requester.displayName,
+    avatarUrl: '',
+    sentAt: null,
+    status: 'Pending' as const,
+  }));
+}
+
+export async function respondFriendRequest(requestId: number, accept: boolean, cookie: string): Promise<void> {
+  await apiPost(`https://friends.roblox.com/v1/user/friend-requests/${requestId}/${accept ? 'accept' : 'decline'}`, cookie);
+}
+
+export async function getBlockedUsers(cookie: string): Promise<BlockedUser[]> {
+  const data = await apiGet<{ data: { userId: number; name: string; displayName: string }[] }>(
+    'https://accountsettings.roblox.com/v1/users/get-blocked-users',
+    cookie
+  );
+  return (data.data || []).map(u => ({
+    userId: u.userId,
+    username: u.name,
+    displayName: u.displayName,
+    avatarUrl: '',
+    blockedAt: new Date(),
+  }));
+}
+
+export async function blockUser(userId: number, cookie: string): Promise<void> {
+  await apiPost('https://api.roblox.com/userblock/block', cookie, { userId });
+}
+
+export async function unblockUser(userId: number, cookie: string): Promise<void> {
+  await apiPost('https://api.roblox.com/userblock/unblock', cookie, { userId });
+}
+
+export async function followUser(userId: number, cookie: string): Promise<void> {
+  await apiPost('https://api.roblox.com/user/follow', cookie, { userId });
+}
+
+export async function unfollowUser(userId: number, cookie: string): Promise<void> {
+  await apiPost('https://api.roblox.com/user/unfollow', cookie, { userId });
+}
+
+export async function sendFriendRequest(userId: number, cookie: string): Promise<void> {
+  await apiPost(`https://friends.roblox.com/v1/users/${userId}/request-friendship`, cookie);
+}
+
+export async function getRobuxBalance(userId: number, cookie: string): Promise<RobuxBalance> {
+  const data = await apiGet<{ robux: number; pendingRobux: number }>(
+    `https://economy.roblox.com/v1/users/${userId}/currency`,
+    cookie
+  );
+  return {
+    userId,
+    balance: data.robux ?? 0,
+    pending: data.pendingRobux ?? 0,
+    premium: false,
+    updatedAt: new Date(),
+  };
+}
+
+export async function getRecentGames(userId: number, cookie: string): Promise<{ gameId: number; name: string; icon: string; lastPlayed: Date; placeId: string; universeId: number }[]> {
+  const data = await apiGet<{ data: { rootPlace: { id: number }; name: string; universeId: number; lastPlayDate: string }[] }>(
+    `https://games.roblox.com/v2/users/${userId}/games/recently-played?limit=10`,
+    cookie
+  );
+  return (data.data || []).map(g => ({
+    gameId: g.rootPlace?.id ?? 0,
+    name: g.name,
+    icon: '',
+    lastPlayed: g.lastPlayDate ? new Date(g.lastPlayDate) : new Date(),
+    placeId: String(g.rootPlace?.id ?? ''),
+    universeId: g.universeId,
+  }));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DT-4 (DIP): Adapter classes que implementan los sub-ports de RobloxApiPort.
+// Envuelven las funciones sueltas para que los puertos puedan inyectarse como
+// dependencias en tests/use-cases sin reescribir imports de IPCAdapter.ts.
+// Nota: `sendFriendRequest` y `getFriendRequests` no son parte de RobloxSocialPort
+// — son utilidades adicionales del módulo que quedan como funciones exportadas.
+// ─────────────────────────────────────────────────────────────────────────────
+export class RobloxPresenceApiImpl implements RobloxPresencePort {
+  public getPresence = getPresence;
+  public getRecentGames = getRecentGames;
+  public getRobuxBalance = getRobuxBalance;
+}
+
+export class RobloxSocialApiImpl implements RobloxSocialPort {
+  public getFriends = getFriends;
+  public getFriendRequests = getFriendRequests;
+  public respondFriendRequest = respondFriendRequest;
+  public getBlockedUsers = getBlockedUsers;
+  public blockUser = blockUser;
+  public unblockUser = unblockUser;
+  public followUser = followUser;
+  public unfollowUser = unfollowUser;
+}
+
+// Instancias singleton exportadas para consumers que quieran inyectar por DI.
+export const robloxPresenceApi = new RobloxPresenceApiImpl();
+export const robloxSocialApi = new RobloxSocialApiImpl();
