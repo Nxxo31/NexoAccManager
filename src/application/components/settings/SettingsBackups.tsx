@@ -93,7 +93,7 @@ export function SettingsBackups(): JSX.Element | null {
       } else {
         notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
       }
-    } catch (e) {
+    } catch {
       notifications.show({ message: t('common.error'), color: 'red' });
     } finally {
       setCreating(false);

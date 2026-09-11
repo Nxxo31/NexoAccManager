@@ -191,7 +191,7 @@ export class BackupServiceImpl implements BackupService {
 
     const now = new Date();
     const [hours, minutes] = schedule.time.split(':').map(Number);
-    let nextRun = new Date();
+    const nextRun = new Date();
     nextRun.setHours(hours, minutes, 0, 0);
 
     if (nextRun <= now) {

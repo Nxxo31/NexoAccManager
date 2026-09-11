@@ -7,7 +7,6 @@ import { app } from 'electron';
 import crypto from 'node:crypto';
 import type { BackupMetadata, BackupSchedule, BackupFolderConfig } from '../../domain/entities/BackupMetadata';
 import type { BackupRepository } from '../../domain/services/BackupService';
-import { getDb } from '../database/DatabaseManager';
 import { encrypt, decrypt } from '../database/CryptoService';
 import { SettingsRepositoryImpl } from '../database/SettingsRepositoryImpl';
 
