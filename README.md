@@ -12,7 +12,7 @@ Built for privacy. Modern, secure, 100% local — no servers, no cloud, no track
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Code Style](https://img.shields.io/badge/Code_Style-ESLint-4B32C3?logo=eslint&logoColor=white)](https://eslint.org/)
-[![Version](https://img.shields.io/badge/version-4.2.0-blue.svg)](https://github.com/Nxxo31/NexoAccManager/releases)
+[![Version](https://img.shields.io/badge/version-5.0.0-blue.svg)](https://github.com/Nxxo31/NexoAccManager/releases)
 
 **[Features](#-features) · [Screenshots](#-screenshots) · [Install](#-installation) · [Architecture](#-architecture) · [Security](#-security) · [Roadmap](#-roadmap) · [Contributing](#-contributing)**
 
@@ -205,7 +205,7 @@ Opens Electron with Vite hot-reload for the renderer.
 
 ## 🏗️ Architecture
 
-NAM v4.2.0 uses **Hexagonal Architecture** (Ports & Adapters). The codebase went from 18K+ lines (v3.5.0 Facade Pattern) to ~3,900 lines in 56 files (−79%). The dependency rule points always inward — the domain knows nothing about infrastructure or UI.
+NAM v5.0.0 uses **Hexagonal Architecture** (Ports & Adapters). The codebase went from 18K+ lines (v3.5.0 Facade Pattern) to ~3,900 lines in 56 files (−79%). The dependency rule points always inward — the domain knows nothing about infrastructure or UI.
 
 ```
 src/
