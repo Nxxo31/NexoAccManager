@@ -117,13 +117,13 @@ export class BackupCryptoImpl {
 
   async encrypt(data: Buffer): Promise<{ encrypted: string; checksum: string }> {
     const checksum = this.hashData(data);
-    const encrypted = encrypt(data.toString('utf8')); // Uses existing CryptoService
+    const encrypted = encrypt(data.toString('base64'));
     return { encrypted, checksum };
   }
 
   async decrypt(encryptedData: string, expectedChecksum: string): Promise<Buffer> {
     const decrypted = decrypt(encryptedData);
-    const data = Buffer.from(decrypted, 'utf8');
+    const data = Buffer.from(decrypted, 'base64');
     const actualChecksum = this.hashData(data);
     if (actualChecksum !== expectedChecksum) {
       throw new Error('Checksum mismatch — backup may be corrupted or tampered');
