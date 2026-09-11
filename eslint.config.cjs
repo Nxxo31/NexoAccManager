@@ -54,9 +54,9 @@ module.exports = [
       'react-hooks/exhaustive-deps': 'warn',
     },
   },
-  // Main process — Node environment with require
+  // Electron main + Node-side infrastructure (Node environment with require)
   {
-    files: ['src/main/**/*.ts'],
+    files: ['src/main.ts', 'src/infrastructure/**/*.ts', 'src/preload/**/*.ts'],
     languageOptions: {
       globals: {
         require: 'readonly',
@@ -77,9 +77,9 @@ module.exports = [
       '@typescript-eslint/no-require-imports': 'off',
     },
   },
-  // Renderer — Browser/DOM environment
+  // Renderer + UI layer (Browser/DOM environment)
   {
-    files: ['src/renderer/**/*.ts', 'src/renderer/**/*.tsx'],
+    files: ['src/renderer.tsx', 'src/application/**/*.ts', 'src/application/**/*.tsx'],
     languageOptions: {
       globals: {
         window: 'readonly',
