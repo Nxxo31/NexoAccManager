@@ -1,13 +1,13 @@
 // Infrastructure: DiscordRPCService — Discord Rich Presence integration
 import RPC from 'discord-rpc';
 
-const CLIENT_ID = '1274925610645274655'; // NAM Discord app placeholder
+const DEFAULT_CLIENT_ID = '1274925610645274655'; // NAM Discord app placeholder
 
 let client: RPC.Client | null = null;
 let connected = false;
 
 export async function initializeDiscordRPC(clientId?: string): Promise<void> {
-  const id = clientId ?? CLIENT_ID;
+  const id = clientId ?? process.env.DISCORD_CLIENT_ID ?? DEFAULT_CLIENT_ID;
   if (client && connected) return;
   if (client) { try { await client.destroy(); } catch { /* ignore */ } client = null; connected = false; }
   try {
