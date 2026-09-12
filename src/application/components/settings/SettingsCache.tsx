@@ -16,8 +16,10 @@ export function SettingsCache(): JSX.Element | null {
   const loadCacheAnalysis = useCallback(async () => {
     const r = await api.byAccount.cacheAnalyze();
     if (r.success && r.data) {
-      const d = r.data as { totalSizeMB?: number };
-      setCacheSize(d.totalSizeMB ? `${d.totalSizeMB.toFixed(1)} MB` : 'N/A');
+      const d = r.data as { temp?: number; internalTemp?: number; logs?: number; total?: number };
+      const totalBytes = d.total ?? 0;
+      const mb = totalBytes / (1024 * 1024);
+      setCacheSize(mb >= 0.1 ? `${mb.toFixed(1)} MB` : 'N/A');
     }
   }, [api]);
 

@@ -37,7 +37,7 @@ import { backupContent, restoreContent, listAvailableBackups } from '../../exter
 // Roblox logs
 import { parseRobloxLogsAsync } from '../../external/RobloxLogService';
 // Cache cleaner
-import { getRobloxCacheSize, cleanRobloxCache, cleanOldLogs } from '../../external/CacheCleanerService';
+import { getRobloxCacheSize, cleanOldLogs, cleanRobloxTemp, cleanRobloxInternalTemp } from '../../external/CacheCleanerService';
 // Discord RPC
 import { initializeDiscordRPC, updateDiscordPresence, clearDiscordPresence, shutdownDiscordRPC } from '../../external/DiscordRPCService';
 // Launch presets
@@ -184,39 +184,49 @@ export function registerAdvancedHandlers(): void {
 
   // FastFlags — no cookie needed, reads/writes local ClientAppSettings.json
   ipcMain.handle('fflags:getAll', async () => {
-    try { return ok(getAllFastFlags()); } catch (e) { return err(String(e)); }
+    try { return ok(getAllFastFlags()); } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('fflags:setFlag', async (_e, { key, value }: { key: string; value: string | number | boolean }) => {
-    try { setFastFlag(key, value); return ok(null); } catch (e) { return err(String(e)); }
+    try { setFastFlag(key, value); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('fflags:deleteFlag', async (_e, { key }: { key: string }) => {
-    try { deleteFastFlag(key); return ok(null); } catch (e) { return err(String(e)); }
+    try { deleteFastFlag(key); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('fflags:importFlags', async (_e, { flags }: { flags: Record<string, unknown> }) => {
-    try { const count = importFlagsFromJson(flags); return ok({ count }); } catch (e) { return err(String(e)); }
+    try { const count = importFlagsFromJson(flags); return ok({ count }); } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('fflags:exportFlags', async () => {
-    try { return ok(exportFlagsToJson()); } catch (e) { return err(String(e)); }
+    try { return ok(exportFlagsToJson()); } catch (e) { return err(errMsg(e)); }
   });
 
   // Content Modding
   ipcMain.handle('mods:listAvailable', async () => {
-    try { return ok(listAvailableBackups()); } catch (e) { return err(String(e)); }
+    try { return ok(listAvailableBackups()); } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('mods:installMod', async (_e, { modName }: { modName: string }) => {
-    try { backupContent(modName); return ok(null); } catch (e) { return err(String(e)); }
+    try { backupContent(modName); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('mods:uninstallMod', async (_e, { modName }: { modName: string }) => {
-    try { restoreContent(modName); return ok(null); } catch (e) { return err(String(e)); }
+    try { restoreContent(modName); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('mods:isModInstalled', async (_e, { modName }: { modName: string }) => {
-    try { const backups = listAvailableBackups(); return ok(backups.includes(modName)); } catch (e) { return err(String(e)); }
+    try { const backups = listAvailableBackups(); return ok(backups.includes(modName)); } catch (e) { return err(errMsg(e)); }
   });
-  ipcMain.handle('mods:backupOriginals', async (_e, { relativePath }: { relativePath: string }) => {
-    try { backupContent(relativePath); return ok(null); } catch (e) { return err(String(e)); }
+  ipcMain.handle('mods:backupOriginals', async () => {
+    try {
+      const mods = listAvailableBackups();
+      const results = mods.map((m) => ({ mod: m, ok: backupContent(m) }));
+      const failed = results.filter((r) => !r.ok);
+      return ok({ total: mods.length, backed: results.length - failed.length, failed: failed.map((f) => f.mod) });
+    } catch (e) { return err(errMsg(e)); }
   });
-  ipcMain.handle('mods:restoreOriginals', async (_e, { relativePath }: { relativePath: string }) => {
-    try { restoreContent(relativePath); return ok(null); } catch (e) { return err(String(e)); }
+  ipcMain.handle('mods:restoreOriginals', async () => {
+    try {
+      const mods = listAvailableBackups();
+      const results = mods.map((m) => ({ mod: m, ok: restoreContent(m) }));
+      const failed = results.filter((r) => !r.ok);
+      return ok({ total: mods.length, restored: results.length - failed.length, failed: failed.map((f) => f.mod) });
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // Roblox Logs
@@ -226,21 +236,28 @@ export function registerAdvancedHandlers(): void {
       const logs = await parseRobloxLogsAsync(since);
       const limited = maxEntries ? logs.slice(0, maxEntries) : logs;
       return ok(limited);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('logs:clearOld', async (_e, { daysToKeep }: { daysToKeep: number }) => {
-    try { 
-      const freedBytes = cleanOldLogs(daysToKeep); 
-      return ok({ freedBytes }); 
-    } catch (e) { return err(String(e)); }
+    try {
+      const freedBytes = cleanOldLogs(daysToKeep);
+      return ok({ freedBytes });
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // Cache Cleaner
   ipcMain.handle('cache:analyze', async () => {
-    try { return ok(getRobloxCacheSize()); } catch (e) { return err(String(e)); }
+    try { return ok(getRobloxCacheSize()); } catch (e) { return err(errMsg(e)); }
   });
-  ipcMain.handle('cache:clean', async () => {
-    try { return ok(cleanRobloxCache()); } catch (e) { return err(String(e)); }
+  ipcMain.handle('cache:clean', async (_e, { options }: { options?: { temp?: boolean; internalTemp?: boolean; logs?: boolean } } = {}) => {
+    try {
+      const opts = options ?? { temp: true, internalTemp: true, logs: true };
+      let temp = 0, internalTemp = 0, oldLogs = 0;
+      if (opts.temp) temp = cleanRobloxTemp();
+      if (opts.internalTemp) internalTemp = cleanRobloxInternalTemp();
+      if (opts.logs) oldLogs = cleanOldLogs();
+      return ok({ temp, internalTemp, oldLogs, total: temp + internalTemp + oldLogs });
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // Discord RPC

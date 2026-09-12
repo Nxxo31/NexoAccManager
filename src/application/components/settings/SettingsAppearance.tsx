@@ -22,7 +22,7 @@ function generateShades(hex: string): string[] {
     const factor = i < 4 ? (4 - i) * 0.15 : i > 5 ? (i - 5) * -0.12 : 0;
     const nr = Math.round(Math.max(0, Math.min(255, r + (255 - r) * factor)));
     const ng = Math.round(Math.max(0, Math.min(255, g + (255 - g) * factor)));
-    const nb = Math.round(Math.max(0, Math.min(255, r + (255 - b) * factor)));
+    const nb = Math.round(Math.max(0, Math.min(255, b + (255 - b) * factor)));
     shades.push(`#${nr.toString(16).padStart(2, '0')}${ng.toString(16).padStart(2, '0')}${nb.toString(16).padStart(2, '0')}`);
   }
   // Override shade 5 with the actual color

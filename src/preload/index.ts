@@ -156,12 +156,12 @@ const api = {
     serversUsers: (serverId: string, accountId: string) => ipcRenderer.invoke('servers:usersByAccount', { serverId, accountId }),
     outfits: (accountId: string) => ipcRenderer.invoke('roblox:outfitsByAccount', { accountId }),
     serverRegion: (placeId: string, accountId: string) => ipcRenderer.invoke('roblox:serverRegionByAccount', { placeId, accountId }),
-    // FastFlags
-    fflagsGetAll: (accountId: string) => ipcRenderer.invoke('fflags:getAll', { accountId }),
-    fflagsSetFlag: (accountId: string, key: string, value: string | number | boolean) => ipcRenderer.invoke('fflags:setFlag', { accountId, key, value }),
-    fflagsDeleteFlag: (accountId: string, key: string) => ipcRenderer.invoke('fflags:deleteFlag', { accountId, key }),
-    fflagsImportFlags: (accountId: string, flags: Record<string, unknown>) => ipcRenderer.invoke('fflags:importFlags', { accountId, flags }),
-    fflagsExportFlags: (accountId: string) => ipcRenderer.invoke('fflags:exportFlags', { accountId }),
+    // FastFlags — globales (ClientAppSettings.json). accountId ignorado por los handlers.
+    fflagsGetAll: () => ipcRenderer.invoke('fflags:getAll'),
+    fflagsSetFlag: (key: string, value: string | number | boolean) => ipcRenderer.invoke('fflags:setFlag', { key, value }),
+    fflagsDeleteFlag: (key: string) => ipcRenderer.invoke('fflags:deleteFlag', { key }),
+    fflagsImportFlags: (flags: Record<string, unknown>) => ipcRenderer.invoke('fflags:importFlags', { flags }),
+    fflagsExportFlags: () => ipcRenderer.invoke('fflags:exportFlags'),
     // Content Modding
     modsListAvailable: () => ipcRenderer.invoke('mods:listAvailable'),
     modsInstallMod: (modName: string) => ipcRenderer.invoke('mods:installMod', { modName }),

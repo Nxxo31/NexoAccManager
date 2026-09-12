@@ -23,10 +23,10 @@ export function SettingsFastFlags(): JSX.Element | null {
   const [fflagValue, setFflagValue] = useState('');
 
   const loadFflags = useCallback(async () => {
-    const r = await api.byAccount.fflagsGetAll(fflagsAccountId);
+    const r = await api.byAccount.fflagsGetAll();
     if (r.success && r.data) setFflags(r.data as Record<string, unknown>);
     else setFflags({});
-  }, [api, fflagsAccountId]);
+  }, [api]);
 
   // Auto-load fflags when account selected
   useEffect(() => {
@@ -34,12 +34,12 @@ export function SettingsFastFlags(): JSX.Element | null {
   }, [fflagsAccountId, loadFflags]);
 
   const setFflag = async () => {
-    if (!fflagKey.trim() || !fflagsAccountId) return;
+    if (!fflagKey.trim()) return;
     let value: string | number | boolean = fflagValue;
     if (value === 'true') value = true;
     else if (value === 'false') value = false;
     else if (!isNaN(Number(value))) value = Number(value);
-    const r = await api.byAccount.fflagsSetFlag(fflagsAccountId, fflagKey.trim(), value);
+    const r = await api.byAccount.fflagsSetFlag(fflagKey.trim(), value);
     if (r.success) {
       notifications.show({ message: t('settings.flagSaved'), color: 'green' });
       setFflagKey('');
@@ -51,7 +51,7 @@ export function SettingsFastFlags(): JSX.Element | null {
   };
 
   const deleteFflag = async (key: string) => {
-    const r = await api.byAccount.fflagsDeleteFlag(fflagsAccountId, key);
+    const r = await api.byAccount.fflagsDeleteFlag(key);
     if (r.success) {
       notifications.show({ message: t('settings.flagDeleted'), color: 'green' });
       loadFflags();
@@ -61,8 +61,7 @@ export function SettingsFastFlags(): JSX.Element | null {
   };
 
   const exportFflags = async () => {
-    if (!fflagsAccountId) return;
-    const r = await api.byAccount.fflagsExportFlags(fflagsAccountId);
+    const r = await api.byAccount.fflagsExportFlags();
     if (r.success) notifications.show({ message: t('settings.flagsExported'), color: 'green' });
     else notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
   };

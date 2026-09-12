@@ -20,7 +20,7 @@ export function SkinEditorModal({ account, opened, onClose }: SkinEditorModalPro
 
   if (!account) return null;
 
-  const avatarUrl = `https://www.roblox.com/headshot-thumbnail/image?userId=${account.id}&width=150&height=150&format=png`;
+  const avatarUrl = `https://www.roblox.com/headshot-thumbnail/image?userId=${encodeURIComponent(String(account.robloxUserId))}&width=150&height=150&format=png`;
 
   return (
     <Modal

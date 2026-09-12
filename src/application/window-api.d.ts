@@ -99,11 +99,11 @@ declare global {
         serversUsers: (serverId: string, accountId: string) => Promise<IpcResult>;
         outfits: (accountId: string) => Promise<IpcResult>;
         serverRegion: (placeId: string, accountId: string) => Promise<IpcResult>;
-        fflagsGetAll: (accountId: string) => Promise<IpcResult>;
-        fflagsSetFlag: (accountId: string, key: string, value: string | number | boolean) => Promise<IpcResult>;
-        fflagsDeleteFlag: (accountId: string, key: string) => Promise<IpcResult>;
-        fflagsImportFlags: (accountId: string, flags: Record<string, unknown>) => Promise<IpcResult>;
-        fflagsExportFlags: (accountId: string) => Promise<IpcResult>;
+        fflagsGetAll: () => Promise<IpcResult>;
+        fflagsSetFlag: (key: string, value: string | number | boolean) => Promise<IpcResult>;
+        fflagsDeleteFlag: (key: string) => Promise<IpcResult>;
+        fflagsImportFlags: (flags: Record<string, unknown>) => Promise<IpcResult>;
+        fflagsExportFlags: () => Promise<IpcResult>;
         modsListAvailable: () => Promise<IpcResult>;
         modsInstallMod: (modName: string) => Promise<IpcResult>;
         modsUninstallMod: (modName: string) => Promise<IpcResult>;
