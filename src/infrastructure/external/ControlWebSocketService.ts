@@ -58,6 +58,7 @@ class ControlWebSocketServiceImpl {
   private socket: WebSocket | null = null;
   private url: string = '';
   private port: number = DEFAULT_PORT;
+  private token: string = '';
   private started = false;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private reconnectAttempt = 0;
@@ -69,11 +70,12 @@ class ControlWebSocketServiceImpl {
   private connectionStatus: ControlConnectionStatus = 'stopped';
 
   /** Abre la conexión WebSocket contra el LocalApiService. Idempotente. */
-  start(port: number = DEFAULT_PORT): void {
-    if (this.started && this.port === port && this.socket && this.socket.readyState === WebSocket.OPEN) {
+  start(port: number = DEFAULT_PORT, token: string = ''): void {
+    if (this.started && this.port === port && this.token === token && this.socket && this.socket.readyState === WebSocket.OPEN) {
       return;
     }
     this.port = port;
+    this.token = token;
     this.url = `ws://127.0.0.1:${port}/control`;
     this.started = true;
     this.stopReconnect = false;
@@ -84,7 +86,10 @@ class ControlWebSocketServiceImpl {
   private connect(): void {
     if (this.stopReconnect) return;
     try {
-      this.socket = new WebSocket(this.url);
+// WS auth via subprotocol: 'nam-token.<hex>' — browser WS API permite custom protocols.
+// El servidor chequea req.headers['sec-websocket-protocol'].
+      const wsOptions = this.token ? { protocol: `nam-token.${this.token}` } : undefined;
+      this.socket = new WebSocket(this.url, wsOptions);
     } catch {
       this.scheduleReconnect();
       return;
@@ -184,7 +189,8 @@ class ControlWebSocketServiceImpl {
         return;
       }
       try {
-        this.socket.send(JSON.stringify({ id, accountId, command }));
+        // Auth: incluir token en cada mensaje para que el servidor autorice.
+        this.socket.send(JSON.stringify({ id, accountId, command, token: this.token }));
       } catch (e) {
         clearTimeout(timer);
         this.pending.delete(id);
@@ -198,7 +204,7 @@ class ControlWebSocketServiceImpl {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
     for (const [id, cmd] of this.pending) {
       try {
-        this.socket.send(JSON.stringify({ id, accountId: cmd.payload.accountId, command: cmd.payload.command }));
+        this.socket.send(JSON.stringify({ id, accountId: cmd.payload.accountId, command: cmd.payload.command, token: this.token }));
       } catch (e) {
         // If sending fails, we let the timer handle the timeout and error.
         // We do not delete the command here; the existing timeout logic will run.

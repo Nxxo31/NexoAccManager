@@ -13,19 +13,27 @@ export function SettingsWebServer(): JSX.Element | null {
 
   const [apiRunning, setApiRunning] = useState(false);
   const [apiPort, setApiPort] = useState('31415');
+  const [apiToken, setApiToken] = useState<string | null>(null);
 
   const toggleApi = async () => {
     if (apiRunning) {
       const r = await api.advanced.localApiStop();
       if (r.success) {
         setApiRunning(false);
+        setApiToken(null);
         notifications.show({ message: t('settings.serverStopped'), color: 'green' });
+      } else if (!r.success) {
+        notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
       }
     } else {
-      const r = await api.advanced.localApiStart(parseInt(apiPort, 10) || 31415);
-      if (r.success) {
+      const portNum = parseInt(apiPort, 10) || 31415;
+      const r = await api.advanced.localApiStart(portNum);
+      if (r.success && r.data) {
         setApiRunning(true);
-        notifications.show({ message: t('settings.serverRunning', { port: apiPort }), color: 'green' });
+        setApiToken(r.data.token);
+        notifications.show({ message: t('settings.serverRunning', { port: String(r.data.port) }), color: 'green' });
+      } else if (!r.success) {
+        notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
       }
     }
   };
@@ -50,6 +58,16 @@ export function SettingsWebServer(): JSX.Element | null {
           {apiRunning ? t('settings.stop') : t('settings.start')}
         </Button>
       </Group>
+      {apiToken && (
+        <TextInput
+          label={t('settings.authToken')}
+          value={apiToken}
+          readOnly
+          size="xs"
+          style={{ fontFamily: 'monospace' }}
+          onClick={(e) => e.currentTarget.select()}
+        />
+      )}
       <Text size="xs" c="dimmed">{t('settings.webApiDescription')}</Text>
     </Stack>
   );

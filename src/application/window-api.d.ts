@@ -63,7 +63,7 @@ declare global {
         deleteAllAccounts: () => Promise<IpcResult>;
         clearCache: () => Promise<IpcResult>;
         devMode: (enable: boolean) => Promise<IpcResult>;
-        localApiStart: (port: number) => Promise<IpcResult>;
+        localApiStart: (port: number) => Promise<IpcResult<{ token: string; port: number }>>;
         localApiStop: () => Promise<IpcResult>;
         controlStatus: () => Promise<IpcResult>;
         controlSubscribe: (onStatus: (accountId: string, status: unknown) => void, onConnection: (status: 'connected' | 'disconnected' | 'reconnecting' | 'stopped') => void) => () => void;

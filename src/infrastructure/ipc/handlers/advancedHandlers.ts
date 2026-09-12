@@ -126,10 +126,10 @@ export function registerAdvancedHandlers(): void {
   });
   ipcMain.handle('advanced:local-api:start', async (_e, port: number) => {
     try {
-      await startLocalApi(port);
+      const { token, port: actualPort } = await startLocalApi(port);
       // B-1: arrancar el WS cliente contra el LocalApiService recién levantado.
-      controlWs.start(port);
-      return ok(null);
+      controlWs.start(actualPort, token);
+      return ok({ token, port: actualPort });
     } catch (e) { return err(errMsg(e)); }
   }); // F-010
   ipcMain.handle('advanced:local-api:stop', async () => {
