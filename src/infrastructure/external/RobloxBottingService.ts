@@ -1,5 +1,6 @@
 // Infrastructure: RobloxBottingService — process control, auto-relaunch, watcher, fps, duplicates
 import { exec, execSync } from 'node:child_process';
+import { shell } from 'electron';
 import { logger } from '../logging/logger';
 import { promisify } from 'node:util';
 import { apiPost, apiGet, getAuthTicket } from './RobloxHttp';
@@ -8,6 +9,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const execAsync = promisify(exec);
+
+// Validate Roblox placeId: 1-20 digit positive integer (defense against shell injection + URL injection)
+const PLACE_ID_REGEX = /^\d{1,20}$/;
+function isValidPlaceId(placeId: string): boolean {
+  return typeof placeId === 'string' && PLACE_ID_REGEX.test(placeId);
+}
 
 export async function killAllRoblox(): Promise<void> {
   if (process.platform === 'win32') {
@@ -25,6 +32,12 @@ export async function launchRobloxDirect(placeId: string, jobId: string, cookie:
   const JOB_ID_REGEX = /^[a-f0-9-]{36}$/;
   if (jobId && !JOB_ID_REGEX.test(jobId)) {
     logger.error('[launchRobloxDirect] Invalid jobId format');
+    return 0;
+  }
+
+  // Validate placeId: solo digitos, 1-20 chars. Bloquea shell injection + URL injection.
+  if (!isValidPlaceId(placeId)) {
+    logger.error('[launchRobloxDirect] Invalid placeId format');
     return 0;
   }
 
@@ -54,7 +67,14 @@ export async function launchRobloxDirect(placeId: string, jobId: string, cookie:
   const url = `roblox-player://1+launchmode:play+gameinfo:${authTicket}+launchtime:${launchtime}+placelauncherurl:${encodeURIComponent(placelauncherurl)}+browsertrackerid:${browsertrackerid}+robloxLocale:en_us+gameLocale:en_us+channel:+LaunchExp:InApp`;
 
   if (process.platform === 'win32') {
-    try { execSync(`start "" "${url}"`, { shell: 'cmd.exe' }); } catch { /* ignore */ }
+    // Electron shell.openExternal maneja el protocolo roblox-player:// nativo via OS handler.
+    // Antes: execSync(`start "" "${url}"`, { shell: 'cmd.exe' }) vulnerable a shell injection.
+    try {
+      await shell.openExternal(url);
+    } catch (e) {
+      logger.error('[launchRobloxDirect] shell.openExternal failed:', e);
+      return 0;
+    }
     // Capture PID of the newly launched Roblox process
     try {
       const output = execSync('tasklist /FI "IMAGENAME eq RobloxPlayerBeta.exe" /FO CSV /NH', { encoding: 'utf8' });

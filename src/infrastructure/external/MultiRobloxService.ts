@@ -1,5 +1,6 @@
 import { exec, execSync } from 'node:child_process';
 import { promisify } from 'node:util';
+import { shell } from 'electron';
 import { getAuthTicket } from './RobloxHttp';
 import { logger } from '../logging/logger';
 const execAsync = promisify(exec);
@@ -8,8 +9,15 @@ const runningInstances = new Map<string, number>(); // accountId -> PID
 // Validate Roblox jobId format: UUID v4 (hex chars + hyphens, 36 chars total)
 const JOB_ID_REGEX = /^[a-f0-9-]{36}$/;
 
+// Validate Roblox placeId: 1-20 digit positive integer (defense against shell injection + URL injection)
+const PLACE_ID_REGEX = /^\d{1,20}$/;
+
 function isValidJobId(jobId: string): boolean {
   return typeof jobId === 'string' && JOB_ID_REGEX.test(jobId);
+}
+
+function isValidPlaceId(placeId: string): boolean {
+  return typeof placeId === 'string' && PLACE_ID_REGEX.test(placeId);
 }
 
 function isValidPid(pid: unknown): pid is number {
@@ -21,6 +29,12 @@ export async function launchMulti(accountId: string, placeId: string, jobId: str
   // Validate jobId to prevent command injection via the URL
   if (jobId && !isValidJobId(jobId)) {
     logger.error('[launchMulti] Invalid jobId format');
+    return 0;
+  }
+
+  // Validate placeId: solo digitos, 1-20 chars. Bloquea shell injection + URL injection.
+  if (!isValidPlaceId(placeId)) {
+    logger.error('[launchMulti] Invalid placeId format');
     return 0;
   }
 
@@ -49,8 +63,17 @@ export async function launchMulti(accountId: string, placeId: string, jobId: str
   const browsertrackerid = Math.floor(Math.random() * 1000000);
   const url = `roblox-player://1+launchmode:play+gameinfo:${authTicket}+launchtime:${launchtime}+placelauncherurl:${encodeURIComponent(placelauncherurl)}+browsertrackerid:${browsertrackerid}+robloxLocale:en_us+gameLocale:en_us+channel:+LaunchExp:InApp`;
 
+  // Use Electron shell.openExternal para lanzar el protocolo roblox-player:// nativo.
+  // Antes: execSync(`start "" "${url}"`, { shell: 'cmd.exe' }) — vulnerable a shell injection
+  // si placeId/jobId contenian caracteres especiales. Ahora: Electron resuelve el handler OS-level
+  // sin invocar shell.
   if (process.platform === 'win32') {
-    execSync(`start "" "${url}"`, { shell: 'cmd.exe' });
+    try {
+      await shell.openExternal(url);
+    } catch (e) {
+      logger.error('[launchMulti] shell.openExternal failed:', e);
+      return 0;
+    }
   }
   // Try to find the PID of the newly launched process
   try {
