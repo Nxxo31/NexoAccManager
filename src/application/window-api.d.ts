@@ -3,6 +3,7 @@
 // Instead, update preload/index.ts and re-run the generation script.
 
 import type { BackupMetadata, BackupSchedule, BackupFolderConfig } from '../domain/entities/BackupMetadata';
+import type { IpcResult } from '../infrastructure/ipc/handlers/shared';
 
 export {};
 

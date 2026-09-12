@@ -90,9 +90,9 @@ export function SettingsBackups(): JSX.Element | null {
       if (r.success) {
         notifications.show({ message: t('settings.backupCreated'), color: 'green' });
         loadAll();
-      } else {
-        notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
-      }
+} else if (!r.success) {
+      notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
+    }
     } catch {
       notifications.show({ message: t('common.error'), color: 'red' });
     } finally {
@@ -163,7 +163,7 @@ export function SettingsBackups(): JSX.Element | null {
       notifications.show({ message: t('settings.backupFolderSet'), color: 'green' });
     } else if (r.success && !r.data) {
       // User cancelled
-    } else {
+    } else if (!r.success) {
       notifications.show({ message: r.error ?? t('common.error'), color: 'red' });
     }
   };
