@@ -3,7 +3,7 @@
 
 import { ipcMain, dialog } from 'electron';
 import { logger } from '../../logging/logger';
-import { getBackupService } from '../../../domain/services/BackupServiceImpl';
+import { getBackupService } from '../../services/BackupServiceImpl';
 import { ok, err, errMsg } from './shared';
 
 export function registerBackupHandlers(): void {

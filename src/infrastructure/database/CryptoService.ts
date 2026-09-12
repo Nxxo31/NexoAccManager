@@ -24,7 +24,7 @@ const SECRET_FILE = '.nam-secret';
 let cachedSecret: Buffer | null = null;
 
 // Resolve a stable directory for the persisted secret file.
-function secretDir(): string {
+export function secretDir(): string {
   if (process.env.NAM_DATA_DIR && process.env.NAM_DATA_DIR.trim() !== '') {
     return process.env.NAM_DATA_DIR.trim();
   }
