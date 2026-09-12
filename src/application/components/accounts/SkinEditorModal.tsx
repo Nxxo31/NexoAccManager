@@ -1,10 +1,11 @@
 // SkinEditorModal.tsx — Modal para editar skin/accesorios de la cuenta de Roblox
-// Placeholder: muestra el avatar actual y permite cargar outfit desde URL/asset ID
-// TODO: integrar con Roblox API para obtener/editar avatar assets
+// Funcionalidad limitada: muestra el avatar actual y captura asset ID para uso futuro.
+// El botón "Apply" está deshabilitado hasta que el IPC `account:outfit:apply` esté
+// implementado (ver TODO en `robloxHandlers.ts`).
 
 import { useState } from 'react';
 import { Modal, Stack, Group, Text, TextInput, Button, Avatar, Divider, Alert } from '@mantine/core';
-import { Shirt, Info, Download } from 'lucide-react';
+import { Shirt, Info } from 'lucide-react';
 import { t } from '../../../config/i18n';
 import type { Account } from '../../../domain/entities/Account';
 
@@ -16,7 +17,6 @@ interface SkinEditorModalProps {
 
 export function SkinEditorModal({ account, opened, onClose }: SkinEditorModalProps): JSX.Element | null {
   const [assetId, setAssetId] = useState('');
-  const [loading, setLoading] = useState(false);
 
   if (!account) return null;
 
@@ -50,7 +50,7 @@ export function SkinEditorModal({ account, opened, onClose }: SkinEditorModalPro
 
         <Divider label={t('accounts.skinLoadOutfit')} labelPosition="center" />
 
-        {/* Asset ID input */}
+        {/* Asset ID input (read-only until IPC handler ships) */}
         <Stack gap="xs">
           <Text size="sm" fw={500}>{t('accounts.skinAssetId')}</Text>
           <TextInput
@@ -58,6 +58,7 @@ export function SkinEditorModal({ account, opened, onClose }: SkinEditorModalPro
             value={assetId}
             onChange={(e) => setAssetId(e.currentTarget.value)}
             leftSection={<Shirt size={14} />}
+            disabled
           />
           <Text size="xs" c="dimmed">{t('accounts.skinAssetIdHelp')}</Text>
         </Stack>
@@ -65,17 +66,6 @@ export function SkinEditorModal({ account, opened, onClose }: SkinEditorModalPro
         {/* Actions */}
         <Group justify="flex-end" gap="sm">
           <Button variant="subtle" onClick={onClose}>{t('common.cancel')}</Button>
-          <Button
-            leftSection={<Download size={14} />}
-            loading={loading}
-            onClick={() => {
-              setLoading(true);
-              // TODO: call IPC handler to apply outfit via Roblox API
-              setTimeout(() => setLoading(false), 1000);
-            }}
-          >
-            {t('accounts.skinApply')}
-          </Button>
         </Group>
 
         <Alert icon={<Info size={16} />} color="blue" variant="light">

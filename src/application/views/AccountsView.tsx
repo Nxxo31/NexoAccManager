@@ -1,7 +1,7 @@
 // Application View: AccountsView — account grid with groups + editable description — Mantine v7
 
 import { useState, useMemo, useEffect, useCallback, memo } from 'react';
-import { Plus, Users, LogOut, Tag, CheckSquare, X, Mail, ArrowDownUp } from 'lucide-react';
+import { Plus, Users, LogOut, Tag, CheckSquare, X, ArrowDownUp } from 'lucide-react';
 import { useAccountStore } from '../store/accountStore';
 import { useLaunchStore } from '../store/launchStore';
 import { useSelectionStore } from '../store/selectionStore';
@@ -286,10 +286,8 @@ function AccountsViewComponent({ searchQuery }: AccountsViewProps): JSX.Element 
           <Button variant="subtle" size="xs" onClick={() => selectAllBulk(filtered.map((a) => a.id))}>{t('accounts.selectAll')}</Button>
           <Button variant="subtle" size="xs" onClick={clearBulkSelection}>{t('accounts.clearSelection')}</Button>
           <div style={{ flex: 1 }} />
-          {/* Bulk actions — placeholder for future: set email, set cookie, launch all */}
-          <Button variant="light" size="xs" color="blue" leftSection={<Mail size={12} />} disabled={selectedIds.size === 0}>
-            {t('accounts.setBulkEmail')}
-          </Button>
+          {/* Bulk actions — "setBulkEmail" placeholder removido (era botón sin onClick, dead UI).
+              Cuando se implemente el IPC `account:bulk:setEmail`, reintroducir aquí. */}
         </Group>
       )}
 
