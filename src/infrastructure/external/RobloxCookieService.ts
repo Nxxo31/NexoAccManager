@@ -6,6 +6,7 @@
 
 import { BrowserWindow } from 'electron';
 import { apiGet } from './RobloxHttp';
+import { logger } from '../logging/logger';
 import type { RobloxCookiePort } from '../../domain/repositories/RobloxApiPort';
 
 export async function getCookieExpiry(cookie: string): Promise<Date | null> {
@@ -14,6 +15,47 @@ export async function getCookieExpiry(cookie: string): Promise<Date | null> {
     if (data?.expirationDate) return new Date(data.expirationDate);
   } catch { /* invalid or no session */ }
   return null;
+}
+
+/**
+ * Espera a que el cookie cambie (refresh por el server de Roblox) o timeout.
+ * FIX (auditoria 2026-09-12): antes esperaba 3s fijos — race condition porque
+ * Roblox podia tardar mas. Ahora usa did-finish-load + cookies.changed event.
+ */
+function waitForCookieChange(win: BrowserWindow, oldCookie: string, timeoutMs: number): Promise<string> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      win.webContents.removeListener('did-finish-load', onLoad);
+      win.webContents.session.cookies.removeListener('changed', onChanged);
+      resolve(oldCookie);
+    }, timeoutMs);
+    timer.unref();
+
+    const onChanged = (_event: unknown, cookie: { name?: string; value?: string }) => {
+      if (cookie.name === '.ROBLOSECURITY' && cookie.value && cookie.value !== oldCookie) {
+        clearTimeout(timer);
+        win.webContents.session.cookies.removeListener('changed', onChanged);
+        win.webContents.removeListener('did-finish-load', onLoad);
+        resolve(cookie.value);
+      }
+    };
+    const onLoad = async () => {
+      try {
+        const cookies = await win.webContents.session.cookies.get({ name: '.ROBLOSECURITY' });
+        const fresh = cookies.find((c) => c.value && c.value !== oldCookie);
+        if (fresh?.value) {
+          clearTimeout(timer);
+          win.webContents.session.cookies.removeListener('changed', onChanged);
+          win.webContents.removeListener('did-finish-load', onLoad);
+          resolve(fresh.value);
+        }
+      } catch (e) {
+        try { logger.warn(`[Cookie] onLoad error: ${(e as Error).message}`); } catch { /* ignore */ }
+      }
+    };
+    win.webContents.session.cookies.on('changed', onChanged);
+    win.webContents.on('did-finish-load', onLoad);
+  });
 }
 
 export async function refreshCookie(cookie: string): Promise<string> {
@@ -27,7 +69,6 @@ export async function refreshCookie(cookie: string): Promise<string> {
     return cookie; // still valid, no need to refresh
   }
 
-  // Cookie expires in <24h — open silent BrowserWindow to refresh session
   let win: BrowserWindow | null = null;
   try {
     win = new BrowserWindow({
@@ -41,7 +82,6 @@ export async function refreshCookie(cookie: string): Promise<string> {
       },
     });
 
-    // Set the cookie in the window's session
     const cookieUrl = 'https://www.roblox.com';
     await win.webContents.session.cookies.set({
       url: cookieUrl,
@@ -53,22 +93,16 @@ export async function refreshCookie(cookie: string): Promise<string> {
       httpOnly: true,
     });
 
-    // Navigate to trigger session refresh
-    await win.webContents.loadURL('https://www.roblox.com/home');
+    // FIX: no esperar timeout fijo. Cargar URL y esperar did-finish-load o
+    // cookies.changed event (timeout 10s por si Roblox no responde).
+    const loadPromise = win.webContents.loadURL('https://www.roblox.com/home');
+    const [_, newCookie] = await Promise.all([
+      loadPromise,
+      waitForCookieChange(win, cookie, 10_000),
+    ]);
 
-    // Wait 3s for session to refresh
-    await new Promise(resolve => setTimeout(resolve, 3000));
-
-    // Read the refreshed cookie
-    const cookies = await win.webContents.session.cookies.get({ name: '.ROBLOSECURITY' });
-    if (cookies.length > 0 && cookies[0].value) {
-      return cookies[0].value;
-    }
-
-    // If no refreshed cookie, return original
-    return cookie;
+    return newCookie || cookie;
   } catch {
-    // If refresh fails, return original cookie if still valid
     if (expiry > now) return cookie;
     throw new Error('Cookie expirada — necesita re-login');
   } finally {

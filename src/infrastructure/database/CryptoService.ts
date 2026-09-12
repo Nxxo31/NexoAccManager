@@ -57,7 +57,15 @@ function loadOrCreateSecret(): Buffer {
     writeFileSync(secretPath, generated, { flag: 'wx', mode: 0o600 });
     chmodSync(secretPath, 0o600);
   } catch {
-    // Concurrent creation or fs failure — still use the generated value for this run.
+    // FIX (auditoria 2026-09-12): race condition entre arranques concurrentes.
+    // Si writeFileSync con 'wx' falla porque otro proceso ya escribio, leer ese archivo
+    // para usar el mismo secret — sino, las DBs quedarian cifradas con secrets distintos
+    // y la cuenta recien creada seria ilegible para el otro proceso (GCM auth tag mismatch).
+    if (existsSync(secretPath)) {
+      cachedSecret = Buffer.from(readFileSync(secretPath, 'utf8').trim(), 'utf8');
+      return cachedSecret;
+    }
+    // Si el archivo no existe (raro: race entre existsSync y read), usar el generado para este run.
   }
   cachedSecret = Buffer.from(generated, 'utf8');
   return cachedSecret;
