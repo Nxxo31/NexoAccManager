@@ -45,67 +45,92 @@ export function registerAccountHandlers(): void {
   });
 
   ipcMain.handle('account:list', async () => {
-    try { return ok(await accountRepo.getAll()); } catch (e) { return err(String(e)); }
+    try { return ok(await accountRepo.getAll()); } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('account:remove', async (_e, { id }: { id: string }) => {
-    try { await accountRepo.delete(id); return ok(null); } catch (e) { return err(String(e)); }
+    try { await accountRepo.delete(id); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('account:move', async (_e, { id, group }: { id: string; group: string }) => {
-    try { await accountRepo.update(id, { group }); return ok(null); } catch (e) { return err(String(e)); }
+    try { await accountRepo.update(id, { group }); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
 
+  // account:field:set — allowlist explicita y fail-closed.
+  // 'password' NO se permite aca: usar account:savePassword (boundary correcto: encrypt server-side).
+  const FIELD_SET_ALLOWLIST = new Set(['savedPlaceId', 'savedJobId', 'description']);
   ipcMain.handle('account:field:set', async (_e, { id, field, value }: { id: string; field: string; value: string }) => {
     try {
-      if (field === 'savedPlaceId' || field === 'savedJobId' || field === 'description' || field === 'password') {
-        // Para campos no cifrados (savedPlaceId/savedJobId/description), value pasa tal cual.
-        // Para 'password' el renderer envía la contraseña CIFRADA ya — la encripción ocurre
-        // exponiendo el boundary correcto: este handler NO descifra/almacena texto plano,
-        // solo marca el branded type para el dominio. Los callers válidos (account:savePassword)
-        // envían encrypt(...) hecha. Si un caller del renderer envía texto plano perdido, el
-        // branded type no lo detecta en runtime pero la invariante de tipos queda explícita.
-        const accountField = field as keyof Account;
-        const payload: Partial<Account> = { [accountField]: field === 'password' ? makeEncryptedString(value) : value } as Partial<Account>;
-        await accountRepo.update(id, payload);
+      if (typeof field !== 'string' || !FIELD_SET_ALLOWLIST.has(field)) {
+        return err(`Campo no permitido: ${field}`);
       }
+      if (typeof value !== 'string') {
+        return err('value debe ser string');
+      }
+      const payload: Partial<Account> = { [field]: value } as Partial<Account>;
+      await accountRepo.update(id, payload);
       return ok(null);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('account:savePassword', async (_e, { id, password }: { id: string; password: string }) => {
-    try { await accountRepo.update(id, { password: makeEncryptedString(encrypt(password)) }); return ok(null); } catch (e) { return err(String(e)); }
+    try {
+      if (typeof password !== 'string' || !password) {
+        return err('password requerido');
+      }
+      await accountRepo.update(id, { password: makeEncryptedString(encrypt(password)) });
+      return ok(null);
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // account:getPassword — ELIMINADO: exponía la contraseña descifrada al renderer (violación de boundary)
   // Las contraseñas NUNCA salen descifradas del main process.
 
   ipcMain.handle('account:setFavorite', async (_e, { id, favorite }: { id: string; favorite: boolean }) => {
-    try { await accountRepo.update(id, { isFavorite: favorite }); return ok(null); } catch (e) { return err(String(e)); }
+    try {
+      if (typeof id !== 'string' || typeof favorite !== 'boolean') {
+        return err('Parametros invalidos');
+      }
+      await accountRepo.update(id, { isFavorite: favorite });
+      return ok(null);
+    } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('account:check', async (_e, { cookie }: { cookie: string }) => {
-    try { return ok(await robloxAuthApi.verifyCookie(cookie)); } catch (e) { return err(String(e)); }
+    try { return ok(await robloxAuthApi.verifyCookie(cookie)); } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('account:bulk-import', async (_e, { accounts }: { accounts: { username: string; password: string }[] }) => {
     try {
+      if (!Array.isArray(accounts) || accounts.length > 50) {
+        return err('Lista invalida (max 50 cuentas)');
+      }
       let added = 0;
+      const failed: { username: string; reason: string }[] = [];
       for (const a of accounts) {
         try {
           const result = await robloxAuthApi.loginUserPass(a.username, a.password);
           const info = await robloxAuthApi.verifyCookie(result.cookie);
           if (info.valid) {
             const count = await accountRepo.count();
-            if (count >= 50) break;
+            if (count >= 50) {
+              failed.push({ username: a.username, reason: 'limite 50 cuentas' });
+              break;
+            }
             const account = createAccount({ id: uuid(), robloxUserId: info.userId, username: info.username, encryptedCookie: makeEncryptedString(encrypt(result.cookie)), cookieHash: hashCookie(result.cookie) });
             await accountRepo.create(account);
             added++;
+            // Rate-limit defensivo: 500ms entre logins para evitar Roblox 429.
+            await new Promise((r) => setTimeout(r, 500));
+          } else {
+            failed.push({ username: a.username, reason: 'cookie invalida' });
           }
-        } catch { /* skip failed */ }
+        } catch (e) {
+          failed.push({ username: a.username, reason: errMsg(e) });
+        }
       }
-      return ok({ added });
-    } catch (e) { return err(String(e)); }
+      return ok({ added, failed });
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // ============ ACCOUNT CONTROL (WebSocket bridge to LocalApiService) =========
