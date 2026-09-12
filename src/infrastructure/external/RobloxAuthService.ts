@@ -10,6 +10,31 @@ import { apiGet, getCsrfToken } from './RobloxHttp';
 import { logger } from '../logging/logger';
 import type { RobloxAuthPort } from '../../domain/repositories/RobloxApiPort';
 
+// Track active auth timers for cleanup via shutdown()
+const activeIntervals = new Set<NodeJS.Timeout>();
+const activeTimeouts = new Set<NodeJS.Timeout>();
+
+function trackInterval(id: NodeJS.Timeout): NodeJS.Timeout {
+  activeIntervals.add(id);
+  // .unref() permite que el main process termine limpiamente si no hay otras handles.
+  id.unref();
+  return id;
+}
+
+function trackTimeout(id: NodeJS.Timeout): NodeJS.Timeout {
+  activeTimeouts.add(id);
+  id.unref();
+  return id;
+}
+
+/** Llamado por app.on('before-quit') para limpiar timers auth activos. */
+export function shutdownAuthTimers(): void {
+  for (const id of activeIntervals) clearInterval(id);
+  for (const id of activeTimeouts) clearTimeout(id);
+  activeIntervals.clear();
+  activeTimeouts.clear();
+}
+
 export async function loginBrowser(): Promise<{ cookie: string; userId: number; username: string }> {
   return new Promise((resolve, reject) => {
     // Use an isolated partition to avoid contaminating the default session cookies
@@ -22,17 +47,17 @@ export async function loginBrowser(): Promise<{ cookie: string; userId: number; 
     });
 
     let resolved = false;
-    const timeout = setTimeout(() => {
+    const timeout = trackTimeout(setTimeout(() => {
       if (!resolved) {
         resolved = true;
         win.close();
         try { authSession.clearStorageData(); } catch (e) { try { logger.warn(`[Auth] clearStorageData failed: ${(e as Error).message}`); } catch { /* ignore */ } }
         reject(new Error('Timeout'));
       }
-    }, 120_000);
+    }, 120_000));
 
     // Poll for cookie in session every 2s
-    const pollInterval = setInterval(async () => {
+    const pollInterval = trackInterval(setInterval(async () => {
       if (resolved) return;
       try {
         const cookies = await authSession.cookies.get({ domain: '.roblox.com' });
@@ -45,6 +70,8 @@ export async function loginBrowser(): Promise<{ cookie: string; userId: number; 
               resolved = true;
               clearTimeout(timeout);
               clearInterval(pollInterval);
+              activeTimeouts.delete(timeout);
+              activeIntervals.delete(pollInterval);
               win.close();
               try { authSession.clearStorageData(); } catch (e) { try { logger.warn(`[Auth] clearStorageData failed: ${(e as Error).message}`); } catch { /* ignore */ } }
               resolve({ cookie, userId: info.userId, username: info.username });
@@ -55,7 +82,7 @@ export async function loginBrowser(): Promise<{ cookie: string; userId: number; 
       } catch {
           // Keep polling
         }
-    }, 2000);
+    }, 2000));
 
     win.loadURL('https://www.roblox.com/login');
 
@@ -65,6 +92,8 @@ export async function loginBrowser(): Promise<{ cookie: string; userId: number; 
         resolved = true;
         clearTimeout(timeout);
         clearInterval(pollInterval);
+        activeTimeouts.delete(timeout);
+        activeIntervals.delete(pollInterval);
         try { authSession.clearStorageData(); } catch (e) { try { logger.warn(`[Auth] clearStorageData failed: ${(e as Error).message}`); } catch { /* ignore */ } }
         reject(new Error('Window closed by user'));
       }
@@ -85,31 +114,30 @@ export async function loginUserPass(username: string, password: string): Promise
     });
 
     let resolved = false;
-    // credentialsSubmitted is set inside the injected page script (DOM scope),
-    // not in this TS scope — the TS-side flag never updates. The poller re-submits
-    // credentials every 2s until timeout, which is harmless (Roblox rejects the
-    // duplicate) but wasteful. Kept as 'let' for clarity that it was intended
-    // to be mutable; a proper fix would round-trip via executeJavaScript to read
-    // the DOM-side flag. See code review R1 (2026-07-28).
-    // eslint-disable-next-line prefer-const
-    let credentialsSubmitted = false;
-    const timeout = setTimeout(() => {
+    // FIX (auditoria 2026-09-12): credentialsSubmitted es DOM-scope, no TS-scope.
+    // El script inyectado usa `window.__namCredentialsSubmitted` para que el
+    // TS-side pueda leer el flag via executeJavaScript return value y asi no
+    // re-enviar credenciales cada 2s (Roblox rechaza duplicados pero dispara
+    // rate-limiting y consume requests).
+    const timeout = trackTimeout(setTimeout(() => {
       if (!resolved) {
         resolved = true;
         win.close();
         try { authSession.clearStorageData(); } catch (e) { try { logger.warn(`[Auth] clearStorageData failed: ${(e as Error).message}`); } catch { /* ignore */ } }
         reject(new Error('Timeout'));
       }
-    }, 120_000);
+    }, 120_000));
 
     // Poll for cookie and submit credentials every 2s
-    const pollInterval = setInterval(async () => {
+    const pollInterval = trackInterval(setInterval(async () => {
       if (resolved) return;
       try {
-        // Try to submit credentials if we haven't already
-        if (!credentialsSubmitted) {
-          try {
-            await win.webContents.executeJavaScript(`
+        // Try to submit credentials if we haven't already (round-trip via window flag)
+        let credentialsSubmitted: boolean = false;
+        try {
+          await win.webContents.executeJavaScript(`
+            (function() {
+              if (window.__namCredentialsSubmitted) return;
               const usernameInput = document.querySelector('input[name="username"]');
               const passwordInput = document.querySelector('input[name="password"]');
               const loginButton = document.querySelector('button[type="submit"]');
@@ -117,12 +145,16 @@ export async function loginUserPass(username: string, password: string): Promise
                 usernameInput.value = ${JSON.stringify(username)};
                 passwordInput.value = ${JSON.stringify(password)};
                 loginButton.click();
-                credentialsSubmitted = true;
+                window.__namCredentialsSubmitted = true;
               }
-            `);
-          } catch {
+            })();
+          `);
+          credentialsSubmitted = await win.webContents.executeJavaScript('Boolean(window.__namCredentialsSubmitted)');
+        } catch {
                     // Ignore errors in execution, we'll try again next interval
                   }
+        if (credentialsSubmitted) {
+          // Si ya se enviaron, no re-pollear hasta el próximo ciclo
         }
 
         // Check for cookie
@@ -136,6 +168,8 @@ export async function loginUserPass(username: string, password: string): Promise
               resolved = true;
               clearTimeout(timeout);
               clearInterval(pollInterval);
+              activeTimeouts.delete(timeout);
+              activeIntervals.delete(pollInterval);
               win.close();
               try { authSession.clearStorageData(); } catch (e) { try { logger.warn(`[Auth] clearStorageData failed: ${(e as Error).message}`); } catch { /* ignore */ } }
               resolve({ cookie, userId: info.userId, username: info.username });
@@ -149,13 +183,15 @@ export async function loginUserPass(username: string, password: string): Promise
           resolved = true;
           clearTimeout(timeout);
           clearInterval(pollInterval);
+          activeTimeouts.delete(timeout);
+          activeIntervals.delete(pollInterval);
           try { authSession.clearStorageData(); } catch (e) { try { logger.warn(`[Auth] clearStorageData failed: ${(e as Error).message}`); } catch { /* ignore */ } }
           reject(new Error('Window destroyed'));
           return;
         }
         // Otherwise, keep polling
       }
-    }, 2000);
+    }, 2000));
 
     win.loadURL('https://www.roblox.com/login');
 

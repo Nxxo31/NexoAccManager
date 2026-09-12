@@ -181,7 +181,7 @@ export function registerAccountHandlers(): void {
       if (!account) return err('Account not found');
       const cookie = decrypt(account.encryptedCookie);
       return ok(await robloxSettingsApi.getProfile(cookie));
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('account:profile:update', async (_e, { accountId, updates }: { accountId: string; updates: { displayName?: string; description?: string } }) => {
     try {
@@ -190,7 +190,7 @@ export function registerAccountHandlers(): void {
       const cookie = decrypt(account.encryptedCookie);
       await robloxSettingsApi.updateProfile(cookie, updates);
       return ok(null);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // ============ BY-ACCOUNT SECURITY ============
@@ -201,7 +201,7 @@ export function registerAccountHandlers(): void {
       const cookie = decrypt(account.encryptedCookie);
       const result = await robloxSettingsApi.get2FAStatus(cookie);
       return ok(result);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('account:security:2fa-toggle', async (_e, { accountId, enable }: { accountId: string; enable: boolean }) => {
     try {
@@ -210,7 +210,7 @@ export function registerAccountHandlers(): void {
       const cookie = decrypt(account.encryptedCookie);
       await robloxSettingsApi.toggle2FA(cookie, enable);
       return ok(null);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('account:security:sessions', async (_e, { accountId }: { accountId: string }) => {
     try {
@@ -218,7 +218,7 @@ export function registerAccountHandlers(): void {
       if (!account) return err('Account not found');
       const cookie = decrypt(account.encryptedCookie);
       return ok(await robloxSettingsApi.getActiveSessions(cookie));
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('account:security:logout', async (_e, { accountId, sessionId }: { accountId: string; sessionId: string }) => {
     try {
@@ -227,7 +227,7 @@ export function registerAccountHandlers(): void {
       const cookie = decrypt(account.encryptedCookie);
       await robloxSettingsApi.logoutSession(cookie, sessionId);
       return ok(null);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('account:security:logout-all', async (_e, { accountId }: { accountId: string }) => {
     try {
@@ -236,7 +236,7 @@ export function registerAccountHandlers(): void {
       const cookie = decrypt(account.encryptedCookie);
       await robloxSettingsApi.logoutAllSessions(cookie);
       return ok(null);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('account:security:password', async (_e, { accountId, current, next }: { accountId: string; current: string; next: string }) => {
     try {
@@ -245,7 +245,7 @@ export function registerAccountHandlers(): void {
       const cookie = decrypt(account.encryptedCookie);
       await robloxSettingsApi.changePassword(cookie, current, next);
       return ok(null);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // ============ BY-ACCOUNT PRIVACY ============
@@ -255,7 +255,7 @@ export function registerAccountHandlers(): void {
       if (!account) return err('Account not found');
       const cookie = decrypt(account.encryptedCookie);
       return ok(await robloxSettingsApi.getPrivacySettings(cookie));
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('account:privacy:update', async (_e, { accountId, key, value }: { accountId: string; key: string; value: string | boolean }) => {
     try {
@@ -264,7 +264,7 @@ export function registerAccountHandlers(): void {
       const cookie = decrypt(account.encryptedCookie);
       await robloxSettingsApi.updatePrivacySetting(cookie, key, value);
       return ok(null);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // ============ BY-ACCOUNT NOTIFICATIONS ============
@@ -274,7 +274,7 @@ export function registerAccountHandlers(): void {
       if (!account) return err('Account not found');
       const cookie = decrypt(account.encryptedCookie);
       return ok(await robloxSettingsApi.getNotificationSettings(cookie));
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('account:notifications:update', async (_e, { accountId, key, value }: { accountId: string; key: string; value: boolean }) => {
     try {
@@ -283,7 +283,7 @@ export function registerAccountHandlers(): void {
       const cookie = decrypt(account.encryptedCookie);
       await robloxSettingsApi.updateNotificationSetting(cookie, key, value);
       return ok(null);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // ============ RESTORED LOGIN HANDLERS (R-001/R-002) ============
@@ -308,7 +308,7 @@ export function registerAccountHandlers(): void {
       });
       await accountRepo.create(account);
       return ok(account.id); // renderer recibe SOLO el id, nunca la cookie
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // R-002: account:login — replaced legacy handler that accepted user:pass + returned cookie.
@@ -331,6 +331,6 @@ export function registerAccountHandlers(): void {
       });
       await accountRepo.create(account);
       return ok(account.id); // renderer recibe SOLO el id
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 }

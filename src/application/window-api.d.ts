@@ -57,6 +57,8 @@ declare global {
     };
     captcha: {
         solve: (image: string) => Promise<IpcResult>;
+        setApiKey: (apiKey: string) => Promise<IpcResult>;
+        getApiKey: () => Promise<IpcResult<{ configured: boolean }>>;
     };
     advanced: {
         exportData: () => Promise<IpcResult>;

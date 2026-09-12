@@ -44,7 +44,7 @@ export function registerRobloxHandlers(): void {
       await launchRobloxDirect(placeIdToUse, jobIdToUse ?? '', cookie);
       await accountRepo.updateLastUsed(accountId);
       return ok(null);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // roblox:games:search, roblox:servers:list, roblox:servers:users — ELIMINADOS:
@@ -59,18 +59,18 @@ export function registerRobloxHandlers(): void {
       await launchRobloxDirect(placeId, jobId, cookie);
       await accountRepo.updateLastUsed(accountId);
       return ok(null);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('roblox:kill-all', async () => {
-    try { await killAllRoblox(); return ok(null); } catch (e) { return err(String(e)); }
+    try { await killAllRoblox(); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
 
   // roblox:join-group — ELIMINADO: aceptaba cookie: string del renderer.
   // (no hay variante byAccount actualmente; GroupService no está portado aún)
 
   ipcMain.handle('roblox:server-region', async (_e, { placeId }: { placeId: string }) => {
-    try { return ok(await robloxGamesApi.getServerRegion(placeId)); } catch (e) { return err(String(e)); }
+    try { return ok(await robloxGamesApi.getServerRegion(placeId)); } catch (e) { return err(errMsg(e)); }
   });
 
   // ============ PRESENCE ============
@@ -83,28 +83,28 @@ export function registerRobloxHandlers(): void {
     try {
       await accountRepo.saveFavoriteGame(accountId, { ...game, id: game.id, addedAt: new Date() });
       return ok(null);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('games:removeFavorite', async (_e, { accountId, gameId }: { accountId: string; gameId: number }) => {
-    try { await accountRepo.removeFavoriteGame(accountId, gameId); return ok(null); } catch (e) { return err(String(e)); }
+    try { await accountRepo.removeFavoriteGame(accountId, gameId); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('games:getFavorites', async (_e, { accountId }: { accountId: string }) => {
-    try { return ok(await accountRepo.getFavoriteGames(accountId)); } catch (e) { return err(String(e)); }
+    try { return ok(await accountRepo.getFavoriteGames(accountId)); } catch (e) { return err(errMsg(e)); }
   });
 
   // ============ BOTTING ============
   ipcMain.handle('botting:start', async (_e, { accountId, placeId, interval }: { accountId: string; placeId: string; interval: number }) => {
-    try { try { logger.info(`[botting:start] account=${accountId} placeId=${placeId} interval=${interval}ms`); } catch { /* best-effort */ } await startBotting(accountId, placeId, interval); return ok(null); } catch (e) { return err(String(e)); }
+    try { try { logger.info(`[botting:start] account=${accountId} placeId=${placeId} interval=${interval}ms`); } catch { /* best-effort */ } await startBotting(accountId, placeId, interval); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('botting:stop', async () => {
-    try { try { logger.info('[botting:stop]'); } catch { /* best-effort */ } await stopBotting(); return ok(null); } catch (e) { return err(String(e)); }
+    try { try { logger.info('[botting:stop]'); } catch { /* best-effort */ } await stopBotting(); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('botting:getStatus', async () => {
-    try { return ok(getBottingStatus()); } catch (e) { return err(String(e)); }
+    try { return ok(getBottingStatus()); } catch (e) { return err(errMsg(e)); }
   });
 
   // ============ NEW ROBLOX MULTI-LAUNCH / OUTFITS ============
@@ -129,7 +129,7 @@ export function registerRobloxHandlers(): void {
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
       return ok(await robloxSocialApi.getFriends(acc.robloxUserId, cookie));
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('friends:requestsByAccount', async (_e, { accountId }: { accountId: string }) => {
@@ -138,7 +138,7 @@ export function registerRobloxHandlers(): void {
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
       return ok(await robloxSocialApi.getFriendRequests(cookie));
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('friends:respondByAccount', async (_e, { requestId, accept, accountId }: { requestId: number; accept: boolean; accountId: string }) => {
@@ -148,7 +148,7 @@ export function registerRobloxHandlers(): void {
       const cookie = decrypt(acc.encryptedCookie);
       await robloxSocialApi.respondFriendRequest(requestId, accept, cookie);
       return ok(null);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('follow:byAccount', async (_e, { userId, accountId }: { userId: number; accountId: string }) => {
@@ -158,7 +158,7 @@ export function registerRobloxHandlers(): void {
       const cookie = decrypt(acc.encryptedCookie);
       await robloxSocialApi.followUser(userId, cookie);
       return ok(null);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('unfollow:byAccount', async (_e, { userId, accountId }: { userId: number; accountId: string }) => {
@@ -168,7 +168,7 @@ export function registerRobloxHandlers(): void {
       const cookie = decrypt(acc.encryptedCookie);
       await robloxSocialApi.unfollowUser(userId, cookie);
       return ok(null);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('games:searchByAccount', async (_e, { query, accountId }: { query: string; accountId: string }) => {
@@ -177,7 +177,7 @@ export function registerRobloxHandlers(): void {
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
       return ok(await robloxGamesApi.searchGames(query, cookie));
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('servers:listByAccount', async (_e, { placeId, accountId, serverType }: { placeId: string; accountId: string; serverType?: 'Public' | 'Private' }) => {
@@ -186,7 +186,7 @@ export function registerRobloxHandlers(): void {
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
       return ok(await robloxGamesApi.getGameServers(placeId, cookie, serverType ?? 'Public'));
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('servers:usersByAccount', async (_e, { serverId, accountId }: { serverId: string; accountId: string }) => {
@@ -195,7 +195,7 @@ export function registerRobloxHandlers(): void {
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
       return ok(await robloxGamesApi.getServerUsers(serverId, cookie));
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // Send friend request by account (cookie resolved internally)
@@ -206,7 +206,7 @@ export function registerRobloxHandlers(): void {
       const cookie = decrypt(acc.encryptedCookie);
       await sendFriendRequest(userId, cookie);
       return ok(null);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // Get outfits by account (for inventory/appearance view)
@@ -223,7 +223,7 @@ export function registerRobloxHandlers(): void {
   ipcMain.handle('roblox:serverRegionByAccount', async (_e, { placeId, accountId: _accountId }: { placeId: string; accountId: string }) => {
     try {
       return ok(await robloxGamesApi.getServerRegion(placeId));
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // Shuffle JobID by account (audit F-002): cookie resolved internally — renderer
@@ -234,7 +234,7 @@ export function registerRobloxHandlers(): void {
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
       return ok(await shuffleJobId(placeId, cookie));
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // VIP servers by account (audit F-003): cookie resolved internally — renderer
@@ -245,6 +245,6 @@ export function registerRobloxHandlers(): void {
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
       return ok(await detectVIPServers(placeId, cookie));
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 }

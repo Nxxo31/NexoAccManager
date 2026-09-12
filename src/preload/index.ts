@@ -81,6 +81,8 @@ const api = {
   // Captcha
   captcha: {
     solve: (image: string) => ipcRenderer.invoke('captcha:solve', image),
+    setApiKey: (apiKey: string) => ipcRenderer.invoke('captcha:setApiKey', { apiKey }),
+    getApiKey: () => ipcRenderer.invoke('captcha:getApiKey'),
   },
 
   // Advanced

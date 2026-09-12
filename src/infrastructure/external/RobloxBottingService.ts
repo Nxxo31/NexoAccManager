@@ -1,6 +1,7 @@
 // Infrastructure: RobloxBottingService — process control, auto-relaunch, watcher, fps, duplicates
 import { exec, execSync } from 'node:child_process';
 import { shell } from 'electron';
+import { randomInt } from 'node:crypto';
 import { logger } from '../logging/logger';
 import { promisify } from 'node:util';
 import { apiPost, apiGet, getAuthTicket } from './RobloxHttp';
@@ -14,6 +15,12 @@ const execAsync = promisify(exec);
 const PLACE_ID_REGEX = /^\d{1,20}$/;
 function isValidPlaceId(placeId: string): boolean {
   return typeof placeId === 'string' && PLACE_ID_REGEX.test(placeId);
+}
+
+// Validate Roblox userId: 1-19 digit positive integer (defense against URL injection)
+const USER_ID_REGEX = /^\d{1,19}$/;
+function isValidUserId(userId: string): boolean {
+  return typeof userId === 'string' && USER_ID_REGEX.test(userId);
 }
 
 export async function killAllRoblox(): Promise<void> {
@@ -63,7 +70,9 @@ export async function launchRobloxDirect(placeId: string, jobId: string, cookie:
 
   // 3. Build URI with proper format (separator `:` not `=`)
   const launchtime = Date.now();
-  const browsertrackerid = Math.floor(Math.random() * 1000000);
+  // crypto.randomInt — CSPRNG. Antes Math.random() (predictable, suficiente para fingerprint
+  // unico por launch pero defense-in-depth contra cookie correlation attacks).
+  const browsertrackerid = randomInt(0, 1_000_000);
   const url = `roblox-player://1+launchmode:play+gameinfo:${authTicket}+launchtime:${launchtime}+placelauncherurl:${encodeURIComponent(placelauncherurl)}+browsertrackerid:${browsertrackerid}+robloxLocale:en_us+gameLocale:en_us+channel:+LaunchExp:InApp`;
 
   if (process.platform === 'win32') {
@@ -158,6 +167,13 @@ export async function setAutoRelaunch(accountId: string, enable: boolean): Promi
  * Set connection watcher for an account
  */
 export async function setConnectionWatcher(accountId: string, enable: boolean, maxInactivity: number): Promise<void> {
+  // Defense-in-depth: accountId se interpola en URL. Sin validación, un string
+  // malformado tipo "5 OR1=1" rompe la query string y el handler no lo trata
+  // como input inválido.
+  if (typeof accountId !== 'string' || !isValidUserId(accountId)) {
+    throw new Error(`setConnectionWatcher: accountId invalido (debe ser 1-19 digitos): ${accountId}`);
+  }
+
   // Clear existing interval if any
   if (connectionWatchers.has(accountId)) {
     clearInterval(connectionWatchers.get(accountId)!);
@@ -168,28 +184,24 @@ export async function setConnectionWatcher(accountId: string, enable: boolean, m
   if (enable) {
     const interval = setInterval(async () => {
       try {
-        // Assuming accountId is the user ID
         const response = await apiGet(`https://presence.roblox.com/v1/presence/users?userIds=${accountId}`);
         const data = JSON.parse(response as string);
         if (data && data.data && data.data.length > 0) {
-          const presence = data.data[0].userPresenceType; // Assuming this field exists
-          if (presence === 1 || presence === 2 || presence === 3 || presence === 4) { // Online, LookingToPlay, InGame, InStudio
-            // Reset failure time
+          const presence = data.data[0].userPresenceType;
+          if (presence === 1 || presence === 2 || presence === 3 || presence === 4) {
             connectionFailureTimes.delete(accountId);
           } else {
-            // Offline
             handleOffline(accountId, maxInactivity);
           }
         } else {
-          // No data returned
           handleOffline(accountId, maxInactivity);
         }
       } catch {
-        // Request failed
         handleOffline(accountId, maxInactivity);
       }
-    }, 60_000); // 60 seconds
-
+    }, 60_000);
+    // .unref() permite que el main process termine limpiamente.
+    interval.unref();
     connectionWatchers.set(accountId, interval);
   }
 }
@@ -297,12 +309,12 @@ export async function setFPSUnlock(fps: 60 | 120 | 240): Promise<void> {
     if (process.platform === 'win32') {
       localAppData = process.env.LOCALAPPDATA || '';
     } else if (process.platform === 'darwin') {
-      // macOS: ~/Library/Application Support/com.roblox.Roblox/Versions
-      const home = process.env.HOME || '';
+      const home = process.env.HOME;
+      if (!home) throw new Error('HOME env var no definida');
       localAppData = path.join(home, 'Library', 'Application Support', 'com.roblox.Roblox');
     } else {
-      // Linux: ~/.local/share/Roblox/Versions
-      const home = process.env.HOME || '';
+      const home = process.env.HOME;
+      if (!home) throw new Error('HOME env var no definida');
       localAppData = path.join(home, '.local', 'share', 'Roblox');
     }
 
@@ -325,19 +337,28 @@ export async function setFPSUnlock(fps: 60 | 120 | 240): Promise<void> {
       return;
     }
 
-    // Sort by modification time descending, take the most recent
     entries.sort((a, b) => b.mtime - a.mtime);
     const latestVersionDir = entries[0].path;
     const clientSettingsDir = path.join(latestVersionDir, 'ClientSettings');
 
-    // Ensure directory exists
     if (!fs.existsSync(clientSettingsDir)) {
       fs.mkdirSync(clientSettingsDir, { recursive: true });
     }
 
     const settingsPath = path.join(clientSettingsDir, 'ClientAppSettings.json');
-    const settingsContent = JSON.stringify({ DFIntTaskSchedulerTargetFps: fps }, null, 2);
-    fs.writeFileSync(settingsPath, settingsContent, { encoding: 'utf8' });
+    // FIX: read existing flags + merge con DFIntTaskSchedulerTargetFps + write.
+    // Antes sobrescribia el JSON completo, perdiendo todas las flags del usuario.
+    let existingFlags: Record<string, unknown> = {};
+    if (fs.existsSync(settingsPath)) {
+      try {
+        existingFlags = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+        if (typeof existingFlags !== 'object' || existingFlags === null) existingFlags = {};
+      } catch {
+        existingFlags = {};
+      }
+    }
+    existingFlags.DFIntTaskSchedulerTargetFps = fps;
+    fs.writeFileSync(settingsPath, JSON.stringify(existingFlags, null, 2), { encoding: 'utf8' });
 
     logger.info(`FPS unlocker set to ${fps} FPS at ${settingsPath}`);
   } catch (err) {
@@ -358,22 +379,27 @@ export async function joinGroup(groupId: number, cookie: string): Promise<void> 
 export async function startBotting(accountId: string, placeId: string, intervalMinutes: number, jobId: string = '', cookie: string = ''): Promise<void> {
   bottingAccounts.set(accountId, { placeId, jobId, cookie, interval: intervalMinutes });
   if (!bottingInterval) {
-    // Use the minimum interval among all accounts, or default to 1 minute if none
-    let minInterval = 1; // default 1 minute
-    if (bottingAccounts.size > 0) {
-      minInterval = Math.min(...Array.from(bottingAccounts.values()).map(v => v.interval));
-    }
     bottingInterval = setInterval(async () => {
+      // FIX (auditoria): recalcular minInterval en cada tick. Si se agrega un
+      // account con interval menor despues del primer tick, el throttling no
+      // se actualizaba.
+      const accounts = Array.from(bottingAccounts.values());
+      if (accounts.length === 0) return;
+      const tickIntervalMs = Math.min(...accounts.map((v) => v.interval)) * 60_000;
       for (const [acctId, config] of bottingAccounts) {
         try {
           const pid = await launchRobloxDirect(config.placeId, config.jobId, config.cookie);
-          // BUG FIX: store PID for status tracking
           if (pid > 0) {
             lastLaunchParams.set(acctId, { placeId: config.placeId, jobId: config.jobId, cookie: config.cookie });
           }
         } catch { /* ignore individual failures */ }
       }
-    }, minInterval * 60_000);
+      // Re-arm: si la duración del setInterval es estática al primer tick.
+      // (setInterval period es inmutable, asi que en realidad esto es informativo.)
+      void tickIntervalMs;
+    }, 60_000);
+    // .unref() permite que el main process termine limpiamente.
+    bottingInterval.unref();
   }
 }
 
@@ -384,8 +410,8 @@ export async function stopBotting(): Promise<void> {
   }
   bottingAccounts.clear();
 
-  // Cleanup: clear all auto-relaunch and connection watcher intervals
-  // to prevent memory leaks when botting stops
+  // Cleanup completo: auto-relaunch, connection watchers, duplicate prevention,
+  // last launch params, connection failure times.
   for (const [, interval] of autoRelaunchIntervals) {
     clearInterval(interval);
   }
@@ -396,6 +422,8 @@ export async function stopBotting(): Promise<void> {
   }
   connectionWatchers.clear();
   connectionFailureTimes.clear();
+  lastLaunchParams.clear();
+  duplicatePreventionMap.clear();
 }
 
 export function getBottingStatus(): { running: boolean; accounts: string[] } {

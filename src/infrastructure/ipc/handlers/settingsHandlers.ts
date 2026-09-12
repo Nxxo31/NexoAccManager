@@ -14,11 +14,11 @@ export function registerSettingsHandlers(): void {
 
   // ============ SETTINGS ============
   ipcMain.handle('settings:get', async (_e, { key }: { key: string }) => {
-    try { return ok(settingsRepo.get(key)); } catch (e) { return err(String(e)); }
+    try { return ok(settingsRepo.get(key)); } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('settings:set', async (_e, { key, value }: { key: string; value: unknown }) => {
-    try { settingsRepo.set(key, value); return ok(null); } catch (e) { return err(String(e)); }
+    try { settingsRepo.set(key, value); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
 
   // ============ THEME ============
@@ -41,6 +41,7 @@ export function registerSettingsHandlers(): void {
       const { shell } = await import('electron');
       await shell.openExternal(url);
       return ok(null);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 }
+

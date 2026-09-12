@@ -17,7 +17,7 @@ import { getDb } from '../../database/DatabaseManager';
 // infrastructure que no tienen un port en el domain (boundary decisión), así
 // que se mantienen como imports directos de funciones concretas.
 import { robloxCookieApi } from '../../external/RobloxCookieService';
-import { solveCaptcha } from '../../external/CaptchaService';
+import { solveCaptcha, setCaptchaApiKey, getCaptchaApiKey } from '../../external/CaptchaService';
 import { start as startLocalApi, stop as stopLocalApi } from '../../external/LocalApiService';
 // B-1: el control WS se conecta al LocalApiService cuando éste arranca, y
 // se desconecta + limpia cola cuando se detiene. Se forward push events al
@@ -80,7 +80,7 @@ export function registerAdvancedHandlers(): void {
       const accounts = await accountRepo.getAll();
       const settings = settingsRepo.getAll();
       return ok({ accounts, settings, exportedAt: new Date().toISOString() });
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // B-2: deleteAllAccounts was issuing N individual DELETE statements in a loop.
@@ -91,7 +91,7 @@ export function registerAdvancedHandlers(): void {
       const count = (db.prepare('SELECT COUNT(*) as count FROM accounts').get() as { count: number }).count;
       db.prepare('DELETE FROM accounts').run();
       return ok(count);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // B-2: VACUUM is a heavy synchronous operation that blocks the main process
@@ -107,7 +107,7 @@ export function registerAdvancedHandlers(): void {
           resolve(ok(null));
         });
       });
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // Developer Mode toggle — persisted to settings DB (key='devmode').
@@ -156,7 +156,7 @@ export function registerAdvancedHandlers(): void {
       if (!acc) return err('Cuenta no encontrada');
       const cookie = decrypt(acc.encryptedCookie);
       return ok(await robloxCookieApi.getCookieExpiry(cookie));
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   ipcMain.handle('cookie:refresh', async (_e, { accountId }: { accountId: string }) => {
@@ -169,7 +169,7 @@ export function registerAdvancedHandlers(): void {
         await accountRepo.update(accountId, { encryptedCookie: makeEncryptedString(encrypt(newCookie)), cookieHash: hashCookie(newCookie) });
       }
       return ok(null);
-    } catch (e) { return err(String(e)); }
+    } catch (e) { return err(errMsg(e)); }
   });
 
   // cookie:refresh-real — REMOVIDO (audit F-001): aceptaba cookie: string cruda
@@ -179,6 +179,18 @@ export function registerAdvancedHandlers(): void {
 
   // ============ CAPTCHA ============
   ipcMain.handle('captcha:solve', async (_e, image: string) => { try { const solution = await solveCaptcha(image); return ok(solution); } catch (e) { return err(errMsg(e)); } }); // F-012: err(errMsg(e)) no string crudo
+  ipcMain.handle('captcha:setApiKey', async (_e, { apiKey }: { apiKey: string }) => {
+    try {
+      setCaptchaApiKey(apiKey);
+      return ok(true);
+    } catch (e) { return err(errMsg(e)); }
+  });
+  ipcMain.handle('captcha:getApiKey', async () => {
+    try {
+      // Solo devolver si existe — nunca devolver el valor real por el bridge (defense-in-depth)
+      return ok({ configured: getCaptchaApiKey() !== null });
+    } catch (e) { return err(errMsg(e)); }
+  });
 
   // ===== NEW SERVICES IPC HANDLERS =====
 
@@ -262,46 +274,46 @@ export function registerAdvancedHandlers(): void {
 
   // Discord RPC
   ipcMain.handle('discord:initialize', async (_e, { clientId }: { clientId?: string }) => {
-    try { await initializeDiscordRPC(clientId); return ok(null); } catch (e) { return err(String(e)); }
+    try { await initializeDiscordRPC(clientId); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('discord:updatePresence', async (_e, { details, state, largeImageKey, smallImageKey, startTimestamp }: { details?: string; state?: string; largeImageKey?: string; smallImageKey?: string; startTimestamp?: number }) => {
-    try { await updateDiscordPresence({ details, state, largeImageKey, smallImageKey, startTimestamp }); return ok(null); } catch (e) { return err(String(e)); }
+    try { await updateDiscordPresence({ details, state, largeImageKey, smallImageKey, startTimestamp }); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('discord:clearPresence', async () => {
-    try { await clearDiscordPresence(); return ok(null); } catch (e) { return err(String(e)); }
+    try { await clearDiscordPresence(); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('discord:shutdown', async () => {
-    try { await shutdownDiscordRPC(); return ok(null); } catch (e) { return err(String(e)); }
+    try { await shutdownDiscordRPC(); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
 
   // Launch Presets
   ipcMain.handle('presets:getAll', async () => {
-    try { return ok(getAllPresets()); } catch (e) { return err(String(e)); }
+    try { return ok(getAllPresets()); } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('presets:savePreset', async (_e, { preset }: { preset: Omit<LaunchPreset, 'id'> }) => {
-    try { const id = savePreset(preset); return ok(id); } catch (e) { return err(String(e)); }
+    try { const id = savePreset(preset); return ok(id); } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('presets:deletePreset', async (_e, { presetId }: { presetId: string }) => {
-    try { deletePreset(presetId); return ok(null); } catch (e) { return err(String(e)); }
+    try { deletePreset(presetId); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('presets:launchPreset', async (_e, { presetId }: { presetId: string }) => {
-    try { await launchPreset(presetId); return ok(null); } catch (e) { return err(String(e)); }
+    try { await launchPreset(presetId); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
 
   // Playtime Tracking
   ipcMain.handle('playtime:startTracking', async (_e, { accountId, placeId }: { accountId: string; placeId: string }) => {
-    try { startPlaytimeTracking(accountId, placeId); return ok(null); } catch (e) { return err(String(e)); }
+    try { startPlaytimeTracking(accountId, placeId); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('playtime:stopTracking', async (_e, { accountId }: { accountId: string }) => {
-    try { stopPlaytimeTracking(accountId); return ok(null); } catch (e) { return err(String(e)); }
+    try { stopPlaytimeTracking(accountId); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('playtime:getTotalPlaytime', async (_e, { accountId }: { accountId: string }) => {
-    try { return ok(getTotalPlaytime(accountId)); } catch (e) { return err(String(e)); }
+    try { return ok(getTotalPlaytime(accountId)); } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('playtime:getSessionHistory', async (_e, { accountId, limit }: { accountId: string; limit?: number }) => {
-    try { return ok(getSessionHistory(accountId, limit)); } catch (e) { return err(String(e)); }
+    try { return ok(getSessionHistory(accountId, limit)); } catch (e) { return err(errMsg(e)); }
   });
   ipcMain.handle('playtime:clearHistory', async (_e, { accountId }: { accountId: string }) => {
-    try { clearPlaytimeHistory(accountId); return ok(null); } catch (e) { return err(String(e)); }
+    try { clearPlaytimeHistory(accountId); return ok(null); } catch (e) { return err(errMsg(e)); }
   });
 }
