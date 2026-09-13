@@ -34,3 +34,4 @@ export function safeResolve(root: string, relativePath: string): string | null {
   }
   return resolved;
 }
+
