@@ -78,16 +78,17 @@ npm run test:ui             # vitest --ui
 
 - Lint: 0 errors, 0 warnings
 - tsc: 0 errors
-- Tests: 4 files, 64 tests passing (CryptoService, LocalApiService, BackupRepositoryImpl, BackupServiceImpl)
+- Tests: 4 files, 103 tests passing (CryptoService, LocalApiService, BackupRepositoryImpl, BackupServiceImpl)
 - IPC sync: 102/102/102 ✅
 - Build Electron: `release/` vacío local (requiere VS Build Tools C++ workload). En CI OK.
-- Cobertura: 37.53% global. Por directorio:
+- Cobertura: **68.24% global**. Por directorio:
   - `infrastructure/services/BackupServiceImpl.ts`: **92.48%** ✅ (target 60%)
   - `infrastructure/database/BackupRepositoryImpl.ts` (+BackupCryptoImpl): 98.38% ✅
+  - `infrastructure/database/SettingsRepositoryImpl.ts`: ~100% (ejecutado vía fake DB)
+  - `infrastructure/database/DatabaseManager.ts`: 100% (singleton getDb + createTables + closeDb)
   - `infrastructure/database/CryptoService.ts`: 83.01% ✅
-  - `external/LocalApiService.ts`: 3.9% ✗ (solo `isSafeId` cubierto; resto requiere mockear http.createServer + ws + 5 repos)
-  - `infrastructure/database/SettingsRepositoryImpl.ts` + `DatabaseManager.ts`: mockeados (0% ejecución real)
-  - `infrastructure/database/LRUCache.ts`: 0% (no usado)
+  - `external/LocalApiService.ts`: **62.27%** ✅ (target 60%)
+  - `infrastructure/database/LRUCache.ts`: 0% (no usado por el código actual)
 
 ## Pendientes estructurales
 
