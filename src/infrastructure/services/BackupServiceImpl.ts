@@ -81,12 +81,6 @@ export class BackupServiceImpl implements BackupService {
     return config;
   }
 
-  async selectBackupFolder(): Promise<BackupFolderConfig | null> {
-    // El dialog real vive en backupHandlers.ts:89 (showOpenDialog).
-    // Aqui solo devolvemos el folder configurado actualmente.
-    return this.repo.getBackupFolder();
-  }
-
   // ============ OPERACIONES DE BACKUP ============
 
   async createBackup(description?: string, includeSecret: boolean = false): Promise<BackupMetadata> {

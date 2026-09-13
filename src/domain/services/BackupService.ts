@@ -23,7 +23,6 @@ export interface BackupService {
   // Configuración
   getBackupFolder(): BackupFolderConfig | null;
   setBackupFolder(path: string): Promise<BackupFolderConfig>;
-  selectBackupFolder(): Promise<BackupFolderConfig | null>;
 
   // Operaciones de backup
   createBackup(description?: string, includeSecret?: boolean): Promise<BackupMetadata>;
