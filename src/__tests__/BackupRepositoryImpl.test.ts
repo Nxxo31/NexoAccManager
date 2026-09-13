@@ -3,11 +3,96 @@ import { mkdtempSync, rmSync, writeFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const mockState = vi.hoisted(() => ({
-  userDataPath: '',
-  appVersion: '5.0.0-test',
-  settings: new Map<string, unknown>(),
-}))
+const mockState = vi.hoisted(() => {
+  // In-memory SQLite-shaped fake. Stores rows in Maps keyed by lowercase table name.
+  const tables = new Map<string, Array<Record<string, unknown>>>()
+  function ensureTable(name: string) {
+    const key = name.toLowerCase()
+    if (!tables.has(key)) tables.set(key, [])
+  }
+  const fakeDb = {
+    pragma(_pragma: string) {},
+    exec(sql: string) {
+      const m = sql.match(/CREATE TABLE(?:\s+IF NOT EXISTS)?\s+(\w+)/i)
+      if (m) ensureTable(m[1])
+    },
+    prepare(sql: string) {
+      const upper = sql.replace(/\s+/g, ' ').trim().toUpperCase()
+      return {
+        get(...params: unknown[]) {
+          // SELECT value FROM settings WHERE key = ?
+          const m = upper.match(/^SELECT VALUE FROM (\w+) WHERE (\w+) = \?$/)
+          if (m) {
+            ensureTable(m[1])
+            const rows = tables.get(m[1].toLowerCase())!
+            const match = rows.find((r) => r[m[2].toLowerCase()] === params[0])
+            return match ? { value: match.value } : undefined
+          }
+          return undefined
+        },
+        all(...params: unknown[]) {
+          // SELECT key, value FROM settings
+          const m = upper.match(/^SELECT (.+?) FROM (\w+)(?:\s+(.*))?$/i)
+          if (m) {
+            ensureTable(m[2])
+            const rows = tables.get(m[2].toLowerCase())!
+            const whereMatch = (m[3] || '').match(/WHERE\s+(\w+)\s*=\s*\?/i)
+            const filtered = whereMatch
+              ? rows.filter((r) => r[whereMatch[1].toLowerCase()] === params[0])
+              : rows
+            return filtered.map((r) => {
+              const out: Record<string, unknown> = {}
+              m[1].split(',').forEach((c: string) => {
+                const col = c.trim().toLowerCase()
+                if (col !== '*' && !col.includes('(')) out[col] = r[col]
+              })
+              return out
+            })
+          }
+          return []
+        },
+        run(...params: unknown[]) {
+          // INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)
+          let m = upper.match(/^INSERT OR REPLACE INTO (\w+)\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\)/i)
+          if (m) {
+            ensureTable(m[1])
+            const cols = m[2].split(',').map((c: string) => c.trim().toLowerCase())
+            const rows = tables.get(m[1].toLowerCase())!
+            const row: Record<string, unknown> = {}
+            cols.forEach((c: string, i: number) => { row[c] = params[i] })
+            const pk = cols[0]
+            const idx = rows.findIndex((r) => r[pk] === row[pk])
+            if (idx >= 0) rows[idx] = row
+            else rows.push(row)
+            return { changes: 1 }
+          }
+          // DELETE FROM settings WHERE key = ?
+          m = upper.match(/^DELETE FROM (\w+) WHERE (\w+) = \?$/i)
+          if (m) {
+            ensureTable(m[1])
+            const rows = tables.get(m[1].toLowerCase())!
+            const idx = rows.findIndex((r) => r[m[2].toLowerCase()] === params[0])
+            if (idx >= 0) {
+              rows.splice(idx, 1)
+              return { changes: 1 }
+            }
+            return { changes: 0 }
+          }
+          return { changes: 0 }
+        },
+      }
+    },
+    close() {
+      tables.clear()
+    },
+    __tables: tables,
+  }
+  return {
+    userDataPath: '',
+    appVersion: '5.0.0-test',
+    fakeDb,
+  }
+})
 
 vi.mock('electron', () => ({
   app: {
@@ -16,24 +101,19 @@ vi.mock('electron', () => ({
   },
 }))
 
-vi.mock('../../src/infrastructure/database/SettingsRepositoryImpl', () => ({
-  SettingsRepositoryImpl: class MockSettingsRepo {
-    get<T>(key: string) {
-      return mockState.settings.get(key) as T | undefined
-    }
-    set<T>(key: string, value: T) {
-      mockState.settings.set(key, value)
-    }
-    remove(key: string) {
-      mockState.settings.delete(key)
-    }
-    getAll() {
-      return Object.fromEntries(mockState.settings)
-    }
+vi.mock('better-sqlite3', () => ({
+  default: function () {
+    return mockState.fakeDb
   },
 }))
 
+// SettingsRepositoryImpl is now used DIRECTLY (not mocked) — its real code path
+// runs against our fake DB to gain coverage on get/set/remove/getAll.
+// DatabaseManager is also real now (better-sqlite3 is mocked above), so getDb() +
+// createTables() execute for coverage.
+
 import { BackupRepositoryImpl, BackupCryptoImpl } from '../../src/infrastructure/database/BackupRepositoryImpl'
+import { SettingsRepositoryImpl } from '../../src/infrastructure/database/SettingsRepositoryImpl'
 import type { BackupMetadata, BackupSchedule, BackupFolderConfig } from '../../src/domain/entities/BackupMetadata'
 
 let tempDir: string
@@ -56,7 +136,8 @@ function makeMetadata(overrides: Partial<BackupMetadata> = {}): BackupMetadata {
 beforeEach(() => {
   tempDir = mkdtempSync(join(tmpdir(), 'nam-backup-repo-'))
   mockState.userDataPath = tempDir
-  mockState.settings.clear()
+  mockState.fakeDb.__tables.clear()
+  mockState.fakeDb.__tables.set('settings', [])
 })
 
 afterEach(() => {
@@ -224,6 +305,93 @@ describe('BackupRepositoryImpl', () => {
 
       const repo2 = new BackupRepositoryImpl()
       expect(repo2.getSchedule()).toEqual(sched)
+    })
+  })
+
+  describe('SettingsRepositoryImpl (real — exercised via BackupRepositoryImpl)', () => {
+    // These tests use the real SettingsRepositoryImpl (no mock) so its branches
+    // — JSON.parse success/fallback, string vs object serialization, getAll —
+    // all execute against the fake DB.
+
+    function seedSettingsTable(rows: Array<{ key: string; value: string }>) {
+      const settingsTable = mockState.fakeDb.__tables.get('settings')!
+      for (const row of rows) settingsTable.push(row)
+    }
+
+    it('get returns parsed JSON object', () => {
+      // SettingsRepositoryImpl.FOLDER_KEY = 'backup.folder' (used by getBackupFolder)
+      seedSettingsTable([{ key: 'backup.folder', value: '{"path":"/data/backups","lastSelectedAt":"2026-01-01"}' }])
+      const repo = new BackupRepositoryImpl()
+      const folder = repo.getBackupFolder()
+      expect(folder).toEqual({ path: '/data/backups', lastSelectedAt: '2026-01-01' })
+    })
+
+    it('get falls back to raw string when value is not valid JSON', () => {
+      // BackupFolderConfig = { path: string; lastSelectedAt: string }. A plain string
+      // is not a valid JSON object, so SettingsRepositoryImpl.get returns the raw value.
+      seedSettingsTable([{ key: 'backup.folder', value: 'plain-string-not-json' }])
+      const repo = new BackupRepositoryImpl()
+      const folder = repo.getBackupFolder()
+      expect(folder).toBe('plain-string-not-json')
+    })
+
+    it('get returns undefined when key missing → caller falls back to null', () => {
+      const repo = new BackupRepositoryImpl()
+      expect(repo.getBackupFolder()).toBeNull()
+    })
+
+    it('set serializes objects via JSON.stringify (object branch)', () => {
+      const repo = new BackupRepositoryImpl()
+      repo.setBackupFolder({ path: '/data/backups', lastSelectedAt: '2026-01-01' })
+      const settingsTable = mockState.fakeDb.__tables.get('settings')!
+      const row = settingsTable.find((r) => r.key === 'backup.folder')
+      expect(row).toBeDefined()
+      expect(row!.value).toBe(JSON.stringify({ path: '/data/backups', lastSelectedAt: '2026-01-01' }))
+    })
+
+    it('set stores strings as-is without re-serialization (string branch)', () => {
+      const repo = new BackupRepositoryImpl()
+      const sched: BackupSchedule = { enabled: true, frequency: 'daily', time: '08:00' }
+      repo.setSchedule(sched)
+      const settingsTable = mockState.fakeDb.__tables.get('settings')!
+      const row = settingsTable.find((r) => r.key === 'backup.schedule')
+      expect(row).toBeDefined()
+      expect(row!.value).toMatch(/^\{.*\}$/)
+    })
+
+    it('SettingsRepositoryImpl.set with raw string stores without JSON.stringify', () => {
+      const repo = new SettingsRepositoryImpl()
+      repo.set('plain-string-key', 'just-a-string' as any)
+      const settingsTable = mockState.fakeDb.__tables.get('settings')!
+      const row = settingsTable.find((r) => r.key === 'plain-string-key')
+      expect(row).toBeDefined()
+      expect(row!.value).toBe('just-a-string') // NOT JSON-wrapped
+    })
+
+    it('SettingsRepositoryImpl.getAll returns all rows as parsed JSON', () => {
+      seedSettingsTable([
+        { key: 'json-val', value: '{"a":1,"b":2}' },
+        { key: 'plain-val', value: 'not-json' },
+      ])
+      const repo = new SettingsRepositoryImpl()
+      const all = repo.getAll()
+      expect(all).toEqual({
+        'json-val': { a: 1, b: 2 },
+        'plain-val': 'not-json',
+      })
+    })
+
+    it('SettingsRepositoryImpl.getAll returns empty object when no rows', () => {
+      const repo = new SettingsRepositoryImpl()
+      expect(repo.getAll()).toEqual({})
+    })
+
+    it('SettingsRepositoryImpl.remove deletes the row', () => {
+      seedSettingsTable([{ key: 'to-remove', value: '"x"' }])
+      const repo = new SettingsRepositoryImpl()
+      repo.remove('to-remove')
+      const settingsTable = mockState.fakeDb.__tables.get('settings')!
+      expect(settingsTable.find((r) => r.key === 'to-remove')).toBeUndefined()
     })
   })
 })

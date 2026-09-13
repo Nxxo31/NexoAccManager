@@ -134,27 +134,15 @@ vi.mock('electron', () => ({
   },
 }))
 
-vi.mock('../../src/infrastructure/database/DatabaseManager', () => ({
-  getDb: () => mockState.fakeDb,
-  closeDb: () => mockState.fakeDb.close(),
-}))
-
-vi.mock('../../src/infrastructure/database/SettingsRepositoryImpl', () => ({
-  SettingsRepositoryImpl: class MockSettingsRepo {
-    get<T>(key: string) {
-      return mockState.settings.get(key) as T | undefined
-    }
-    set<T>(key: string, value: T) {
-      mockState.settings.set(key, value)
-    }
-    remove(key: string) {
-      mockState.settings.delete(key)
-    }
-    getAll() {
-      return Object.fromEntries(mockState.settings)
-    }
+vi.mock('better-sqlite3', () => ({
+  default: function () {
+    return mockState.fakeDb
   },
 }))
+
+// SettingsRepositoryImpl + DatabaseManager are now used DIRECTLY (not mocked)
+// so their real code paths execute against our fake DB and gain coverage.
+// The fake DB's 'SELECT value FROM settings WHERE key = ?' handler is in place.
 
 vi.mock('../../src/infrastructure/logging/logger', () => ({
   logger: {
