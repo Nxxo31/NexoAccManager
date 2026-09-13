@@ -76,12 +76,18 @@ npm run test:ui             # vitest --ui
 
 ## Estado actual (2026-09-13)
 
-- Lint: 0 errors, 1 warning (`_` unused en RobloxCookieService.ts — resuelto en 646f3b1)
+- Lint: 0 errors, 0 warnings
 - tsc: 0 errors
-- Tests: 3 files, 14 tests passing (CryptoService, LocalApiService, BackupRepositoryImpl)
+- Tests: 4 files, 64 tests passing (CryptoService, LocalApiService, BackupRepositoryImpl, BackupServiceImpl)
 - IPC sync: 102/102/102 ✅
 - Build Electron: `release/` vacío local (requiere VS Build Tools C++ workload). En CI OK.
-- Cobertura: <20% actual. Target 60% en `infrastructure/services/`, `infrastructure/database/`, `external/{LocalApiService,CryptoService}.ts`.
+- Cobertura: 37.53% global. Por directorio:
+  - `infrastructure/services/BackupServiceImpl.ts`: **92.48%** ✅ (target 60%)
+  - `infrastructure/database/BackupRepositoryImpl.ts` (+BackupCryptoImpl): 98.38% ✅
+  - `infrastructure/database/CryptoService.ts`: 83.01% ✅
+  - `external/LocalApiService.ts`: 3.9% ✗ (solo `isSafeId` cubierto; resto requiere mockear http.createServer + ws + 5 repos)
+  - `infrastructure/database/SettingsRepositoryImpl.ts` + `DatabaseManager.ts`: mockeados (0% ejecución real)
+  - `infrastructure/database/LRUCache.ts`: 0% (no usado)
 
 ## Pendientes estructurales
 
