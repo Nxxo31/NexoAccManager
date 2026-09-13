@@ -1,4 +1,6 @@
 import http from 'node:http';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
 import { randomBytes } from 'node:crypto';
 import { logger } from '../logging/logger';
 import { WebSocketServer, WebSocket } from 'ws';
@@ -11,8 +13,7 @@ import { decrypt, encrypt, hashCookie } from '../database/CryptoService';
 
 import { makeEncryptedString } from '../../domain/types/EncryptedString';
 
-const exec = require('node:child_process').exec;
-const execAsync = require('node:util').promisify(exec);
+const execAsync = promisify(exec);
 
 let server: http.Server | null = null;
 let wss: WebSocketServer | null = null;
@@ -226,8 +227,9 @@ export function start(port: number = DEFAULT_PORT): Promise<{ token: string; por
           if (isSafePid(pid)) {
             try {
               if (process.platform === 'win32') {
-                const output = await execAsync(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`);
-                const lines = output.trim().split('\n');
+                // promisify(exec) resolves to {stdout, stderr}; use stdout.
+                const { stdout } = await execAsync(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`);
+                const lines = stdout.trim().split('\n');
                 running = lines.length > 0 && !lines[0].includes('INFO: No tasks are running');
               } else {
                 // Unix: ps -p exits 0 if process exists, non-zero if not
@@ -400,8 +402,8 @@ export function start(port: number = DEFAULT_PORT): Promise<{ token: string; por
               if (isSafePid(pid)) {
                 try {
                   if (process.platform === 'win32') {
-                    const output = await execAsync(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`);
-                    const lines = output.trim().split('\n');
+                    const { stdout } = await execAsync(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`);
+                    const lines = stdout.trim().split('\n');
                     running = lines.length > 0 && !lines[0].includes('INFO: No tasks are running');
                   } else {
                     await execAsync(`ps -p ${pid} -o pid=`);
