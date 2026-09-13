@@ -39,6 +39,7 @@
     "@deslint/eslint-plugin": "^0.10.0",
     "@eslint/js": "^10.0.1",
     "@types/better-sqlite3": "^7.6.0",
+    "@vitest/coverage-v8": "^4.1.11",
     "@types/discord-rpc": "^4.0.11",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
@@ -80,12 +81,11 @@
         "portable"
       ],
       "icon": "build/icon.png",
-      "asarUnpack": [
-        "node_modules/better-sqlite3/**",
-        "node_modules/electron-store/**"
-      ],
-      "signAndEditExecutable": false
-    },
+        "asarUnpack": [
+          "node_modules/better-sqlite3/**"
+        ],
+        "signAndEditExecutable": false
+      },
     "portable": {
       "artifactName": "NX-Manager-${version}-Portable.exe"
     },
@@ -95,10 +95,9 @@
       ],
       "icon": "build/icon.png",
       "category": "Utility",
-      "asarUnpack": [
-        "node_modules/better-sqlite3/**",
-        "node_modules/electron-store/**"
-      ]
-    }
+        "asarUnpack": [
+          "node_modules/better-sqlite3/**"
+        ]
+      }
   }
 }
