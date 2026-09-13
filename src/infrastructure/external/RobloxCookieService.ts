@@ -96,7 +96,7 @@ export async function refreshCookie(cookie: string): Promise<string> {
     // FIX: no esperar timeout fijo. Cargar URL y esperar did-finish-load o
     // cookies.changed event (timeout 10s por si Roblox no responde).
     const loadPromise = win.webContents.loadURL('https://www.roblox.com/home');
-    const [_, newCookie] = await Promise.all([
+    const [, newCookie] = await Promise.all([
       loadPromise,
       waitForCookieChange(win, cookie, 10_000),
     ]);
