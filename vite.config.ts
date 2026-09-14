@@ -59,7 +59,6 @@ export default defineConfig({
             '@mantine/hooks',
             '@mantine/modals',
             '@mantine/notifications',
-            '@mantine/form',
           ],
           'vendor-motion': ['framer-motion'],
         },
