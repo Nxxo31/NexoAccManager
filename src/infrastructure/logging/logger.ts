@@ -10,7 +10,7 @@
 // File output: %USERDATA%/logs/main.log (rotated at 5 MB, 10 files kept)
 // Console output: visible in dev tools and terminal during development.
 
-import log from 'electron-log';
+import log from 'electron-log/main';
 import { app } from 'electron';
 
 // ---- Transport configuration ----
