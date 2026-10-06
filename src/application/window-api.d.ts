@@ -100,6 +100,7 @@ declare global {
         serversList: (placeId: string, accountId: string, serverType?: 'Public' | 'Private') => Promise<IpcResult>;
         serversUsers: (serverId: string, accountId: string) => Promise<IpcResult>;
         outfits: (accountId: string) => Promise<IpcResult>;
+        applyOutfit: (accountId: string, outfitId: number) => Promise<IpcResult<{ success: boolean }>>;
         serverRegion: (placeId: string, accountId: string) => Promise<IpcResult>;
         fflagsGetAll: () => Promise<IpcResult>;
         fflagsSetFlag: (key: string, value: string | number | boolean) => Promise<IpcResult>;

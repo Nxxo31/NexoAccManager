@@ -19,7 +19,7 @@ import { robloxSocialApi } from '../../external/RobloxPresenceService';
 import { sendFriendRequest } from '../../external/RobloxPresenceService';
 // Nota: detectVIPServers y shuffleJobId no son parte de RobloxGamesPort — son
 // utilidades del módulo y quedan como funciones sueltas.
-import { detectVIPServers, shuffleJobId } from '../../external/RobloxGamesService';
+import { detectVIPServers, shuffleJobId, wearOutfit } from '../../external/RobloxGamesService';
 import { killAllRoblox, launchRobloxDirect, startBotting, stopBotting, getBottingStatus } from '../../external/RobloxBottingService';
 import { killInstance, getRunningInstances } from '../../external/MultiRobloxService';
 import { ok, err, errMsg } from './shared';
@@ -238,13 +238,25 @@ export function registerRobloxHandlers(): void {
   });
 
   // VIP servers by account (audit F-003): cookie resolved internally — renderer
-  // never receives the raw cookie. Replaces the removed `roblox:vip-servers`.
-  ipcMain.handle('roblox:vipServersByAccount', async (_e, { placeId, accountId }: { placeId: string; accountId: string }) => {
-    try {
-      const acc = await accountRepo.getById(accountId);
-      if (!acc) return err('Cuenta no encontrada');
-      const cookie = decrypt(acc.encryptedCookie);
-      return ok(await detectVIPServers(placeId, cookie));
-    } catch (e) { return err(errMsg(e)); }
-  });
-}
+// never receives the raw cookie. Replaces the removed `roblox:vip-servers`.
+ipcMain.handle('roblox:vipServersByAccount', async (_e, { placeId, accountId }: { placeId: string; accountId: string }) => {
+      try {
+        const acc = await accountRepo.getById(accountId);
+        if (!acc) return err('Cuenta no encontrada');
+        const cookie = decrypt(acc.encryptedCookie);
+        return ok(await detectVIPServers(placeId, cookie));
+      } catch (e) { return err(errMsg(e)); }
+    });
+
+    // Apply (wear) one of the user's saved outfits. The outfitId must be one of
+    // the IDs from the user's outfit list (call roblox:outfitsByAccount first).
+    // Cookie is resolved internally so the renderer never sees it.
+ipcMain.handle('account:outfit:apply', async (_e, { accountId, outfitId }: { accountId: string; outfitId: number }) => {
+      try {
+        const acc = await accountRepo.getById(accountId);
+        if (!acc) return err('Cuenta no encontrada');
+        const cookie = decrypt(acc.encryptedCookie);
+        return ok(await wearOutfit(outfitId, cookie));
+      } catch (e) { return err(errMsg(e)); }
+    });
+  }

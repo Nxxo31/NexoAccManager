@@ -157,6 +157,8 @@ const api = {
     serversList: (placeId: string, accountId: string, serverType?: 'Public' | 'Private') => ipcRenderer.invoke('servers:listByAccount', { placeId, accountId, serverType }),
     serversUsers: (serverId: string, accountId: string) => ipcRenderer.invoke('servers:usersByAccount', { serverId, accountId }),
     outfits: (accountId: string) => ipcRenderer.invoke('roblox:outfitsByAccount', { accountId }),
+    // Apply (wear) one of the user's saved outfits. Cookie resolved server-side.
+    applyOutfit: (accountId: string, outfitId: number) => ipcRenderer.invoke('account:outfit:apply', { accountId, outfitId }),
     serverRegion: (placeId: string, accountId: string) => ipcRenderer.invoke('roblox:serverRegionByAccount', { placeId, accountId }),
     // FastFlags — globales (ClientAppSettings.json). accountId ignorado por los handlers.
     fflagsGetAll: () => ipcRenderer.invoke('fflags:getAll'),
