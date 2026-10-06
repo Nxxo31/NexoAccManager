@@ -146,10 +146,10 @@ vi.mock('better-sqlite3', () => ({
 
 vi.mock('../../src/infrastructure/logging/logger', () => ({
   logger: {
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-    debug: () => {},
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }))
 
@@ -507,31 +507,43 @@ describe('BackupServiceImpl', () => {
     })
 
     it('getNextScheduledRun for weekly pushes +7 days', async () => {
-      const svc = new BackupServiceImpl()
-      const past = new Date()
-      past.setHours(past.getHours() - 2)
-      const hh = String(past.getHours()).padStart(2, '0')
-      const mm = String(past.getMinutes()).padStart(2, '0')
-      await svc.setSchedule({ enabled: true, frequency: 'weekly', time: `${hh}:${mm}` })
-      const next = svc.getNextScheduledRun()!
-      const diff = next.getTime() - new Date().getTime()
-      expect(diff).toBeGreaterThan(6 * 24 * 60 * 60 * 1000)
-      expect(diff).toBeLessThan(8 * 24 * 60 * 60 * 1000)
-      svc.shutdown()
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0))
+      try {
+        const svc = new BackupServiceImpl()
+        const past = new Date()
+        past.setHours(past.getHours() - 2)
+        const hh = String(past.getHours()).padStart(2, '0')
+        const mm = String(past.getMinutes()).padStart(2, '0')
+        await svc.setSchedule({ enabled: true, frequency: 'weekly', time: `${hh}:${mm}` })
+        const next = svc.getNextScheduledRun()!
+        const diff = next.getTime() - new Date().getTime()
+        expect(diff).toBeGreaterThan(6 * 24 * 60 * 60 * 1000)
+        expect(diff).toBeLessThan(8 * 24 * 60 * 60 * 1000)
+        svc.shutdown()
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('getNextScheduledRun for monthly pushes +1 month', async () => {
-      const svc = new BackupServiceImpl()
-      const past = new Date()
-      past.setHours(past.getHours() - 2)
-      const hh = String(past.getHours()).padStart(2, '0')
-      const mm = String(past.getMinutes()).padStart(2, '0')
-      await svc.setSchedule({ enabled: true, frequency: 'monthly', time: `${hh}:${mm}` })
-      const next = svc.getNextScheduledRun()!
-      const diffDays = (next.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-      expect(diffDays).toBeGreaterThan(27)
-      expect(diffDays).toBeLessThan(32)
-      svc.shutdown()
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date(2026, 5, 15, 12, 0, 0))
+      try {
+        const svc = new BackupServiceImpl()
+        const past = new Date()
+        past.setHours(past.getHours() - 2)
+        const hh = String(past.getHours()).padStart(2, '0')
+        const mm = String(past.getMinutes()).padStart(2, '0')
+        await svc.setSchedule({ enabled: true, frequency: 'monthly', time: `${hh}:${mm}` })
+        const next = svc.getNextScheduledRun()!
+        const diffDays = (next.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+        expect(diffDays).toBeGreaterThan(27)
+        expect(diffDays).toBeLessThan(32)
+        svc.shutdown()
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('shutdown clears the scheduler interval', async () => {
@@ -542,6 +554,48 @@ describe('BackupServiceImpl', () => {
       svc.shutdown()
       // @ts-ignore
       expect(svc.schedulerInterval).toBeNull()
+    })
+
+    it('restartScheduler clears a previously running interval before reinstalling', async () => {
+      // setSchedule installs an interval the first time. Calling setSchedule
+      // again must call clearInterval on the previous handle (line 272-273)
+      // before re-creating it. We can't observe clearInterval directly without
+      // spying on it, but we can confirm the schedulerInterval reference
+      // changes — and that after two setSchedule calls the service still
+      // shuts down cleanly (i.e. the second clear didn't lose the handle).
+      const svc = new BackupServiceImpl()
+      await svc.setSchedule({ enabled: true, frequency: 'daily', time: '12:00' })
+      // @ts-ignore
+      const firstInterval = svc.schedulerInterval
+      await svc.setSchedule({ enabled: true, frequency: 'weekly', time: '13:00' })
+      // @ts-ignore
+      const secondInterval = svc.schedulerInterval
+      expect(secondInterval).not.toBe(firstInterval)
+      svc.shutdown()
+    })
+
+    it('scheduled tick logs error when createBackup throws (line 282-289)', async () => {
+      // Lines 282-289 are defensive: getNextScheduledRun() always returns a
+      // future date (past times roll +1 day/quarter/month), so the inner
+      // `nextRun <= new Date()` guard normally never fires. To exercise the
+      // try/catch, we force the method to return `new Date()` so the guard
+      // passes, and we have no nexoacc.db on disk → createBackup throws
+      // "Database file not found" → logger.error gets called.
+      const loggerModule = await import('../../src/infrastructure/logging/logger')
+      const errorSpy = loggerModule.logger.error as unknown as ReturnType<typeof vi.fn>
+      errorSpy.mockClear()
+      const svc = new BackupServiceImpl()
+      // Spy + stub: getNextScheduledRun() → now
+      const spy = vi.spyOn(svc, 'getNextScheduledRun').mockReturnValue(new Date())
+      // setSchedule installs the interval + fires checkAndRun() once immediately.
+      await svc.setSchedule({ enabled: true, frequency: 'daily', time: '12:00' })
+      // Wait for the immediate async checkAndRun() to settle.
+      await new Promise((resolve) => setImmediate(resolve))
+      await new Promise((resolve) => setImmediate(resolve))
+      expect(errorSpy).toHaveBeenCalled()
+      expect(errorSpy.mock.calls[0][0]).toMatch(/Scheduled backup failed/)
+      spy.mockRestore()
+      svc.shutdown()
     })
   })
 
