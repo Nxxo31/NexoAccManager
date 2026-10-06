@@ -151,6 +151,22 @@ export async function shuffleJobId(placeId: string, cookie: string): Promise<str
   return servers[randomIndex].jobId;
 }
 
+/**
+ * Wear (apply) one of the authenticated user's saved outfits.
+ * POST https://avatar.roblox.com/v1/outfits/{outfitId}/wear
+ * Roblox responds with `{ success: true }` on accept, or 401/403 if the
+ * cookie is invalid. The CSRF token is added by apiPost automatically.
+ *
+ * Fails (4xx) when the outfitId does not belong to the user — caller should
+ * pre-fetch the outfits list via getOutfits() and present one of those IDs.
+ */
+export async function wearOutfit(outfitId: number, cookie: string): Promise<{ success: boolean }> {
+  return apiPost<{ success: boolean }>(
+    `https://avatar.roblox.com/v1/outfits/${outfitId}/wear`,
+    cookie
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // DT-4 (DIP): Adapter class que implementa RobloxGamesPort.
 // Envuelve las funciones sueltas para que el puerto pueda inyectarse como
@@ -167,6 +183,7 @@ export class RobloxGamesApiImpl implements RobloxGamesPort {
   public searchPlayer = searchPlayer;
   public getOutfits = getOutfits;
   public getUniverses = getUniverses;
+  public wearOutfit = wearOutfit;
 }
 
 // Instancia singleton exportada para consumers que quieran inyectar por DI.
