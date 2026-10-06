@@ -35,8 +35,16 @@ export interface RobloxGamesPort {
   getServerRegion(placeId: string): Promise<{ region: string; ping: number }>;
   searchPlayer(query: string, cookie: string): Promise<{ userId: number; username: string; displayName: string }[]>;
   getOutfits(userId: number, cookie: string): Promise<OutfitData[]>;
-  getUniverses(gameId: number, cookie: string): Promise<UniverseData[]>;
-}
+    getUniverses(gameId: number, cookie: string): Promise<UniverseData[]>;
+    /**
+     * Aplica (wears) uno de los outfits guardados del usuario autenticado.
+     * Llama a POST https://avatar.roblox.com/v1/outfits/{outfitId}/wear.
+     * Requiere cookie válida (resuelve CSRF token internamente vía apiPost).
+     * Devuelve `success: true` si Roblox acepta el cambio. Lanza error si la
+     * cookie es inválida/expirada (401/403) o si el outfit no pertenece al usuario.
+     */
+    wearOutfit(outfitId: number, cookie: string): Promise<{ success: boolean }>;
+  }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Presence — estado online, juegos recientes, balance Robux
