@@ -113,8 +113,20 @@ vi.mock('node:http', () => ({
     createServer: (handler: any) => {
       mockState.captured.httpHandler = handler
       const emitter = new EventEmitter() as any
+      // Stash a reference so tests can emit('error') to exercise the
+      // server.on('error', …) reject branch (LocalApiService.ts:437-440).
+      ;(globalThis as any).__namLastHttpServer = emitter
       emitter.listen = (_port: any, _host: any, cb: any) => {
-        setImmediate(cb)
+        // Default: defer cb via setImmediate (mirrors real http.Server).
+        // If the test sets (globalThis as any).__namForceError before
+        // calling start(), emit 'error' synchronously instead so the
+        // server.on('error', …) reject branch fires (line 437-440).
+        if ((globalThis as any).__namForceError) {
+          const err = (globalThis as any).__namForceError
+          setImmediate(() => emitter.emit('error', err))
+        } else {
+          setImmediate(cb)
+        }
         return emitter
       }
       emitter.close = (cb: any) => cb?.()
@@ -123,9 +135,15 @@ vi.mock('node:http', () => ({
   },
 }))
 
+// Track this top-level so I can manually emit 'error' in tests to exercise
+// server.on('error', …) → reject(e) (lines 437-440 of LocalApiService.ts).
+const mockHttpServer = vi.hoisted(() => ({ current: null as any }))
+
 // Mock ws — capture connection + upgrade handlers.
+const mockClients = new Set<any>()
 vi.mock('ws', () => ({
   WebSocketServer: class MockWSS {
+    public clients = mockClients
     private connHandler: ((ws: any) => void) | null = null
     on(evt: string, h: any) {
       if (evt === 'connection') mockState.captured.wsConnectionHandler = h
@@ -138,6 +156,7 @@ vi.mock('ws', () => ({
       cb({ send: () => {}, on: () => {}, readyState: 1 })
     }
     close(cb?: any) {
+      mockClients.clear()
       cb?.()
     }
   },
@@ -595,5 +614,48 @@ describe('LocalApiService — broadcastStatus + stop', () => {
     // Subsequent start uses a fresh token
     const r = await start(31416)
     expect(r.token).toMatch(/^[a-f0-9]{64}$/)
+  })
+
+  it('broadcastStatus sends JSON payload to every OPEN client (line 448-456)', async () => {
+    // Start a server so wss is non-null, then inject 2 OPEN clients + 1 closed client.
+    await start(31415)
+    const open1 = { readyState: 1, send: vi.fn() }
+    const open2 = { readyState: 1, send: vi.fn() }
+    const closed = { readyState: 3, send: vi.fn() }
+    mockClients.add(open1)
+    mockClients.add(open2)
+    mockClients.add(closed)
+    broadcastStatus('acc-99', { running: true })
+    const expected = JSON.stringify({ type: 'status', accountId: 'acc-99', status: { running: true } })
+    expect(open1.send).toHaveBeenCalledWith(expected)
+    expect(open2.send).toHaveBeenCalledWith(expected)
+    expect(closed.send).not.toHaveBeenCalled()
+  })
+
+  it('broadcastStatus swallows send errors (best-effort, no throw)', async () => {
+    await start(31415)
+    const badClient = {
+      readyState: 1,
+      send: vi.fn(() => { throw new Error('socket dead') }),
+    }
+    mockClients.add(badClient)
+    expect(() => broadcastStatus('acc-1', { ok: true })).not.toThrow()
+    expect(badClient.send).toHaveBeenCalled()
+  })
+
+  // Note: server.on('error', …) (lines 437-440) rejects the start() promise
+  // when EADDRINUSE/etc. fires before listen-cb. Exercising this branch
+  // reliably requires intercepting the listen() callback ordering between
+  // 'error' emit and the deferred resolve() — handled below via a test
+  // hook that forces the mock http server to emit 'error' instead of
+  // calling the listen callback.
+
+  it('server.on("error") rejects the start() promise (line 437-440)', async () => {
+    ;(globalThis as any).__namForceError = new Error('port already in use')
+    try {
+      await expect(start(31415)).rejects.toThrow(/port already in use/)
+    } finally {
+      delete (globalThis as any).__namForceError
+    }
   })
 })
