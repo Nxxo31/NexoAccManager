@@ -26,7 +26,7 @@ Flujo: Renderer → `window.api.X.Y()` → preload → main → Repository/Servi
 ## Reglas del proyecto
 
 - **NO** commits a `main` sin pasar gates: lint 0 errors, tsc 0 errors, tests 14+ passing.
-- **NO** crear `*.test.ts` nuevos sin necesidad crítica (DoD: código REAL funcionando > tests). Mantener 3 suites: CryptoService, LocalApiService, BackupRepositoryImpl.
+- **NO** crear `*.test.ts` nuevos sin necesidad crítica (DoD: código REAL funcionando > tests). Mantener 4 suites: CryptoService, LocalApiService, BackupRepositoryImpl, BackupServiceImpl.
 - **NO** commitear secrets (.env, .env.local, NAM_SECRET, DISCORD_CLIENT_ID — usar env vars).
 - **NO** usar `tsc --noEmit` directo si `agent-lsp` está disponible — preferir `agent-lsp_get_diagnostics`.
 - **NO** hardcodear tenant IDs / user IDs / Roblox IDs en código.
