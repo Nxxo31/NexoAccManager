@@ -14,6 +14,8 @@ export default defineConfig({
         'src/infrastructure/database/**/*.ts',
         'src/infrastructure/external/LocalApiService.ts',
         'src/infrastructure/external/CryptoService.ts',
+        'src/infrastructure/external/RobloxBottingService.ts',
+        'src/infrastructure/external/MultiRobloxService.ts',
       ],
       exclude: ['**/*.test.ts', '**/*.d.ts', 'src/main.ts'],
     },
