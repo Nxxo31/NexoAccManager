@@ -598,6 +598,198 @@ describe('LocalApiService — isSafeId', () => {
   })
 })
 
+describe('LocalApiService — WS upgrade + command dispatch', () => {
+  let token: string
+  let msgHandler: ((raw: Buffer) => Promise<void>) | null
+
+  function makeWs() {
+    const sent: any[] = []
+    const ws = {
+      sent,
+      send: vi.fn((payload: string) => sent.push(JSON.parse(payload))),
+      on: (evt: string, h: any) => {
+        if (evt === 'message') msgHandler = h
+      },
+    }
+    return ws
+  }
+
+  async function dispatch(ws: any, msg: unknown) {
+    await msgHandler!(Buffer.from(JSON.stringify(msg)))
+  }
+
+  beforeEach(async () => {
+    msgHandler = null
+    mockState.tasklistOutput = '"PID eq 4242","name","session"\r\n"4242","Roblox","1"\r\n'
+    const r = await start(31415)
+    token = r.token
+  })
+
+  function upgradeListener() {
+    return (globalThis as any).__namLastHttpServer.listeners('upgrade')[0] as (req: any, socket: any, head: any) => void
+  }
+
+  function makeUpgradeReq(overrides: { url?: string; origin?: string; protocol?: string; token?: string } = {}) {
+    return {
+      url: overrides.url ?? '/control',
+      headers: {
+        ...(overrides.origin ? { origin: overrides.origin } : {}),
+        ...(overrides.protocol ? { 'sec-websocket-protocol': overrides.protocol } : {}),
+        ...(overrides.token ? { 'x-nam-token': overrides.token } : {}),
+      },
+    }
+  }
+
+  function makeSocket() {
+    return { write: vi.fn(), destroy: vi.fn() }
+  }
+
+  it('rejects upgrade from a non-loopback Origin with 403', () => {
+    const socket = makeSocket()
+    upgradeListener()(makeUpgradeReq({ origin: 'https://evil.example', token }), socket, Buffer.alloc(0))
+    expect(socket.write).toHaveBeenCalledWith('HTTP/1.1 403 Forbidden\r\n\r\n')
+    expect(socket.destroy).toHaveBeenCalled()
+  })
+
+  it('accepts loopback Origin (127.0.0.1 and localhost)', () => {
+    for (const origin of ['http://127.0.0.1:5173', 'http://localhost:3000']) {
+      const socket = makeSocket()
+      upgradeListener()(makeUpgradeReq({ origin, token }), socket, Buffer.alloc(0))
+      expect(socket.destroy).not.toHaveBeenCalled()
+    }
+  })
+
+  it('rejects upgrade to a non-/control path', () => {
+    const socket = makeSocket()
+    upgradeListener()(makeUpgradeReq({ url: '/other', token }), socket, Buffer.alloc(0))
+    expect(socket.destroy).toHaveBeenCalled()
+  })
+
+  it('rejects upgrade without a matching token with 401', () => {
+    const socket = makeSocket()
+    upgradeListener()(makeUpgradeReq(), socket, Buffer.alloc(0))
+    expect(socket.write).toHaveBeenCalledWith('HTTP/1.1 401 Unauthorized\r\n\r\n')
+    expect(socket.destroy).toHaveBeenCalled()
+  })
+
+  it('accepts token via X-NAM-Token header', () => {
+    const socket = makeSocket()
+    upgradeListener()(makeUpgradeReq({ token }), socket, Buffer.alloc(0))
+    expect(socket.destroy).not.toHaveBeenCalled()
+  })
+
+  it('accepts token via nam-token subprotocol', () => {
+    const socket = makeSocket()
+    upgradeListener()(makeUpgradeReq({ protocol: `nam-token.${token}` }), socket, Buffer.alloc(0))
+    expect(socket.destroy).not.toHaveBeenCalled()
+  })
+
+  it('drops malformed JSON silently', async () => {
+    const ws = makeWs()
+    mockState.captured.wsConnectionHandler!(ws)
+    await msgHandler!(Buffer.from('{not json'))
+    expect(ws.send).not.toHaveBeenCalled()
+  })
+
+  it('rejects a message with the wrong token', async () => {
+    const ws = makeWs()
+    mockState.captured.wsConnectionHandler!(ws)
+    await dispatch(ws, { id: 1, accountId: 'acc-1', command: 'status', token: 'wrong' })
+    expect(ws.sent).toEqual([{ id: 1, ok: false, error: 'Unauthorized' }])
+  })
+
+  it('silently ignores messages missing id/accountId/command', async () => {
+    const ws = makeWs()
+    mockState.captured.wsConnectionHandler!(ws)
+    await dispatch(ws, { accountId: 'acc-1', command: 'status', token })
+    expect(ws.send).not.toHaveBeenCalled()
+  })
+
+  it('launch: launches, records pid, updates lastUsed, replies ok', async () => {
+    mockState.accounts.set('acc-1', {
+      id: 'acc-1', encryptedCookie: 'ENC:cookie-1', savedPlaceId: 'place-1', savedJobId: 'job-1',
+    })
+    const ws = makeWs()
+    mockState.captured.wsConnectionHandler!(ws)
+    await dispatch(ws, { id: 7, accountId: 'acc-1', command: 'launch', token })
+
+    expect(mockState.launchCalls).toEqual([{ placeId: 'place-1', jobId: 'job-1', cookie: 'cookie-1' }])
+    expect(mockState.updateLastUsedCalls).toEqual(['acc-1'])
+    expect(ws.sent).toEqual([{ id: 7, ok: true, data: { success: true } }])
+  })
+
+  it('launch: replies Account not found for unknown id', async () => {
+    const ws = makeWs()
+    mockState.captured.wsConnectionHandler!(ws)
+    await dispatch(ws, { id: 8, accountId: 'missing', command: 'launch', token })
+    expect(ws.sent).toEqual([{ id: 8, ok: false, error: 'Account not found' }])
+  })
+
+  it('kill: kills the instance and replies ok', async () => {
+    const ws = makeWs()
+    mockState.captured.wsConnectionHandler!(ws)
+    await dispatch(ws, { id: 9, accountId: 'acc-9', command: 'kill', token })
+    expect(mockState.killCalls).toEqual(['acc-9'])
+    expect(ws.sent).toEqual([{ id: 9, ok: true, data: { success: true } }])
+  })
+
+  it('status: reports running=false when no pid recorded', async () => {
+    const ws = makeWs()
+    mockState.captured.wsConnectionHandler!(ws)
+    await dispatch(ws, { id: 10, accountId: 'acc-none', command: 'status', token })
+    expect(ws.sent).toEqual([{ id: 10, ok: true, data: { running: false, pid: undefined } }])
+  })
+
+  it('status: reports running=true when tasklist lists the pid', async () => {
+    mockState.accounts.set('acc-run', {
+      id: 'acc-run', encryptedCookie: 'ENC:c', savedPlaceId: 'p', savedJobId: 'j',
+    })
+    const launchWs = makeWs()
+    mockState.captured.wsConnectionHandler!(launchWs)
+    await dispatch(launchWs, { id: 11, accountId: 'acc-run', command: 'launch', token })
+
+    const ws = makeWs()
+    mockState.captured.wsConnectionHandler!(ws)
+    await dispatch(ws, { id: 12, accountId: 'acc-run', command: 'status', token })
+    expect(ws.sent).toEqual([{ id: 12, ok: true, data: { running: true, pid: 4242 } }])
+  })
+
+  it('refresh-cookie: updates cookie when the value changed', async () => {
+    mockState.accounts.set('acc-2', {
+      id: 'acc-2', encryptedCookie: 'ENC:old-cookie', savedPlaceId: 'p', savedJobId: 'j',
+    })
+    const ws = makeWs()
+    mockState.captured.wsConnectionHandler!(ws)
+    await dispatch(ws, { id: 13, accountId: 'acc-2', command: 'refresh-cookie', token })
+
+    expect(mockState.refreshCalls).toEqual([{ oldCookie: 'old-cookie', newCookie: 'old-cookie_refreshed' }])
+    expect(mockState.updateCalls).toHaveLength(1)
+    expect(mockState.updateCalls[0].id).toBe('acc-2')
+    expect(ws.sent).toEqual([{ id: 13, ok: true, data: { success: true } }])
+  })
+
+  it('refresh-cookie: replies Account not found for unknown id', async () => {
+    const ws = makeWs()
+    mockState.captured.wsConnectionHandler!(ws)
+    await dispatch(ws, { id: 14, accountId: 'missing', command: 'refresh-cookie', token })
+    expect(ws.sent).toEqual([{ id: 14, ok: false, error: 'Account not found' }])
+  })
+
+  it('unknown command replies with an error message', async () => {
+    const ws = makeWs()
+    mockState.captured.wsConnectionHandler!(ws)
+    await dispatch(ws, { id: 15, accountId: 'acc-1', command: 'nope', token })
+    expect(ws.sent).toEqual([{ id: 15, ok: false, error: 'Unknown command: nope' }])
+  })
+
+  it('rejects unsafe accountId containing shell metacharacters', async () => {
+    const ws = makeWs()
+    mockState.captured.wsConnectionHandler!(ws)
+    await dispatch(ws, { id: 16, accountId: 'acc; rm -rf /', command: 'status', token })
+    expect(ws.send).not.toHaveBeenCalled()
+  })
+})
+
 describe('LocalApiService — broadcastStatus + stop', () => {
   it('broadcastStatus is a no-op when WS server is not started', () => {
     // wss is null — should not throw
