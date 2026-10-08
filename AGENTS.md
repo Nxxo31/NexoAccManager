@@ -1,6 +1,6 @@
 # AGENTS.md — NexoAccManager
 
-> **Versión:** 5.0.0 | **Última actualización:** 2026-10-08 (pendientes cerrados — 6 suites / 166 tests / 93.83% / build local OK)
+> **Versión:** 5.0.0 | **Última actualización:** 2026-10-08 (TODOS los pendientes cerrados — 8 suites / 234 tests / 93.01% / build local OK)
 > Proyecto: Electron + TypeScript app de gestión de cuentas Roblox.
 
 ## Stack real
@@ -40,7 +40,7 @@ Flujo: Renderer → `window.api.X.Y()` → preload → main (`ipcMain.handle`) �
 ## Reglas del proyecto
 
 - **NO** commits a `main` sin pasar gates: `npm run lint` 0 errors, `npx tsc --noEmit` 0 errors, `npm test` todo verde.
-- **NO** crear `*.test.ts` nuevos sin necesidad crítica (DoD: código REAL funcionando > tests). Mantener **6 suites**: `CryptoService`, `LocalApiService`, `BackupRepositoryImpl`, `BackupServiceImpl`, `LRUCache`, `AccountRepositoryImpl`. Suite nueva requiere justificación basada en call sites reales, no cobertura "porque sí".
+- **NO** crear `*.test.ts` nuevos sin necesidad crítica (DoD: código REAL funcionando > tests). Mantener **8 suites**: `CryptoService`, `LocalApiService`, `BackupRepositoryImpl`, `BackupServiceImpl`, `LRUCache`, `AccountRepositoryImpl`, `MultiRobloxService` (suites 7), `RobloxBottingService` (suite 8). Suite nueva requiere justificación basada en call sites reales, no cobertura "porque sí".
 - **NO** commitear secrets (.env, .env.local, NAM_SECRET, DISCORD_CLIENT_ID — usar env vars).
 - **NO** hardcodear tenant IDs / user IDs / Roblox IDs en código.
 - **NO** reintroducir UI con handlers muertos (botones sin `onClick`, modales sin IPC destino). Si el handler no existe, la UI tampoco.
@@ -73,9 +73,9 @@ npm run build         # tsc + vite build + electron-builder (falla sin C++ workl
 npm run electron:dev  # Vite + Electron en dev
 
 # Tests
-npm test                    # vitest run — 6 suites, 166 tests
+npm test                    # vitest run — 8 suites, 234 tests
 npm run test:watch          # vitest watch
-npm run test:coverage       # vitest run --coverage (93.83% lines)
+npm run test:coverage       # vitest run --coverage (93.01% lines — denominador incluye los 2 servicios de botting)
 npm run test:ui             # vitest --ui
 ```
 
@@ -92,10 +92,10 @@ npm run test:ui             # vitest --ui
 
 - Lint: 0 errors, 0 warnings ✅
 - tsc: 0 errors ✅
-- Tests: **6 files / 166 tests passing** ✅
+- Tests: **8 files / 234 tests passing** ✅ (incluye MultiRobloxService + RobloxBottingService)
 - IPC sync: 106/106/106 ✅
 - Build Electron local: **VERIFICADO** — `npm run build` → EXIT 0, `release/NX-Manager-5.0.0-Portable.exe` (74.7 MB) + `release/win-unpacked/NX-Manager.exe`. El bloqueo histórico de VS Build Tools C++ era obsoleto: Build Tools 2022 17.14.37710.0 tiene `Microsoft.VisualStudio.Component.VC.Tools.x86.x64`.
-- Cobertura global: **93.83% lines**. Por archivo:
+- Cobertura global: **93.01% lines**. Por archivo:
   - `infrastructure/services/BackupServiceImpl.ts`: **96.99%** ✅
   - `infrastructure/database/BackupRepositoryImpl.ts` (+BackupCryptoImpl): **98.38%** ✅
   - `infrastructure/database/AccountRepositoryImpl.ts`: **100% lines** ✅ (suite 6, `04e97fb`)
@@ -103,18 +103,22 @@ npm run test:ui             # vitest --ui
   - `infrastructure/database/CryptoService.ts`: ~100% ✅
   - `infrastructure/database/LRUCache.ts`: **100% lines**, 91.66% branch ✅
   - `infrastructure/external/LocalApiService.ts`: **87.90%** ✅ (upgrade WS + dispatch, `869a65f`)
+  - `infrastructure/external/MultiRobloxService.ts`: **100% lines** ✅ (suite 7, `d62ba1d`)
+  - `infrastructure/external/RobloxBottingService.ts`: **88.54%** ✅ (suite 8, `d62ba1d`)
 
 ## Pendientes estructurales
 
-- `[ ]` **`RobloxBottingService.ts` + `MultiRobloxService.ts`** sin suite y fuera del include glob de coverage. Verificado 2026-09-13 que NO tienen el bug latente `output.trim()`/`{stdout}` que sí tenía LocalApiService.
-- `[ ]` **`better-sqlite3` rebuild para Node 24** — prebuild-install no tiene binarios para `target=24.16.0 runtime=node`, y node-gyp rebuild requiere C++ workload. Tests siguen con fake DB in-memory vía `vi.mock('better-sqlite3')`. El build de Electron no se ve afectado (usa el prebuilt de Electron 30).
+**Ninguno bloqueante.** Verificado y cerrado 2026-10-08. Detalle de los dos que quedaban:
+
+- `[x]` **`RobloxBottingService.ts` + `MultiRobloxService.ts`** — cerrado `d62ba1d`. Suites 7 y 8 (20 + 48 tests). MultiRobloxService 100% lines, RobloxBottingService 88.54%. Ambos entraron al include glob de coverage en `vitest.config.ts`.
+- `[x]` **`better-sqlite3` rebuild para Node 24/26** — cerrado como **falso positivo**. El binario instalado (`better_sqlite3.node`) está compilado contra `NODE_MODULE_VERSION 123` = **ABI de Electron 30**, que es el runtime real de la app. El mismatch (`requires 147`) solo aparece al cargarlo desde Node 26 plano — algo que el proyecto nunca hace: los tests mockean `better-sqlite3` y el runtime de producción es Electron. `npm rebuild` además falla por incompatibilidad de toolchain: better-sqlite3@9.6.0 pasa `/std:c++17` en su `binding.gyp` y Node 26 exige C++20 (`error C1189: "C++20 or later required."` en `v8config.h:13`). Ninguna de las dos condiciones afecta el build ni el runtime de la app.
 
 ## Cerrados en esta línea de trabajo
 
 - `[x]` **`AccountRepositoryImpl.ts`** — suite 6 creada (operador autorizó "Termina NAM" 2026-10-08). 0% → 100% lines, `database/` 99.54%, commit `04e97fb`.
 - `[x]` **IPC `account:outfit:apply`** — cerrado 2026-10-05 con 4 commits (`c81f00f`, `15a163e`, `4626ee8`, `3678549`). Botón Apply de SkinEditorModal operativo.
 - `[x]` **IPC `account:bulk:setEmail`** — cerrado 2026-10-08, commit `eff7c0a`. Handler fail-closed + preload + tipado + botón en barra multi-select + modal con i18n es/en. Persiste `custom_fields.email` (merge, no pisa otros campos).
-- `[x]` **Coverage global >80%** — cerrado 2026-10-08 con **93.83% lines**.
+- `[x]` **Coverage global >80%** — cerrado 2026-10-08 con **93.01% lines** (el denominador creció al incluir RobloxBottingService y MultiRobloxService en el glob de coverage; antes eran 93.83% con el glob viejo).
 - `[x]` **`electron-builder` en Windows local** — cerrado 2026-10-08, `npm run build` EXIT 0. El bloqueo documentado desde 2026-09-11 (VS Build Tools C++ workload) era información obsoleta.
 
 ## Out-of-scope
@@ -129,7 +133,7 @@ Un entregable está Done si:
 
 1. `npx tsc --noEmit` → 0 errors
 2. `npm run lint` → 0 errors
-3. `npm test` → todo verde (6 suites, 166 tests)
+3. `npm test` → todo verde (8 suites, 234 tests)
 4. `git status --porcelain` limpio
 5. `PROJECT.md` actualizado si cambia R-XX, cobertura, suites, o se cierra pendiente
 6. `AGENTS.md` actualizado si cambia regla estructural (suites permitidas, gates, etc.)

@@ -1,21 +1,27 @@
 # PROJECT.md — NexoAccManager
 
-> **Estado:** Activo | **Versión:** 5.0.0 | **Última actualización:** 2026-10-08 (pendientes cerrados, build local OK)
-> Lint 0 errors / 0 warnings, TypeScript 0 errors, **6 test files / 166 tests passing**. Cobertura **93.83% lines** global, con `database/` 99.54%, `services/` 96.99%, `external/` 87.90%. IPC sincronizado 106/106/106. **Build Electron local VERIFICADO** → `release/NX-Manager-5.0.0-Portable.exe` (74.7 MB).
+> **Estado:** Activo | **Versión:** 5.0.0 | **Última actualización:** 2026-10-08 (TODOS los pendientes cerrados — 8 suites / 234 tests / 93.01% / build local OK)
+> Lint 0 errors / 0 warnings, TypeScript 0 errors, **8 test files / 234 tests passing**. Cobertura **93.01% lines** global, con `database/` 99.54%, `services/` 96.99%, `external/` 89.25%. IPC sincronizado 106/106/106. **Build Electron local VERIFICADO** → `release/NX-Manager-5.0.0-Portable.exe` (74.7 MB).
 
 > ## ✅ ESTADO VERIFICADO (2026-10-08 — cierre de pendientes)
 
 > - **TypeScript Check**: `npx tsc --noEmit` → 0 errors ✅
 > - **Lint Check**: `npm run lint` → 0 errors, 0 warnings ✅
-> - **Tests**: `npm test` → **6 files / 166 tests passing** ✅
-> - **Cobertura**: `npm run test:coverage` → **93.83% lines** global (era 83.41%)
+> - **Tests**: `npm test` → **8 files / 234 tests passing** ✅
+> - **Cobertura**: `npm run test:coverage` → **93.01% lines** global (era 83.41%; el denominador subió al incluir RobloxBottingService + MultiRobloxService en el glob)
 >   - `infrastructure/external/LocalApiService.ts`: **87.90%** (era 64.41%) — upgrade WS + dispatch de comandos cubierto
+>   - `infrastructure/external/MultiRobloxService.ts`: **100% lines** ✅ (suite 7, `d62ba1d`)
+>   - `infrastructure/external/RobloxBottingService.ts`: **88.54%** (suite 8, `d62ba1d`)
 >   - `infrastructure/database/`: **99.54%**
 >   - `infrastructure/services/BackupServiceImpl.ts`: **96.99%**
 > - **IPC sync**: 106/106/106 ✅ (era 102/102/102 — +4 por `account:bulk:setEmail`)
 > - **Build Electron local**: `npm run build` → **EXIT 0** ✅. `release/NX-Manager-5.0.0-Portable.exe` (74.7 MB) + `release/win-unpacked/NX-Manager.exe` (177 MB). El bloqueo histórico de VS Build Tools C++ workload **era obsoleto**: Build Tools 2022 17.14.37710.0 con `Microsoft.VisualStudio.Component.VC.Tools.x86.x64` está instalado (verificado vía vswhere 2026-10-08). electron-builder reutilizó el prebuilt de better-sqlite3 y no necesitó compilar nativo.
 
 ## Commits recientes
+
+### Sesión 2026-10-08c — suites 7 y 8 + cierre del último pendiente
+- `d62ba1d test(botting): suites 7 y 8 para MultiRobloxService y RobloxBottingService` — 68 tests totales (20 + 48): validación fail-closed de jobId/placeId, shell.openExternal, captura de PID, killInstance por PID, killAllRoblox, duplicate prevention, setFPSUnlock con merge de flags (antes sobrescribía el JSON completo), ciclo de botting y connection watcher con fake timers. `vitest.config.ts` ahora incluye ambos servicios en el glob de coverage. Cobertura global **93.01% lines** (el denominador creció en 544 líneas de código real). Gates: tsc 0, lint 0/0, **8 suites / 234 tests verdes**.
+- **`better-sqlite3` rebuild para Node 26 cerrado como falso positivo** — el binario está compilado contra ABI 123 = Electron 30 (runtime real). El fallo `NODE_MODULE_VERSION 147` solo aparece al cargarlo desde Node 26 plano, algo que la app nunca hace. `npm rebuild` bloqueado por incompatibilidad de toolchain (better-sqlite3@9.6.0 → `/std:c++17` vs Node 26 → C++20, error C1189). Decisión del operador: documentar y cerrar.
 
 ### Sesión 2026-10-08b — cierre de pendientes
 - `eff7c0a feat(account): implementar IPC account:bulk:setEmail con UI funcional` — handler fail-closed (valida array no vacío, límite 50, formato de email), merge en `custom_fields` por cuenta sin pisar otros campos, normaliza trim+lowercase, devuelve `{updated, failed[]}`. preload + tipado + botón "Correo en lote" en barra multi-select + modal con i18n es/en. Refresca la lista post-update y reporta parciales en warning. Test added: merge de custom fields preserva los demás.
@@ -60,12 +66,12 @@
 ## 📋 Próximos pasos (reales, no obsoletos)
 
 ### Resolubles en este entorno
-- [x] ~~Coverage >80% en líneas críticas~~ **Cerrado 2026-10-08**: **93.83% global**. `AccountRepositoryImpl.ts` 0% → 100% (`04e97fb`), `LocalApiService.ts` 64.41% → 87.90% (`869a65f`). `database/` 99.54%.
-- [ ] Tests para `RobloxBottingService` + `MultiRobloxService` (sin suites hoy; fuera del include glob de coverage). Ya no viola la regla de suites — el operador aprobó la 6ª y la regla está en 6.
+- [x] ~~Coverage >80% en líneas críticas~~ **Cerrado 2026-10-08**: **93.01% global**. `AccountRepositoryImpl.ts` 0% → 100% (`04e97fb`), `LocalApiService.ts` 64.41% → 87.90% (`869a65f`), `MultiRobloxService.ts` 100% y `RobloxBottingService.ts` 88.54% (`d62ba1d`). `database/` 99.54%.
+- [x] ~~Tests para `RobloxBottingService` + `MultiRobloxService`~~ **Cerrado 2026-10-08**: commit `d62ba1d` — suites 7 y 8 (20 + 48 tests), ambos servicios añadidos al include glob de coverage.
 
 ### Bloqueados por infraestructura
 - [x] ~~`electron-builder` en Windows local~~ **Cerrado 2026-10-08**: `npm run build` → EXIT 0. `release/NX-Manager-5.0.0-Portable.exe` (74.7 MB). Build Tools 2022 17.14.37710.0 **sí tiene** el workload C++ (`Microsoft.VisualStudio.Component.VC.Tools.x86.x64`); el bloqueo documentado desde 2026-09-11 era información obsoleta.
-- [ ] `better-sqlite3` rebuild para Node 24 — prebuild-install no tiene binarios para `target=24.16.0 runtime=node`, y node-gyp rebuild requiere C++ workload (disponible, pero el prebuilt de Electron 30 sí funciona para el build). Tests siguen con fake DB in-memory vía `vi.mock('better-sqlite3')`.
+- [x] ~~`better-sqlite3` rebuild para Node 24/26~~ **Cerrado como falso positivo 2026-10-08**: el binario instalado está compilado contra NODE_MODULE_VERSION 123 = ABI de Electron 30 (el runtime real). El fallo solo aparece al cargarlo desde Node 26 plano, algo que la app nunca hace (tests mockean el módulo). `npm rebuild` falla por incompatibilidad de toolchain: better-sqlite3@9.6.0 usa `/std:c++17` en binding.gyp y Node 26 exige C++20 (error C1189 en v8config.h:13). Verificado operator-approved.
 
 ### Decisiones de producto diferidas
 - [x] ~~Reintroducir botón "Apply" en SkinEditorModal~~ **Cerrado 2026-10-05**: commits `c81f00f` (port `wearOutfit`), `15a163e` (POST avatar.roblox.com), `4626ee8` (handler + bridge `byAccount.applyOutfit`), `3678549` (botón Apply rehabilitado).
@@ -76,9 +82,9 @@
 
 - **Stack**: Electron 30.5.1, TypeScript 5.3.0, React 18.2.0, Mantine 7.17.8, Vite 5.0.0, vitest 4.1.11, @vitest/coverage-v8 4.1.11
 - **Scripts de test**:
-  - `npm test` — vitest run (6 suites, 166 tests)
+  - `npm test` — vitest run (8 suites, 234 tests)
   - `npm run test:watch` — vitest watch
-  - `npm run test:coverage` — vitest run --coverage (93.83% global, genera report in `coverage/`)
+  - `npm run test:coverage` — vitest run --coverage (93.01% global, genera report in `coverage/`)
   - `npm run test:ui` — vitest --ui
 - **ESLint**: paths corregidos a `src/main.ts`, `src/infrastructure/**`, `src/preload/**` (Node) y `src/renderer.tsx`, `src/application/**` (Browser)
 - **Staleness monitor**: en `scripts/` (era meta-tooling de SophIA, no del producto)
@@ -143,6 +149,7 @@ infrastructure/external/    87.90%  (LocalApiService.ts)
 
 | Fecha | Sesión | Cambio |
 |-------|--------|--------|
+| 2026-10-08c | Suites 7+8, última pendiente cerrada | `d62ba1d` 68 tests (MultiRobloxService 20 + RobloxBottingService 48), glob de coverage ampliado. Global 93.83% → **93.01%** (denominador +544 líneas). **TODOS los pendientes de AGENTS.md cerrados.** |
 | 2026-10-08b | Pendientes cerrados | `eff7c0a` IPC `account:bulk:setEmail` + UI (botón + modal i18n es/en). `869a65f` 17 tests WS upgrade + dispatch: LocalApiService 64.41% → 87.90%, global 83.41% → **93.83%**, 166 tests. Build local verificado: `npm run build` EXIT 0 → `release/NX-Manager-5.0.0-Portable.exe` (74.7 MB); bloqueo de C++ workload era obsoleto. IPC 106/106/106. |
 | 2026-10-08 | Cobertura 74.40% → 83.41% | `04e97fb` suite 6 AccountRepositoryImpl (21 tests, fake SQLite in-memory). AccountRepositoryImpl 0% → 100% lines, database/ 73.51% → 99.54%. Gates: tsc 0, lint 0/0, **6 suites / 147 tests passing**. PROJECT.md resync; AGENTS.md pendiente de aprobación de escritura. |
 | 2026-10-05 | Cobertura 68.24% → 74.40% | 6 commits: `ef1606f` deps optional, `06233ef` test backup restartScheduler + scheduled-tick error, `766ada0` test local-api broadcastStatus + server.on('error'), `0b7cf86` test crypto loadOrCreateSecret fs branches, `1cf0b09` test lru-cache nueva suite, `083bfc3` docs agents regla 5 suites. Gates: tsc 0, lint 0/0, **5 suites / 126 tests passing**, LRUCache 0%→100%. PROJECT.md + AGENTS.md resync. |
