@@ -80,6 +80,8 @@ export const translations: Record<LangId, Record<string, string>> = {
     'accounts.description': 'Descripción',
     'accounts.descriptionPlaceholder': 'Notas sobre esta cuenta...',
     'accounts.save': 'Guardar',
+    'accounts.email': 'Correo electrónico',
+    'accounts.bulkEmailDesc': 'Se guardará en las {count} cuentas seleccionadas como correo de contacto (campo personalizado).',
     'accounts.cookieRefreshed': 'Cookie actualizada',
     'accounts.functionUnavailable': 'Función no disponible',
 
@@ -412,6 +414,8 @@ export const translations: Record<LangId, Record<string, string>> = {
     'accounts.selectAll': 'All',
     'accounts.clearSelection': 'Clear',
     'accounts.setBulkEmail': 'Bulk email',
+    'accounts.email': 'Email',
+    'accounts.bulkEmailDesc': 'Will be saved as the contact email (custom field) on the {count} selected accounts.',
     'accounts.selectAccount': 'Select {name}',
     'accounts.sortBy': 'Sort by',
     'accounts.sortByName': 'Name A-Z',

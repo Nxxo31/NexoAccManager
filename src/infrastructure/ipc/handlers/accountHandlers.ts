@@ -133,6 +133,38 @@ export function registerAccountHandlers(): void {
     } catch (e) { return err(errMsg(e)); }
   });
 
+  // ============ ACCOUNT BULK SET EMAIL =========
+  // Persiste un email de contacto en custom_fields (no es la email de Roblox:
+  // Roblox no expone setter de email por API). Merge por cuenta — no pisa otros
+  // campos custom del usuario. Fail-closed: valida array, limite y formato.
+  ipcMain.handle('account:bulk:setEmail', async (_e, { ids, email }: { ids: string[]; email: string }) => {
+    try {
+      if (!Array.isArray(ids) || ids.length === 0) return err('ids requerido');
+      if (ids.length > 50) return err('max 50 cuentas por operacion');
+      if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return err('email invalido');
+      }
+      const normalized = email.trim().toLowerCase();
+      const updated: string[] = [];
+      const failed: { id: string; reason: string }[] = [];
+      for (const id of ids) {
+        try {
+          const account = await accountRepo.getById(id);
+          if (!account) {
+            failed.push({ id, reason: 'cuenta no encontrada' });
+            continue;
+          }
+          // Merge into custom_fields — nunca se pisan otros campos del usuario.
+          await accountRepo.update(id, { fields: { ...account.fields, email: normalized } });
+          updated.push(id);
+        } catch (e) {
+          failed.push({ id, reason: errMsg(e) });
+        }
+      }
+      return ok({ updated, failed });
+    } catch (e) { return err(errMsg(e)); }
+  });
+
   // ============ ACCOUNT CONTROL (WebSocket bridge to LocalApiService) =========
   // B-1 (backlog): reemplazo del HTTP bridge interino por una conexión
   // WebSocket persistente contra el LocalApiService. La conexión se gestiona en
@@ -146,7 +178,7 @@ export function registerAccountHandlers(): void {
   //     comando se encola hasta que el timeout de 8s lo descarta con un mensaje
   //     claro ("Local API service is not running …").
   //   - El LocalApiService responde con `{ id, ok, data? } | { id, ok: false, error }`.
-  ipcMain.handle('account:control', async (_e, { accountId, command }: { accountId: string; command: string }) => {
+    ipcMain.handle('account:control', async (_e, { accountId, command }: { accountId: string; command: string }) => {
     try {
       const account = await accountRepo.getById(accountId);
       if (!account) {

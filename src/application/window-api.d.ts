@@ -22,6 +22,7 @@ declare global {
         setFavorite: (id: string, favorite: boolean) => Promise<IpcResult>;
         check: (cookie: string) => Promise<IpcResult>;
         bulkImport: (accounts: { username: string; password: string }[]) => Promise<IpcResult<{ added: number }>>;
+        bulkSetEmail: (ids: string[], email: string) => Promise<IpcResult<{ updated: string[]; failed: { id: string; reason: string }[] }>>;
         profile: {
             get: (accountId: string) => Promise<IpcResult>;
             update: (accountId: string, updates: { displayName?: string; description?: string }) => Promise<IpcResult>;

@@ -1,7 +1,7 @@
 // Application View: AccountsView — account grid with groups + editable description — Mantine v7
 
 import { useState, useMemo, useEffect, useCallback, memo } from 'react';
-import { Plus, Users, LogOut, Tag, CheckSquare, X, ArrowDownUp } from 'lucide-react';
+import { Plus, Users, LogOut, Tag, CheckSquare, X, ArrowDownUp, Mail } from 'lucide-react';
 import { useAccountStore } from '../store/accountStore';
 import { useLaunchStore } from '../store/launchStore';
 import { useSelectionStore } from '../store/selectionStore';
@@ -38,6 +38,9 @@ function AccountsViewComponent({ searchQuery }: AccountsViewProps): JSX.Element 
   const [skinEditAccount, setSkinEditAccount] = useState<Account | null>(null);
   const [editGroup, setEditGroup] = useState('');
   const [editDesc, setEditDesc] = useState('');
+  const [bulkEmailOpen, setBulkEmailOpen] = useState(false);
+  const [bulkEmail, setBulkEmail] = useState('');
+  const [bulkEmailBusy, setBulkEmailBusy] = useState(false);
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
   const [togglingFavorites, setTogglingFavorites] = useState<Set<string>>(new Set());
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
@@ -157,6 +160,37 @@ function AccountsViewComponent({ searchQuery }: AccountsViewProps): JSX.Element 
     setEditGroup(account.group ?? '');
     setEditDesc(account.description ?? '');
   }, []);
+
+  const handleBulkSetEmail = useCallback(async () => {
+    if (!api || selectedIds.size === 0) return;
+    setBulkEmailBusy(true);
+    try {
+      const result = await api.account.bulkSetEmail([...selectedIds], bulkEmail);
+      if (!result.success) {
+        notifications.show({ message: result.error ?? t('common.error'), color: 'red' });
+        return;
+      }
+      // Refresh accounts from the main process so custom_fields.email is reflected.
+      const list = await api.account.list();
+      if (list.success) {
+        useAccountStore.setState({ accounts: (list.data as Account[]) ?? [] });
+      }
+      const failedCount = result.data?.failed.length ?? 0;
+      notifications.show({
+        message: failedCount > 0
+          ? `${result.data?.updated.length ?? 0} actualizadas, ${failedCount} con error`
+        : t('accounts.updated'),
+        color: failedCount > 0 ? 'yellow' : 'green',
+      });
+      setBulkEmailOpen(false);
+      setBulkEmail('');
+      clearBulkSelection();
+    } catch {
+        notifications.show({ message: t('common.error'), color: 'red' });
+    } finally {
+      setBulkEmailBusy(false);
+    }
+  }, [api, selectedIds, bulkEmail, clearBulkSelection]);
 
   // U-002: Confirmation dialog for account deletion
   const handleRemoveAccount = useCallback(async (accountId: string) => {
@@ -286,8 +320,15 @@ function AccountsViewComponent({ searchQuery }: AccountsViewProps): JSX.Element 
           <Button variant="subtle" size="xs" onClick={() => selectAllBulk(filtered.map((a) => a.id))}>{t('accounts.selectAll')}</Button>
           <Button variant="subtle" size="xs" onClick={clearBulkSelection}>{t('accounts.clearSelection')}</Button>
           <div style={{ flex: 1 }} />
-          {/* Bulk actions — "setBulkEmail" placeholder removido (era botón sin onClick, dead UI).
-              Cuando se implemente el IPC `account:bulk:setEmail`, reintroducir aquí. */}
+          <Button
+            variant="light"
+            size="xs"
+            leftSection={<Mail size={14} />}
+            disabled={selectedIds.size === 0}
+            onClick={() => setBulkEmailOpen(true)}
+          >
+            {t('accounts.setBulkEmail')}
+          </Button>
         </Group>
       )}
 
@@ -362,6 +403,33 @@ function AccountsViewComponent({ searchQuery }: AccountsViewProps): JSX.Element 
             </Stack>
           </FocusTrap>
         </Modal>
+
+      {/* Bulk email modal */}
+      <Modal opened={bulkEmailOpen} onClose={() => setBulkEmailOpen(false)} title={t('accounts.setBulkEmail')} size="sm">
+        <FocusTrap>
+          <Stack gap="md">
+            <Text size="sm" c="dimmed">{t('accounts.bulkEmailDesc', { count: selectedIds.size })}</Text>
+            <TextInput
+              label={t('accounts.email')}
+              placeholder="nombre@ejemplo.com"
+              value={bulkEmail}
+              onChange={(e) => setBulkEmail(e.currentTarget.value)}
+              size="sm"
+            />
+            <Button
+              variant="filled"
+              color="primary"
+              size="sm"
+              onClick={handleBulkSetEmail}
+              loading={bulkEmailBusy}
+              disabled={bulkEmail.trim() === '' || selectedIds.size === 0}
+              fullWidth
+            >
+              {t('accounts.save')}
+            </Button>
+          </Stack>
+        </FocusTrap>
+      </Modal>
 
       {/* Skin editor modal */}
       <SkinEditorModal

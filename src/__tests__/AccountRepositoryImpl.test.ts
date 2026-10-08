@@ -314,6 +314,15 @@ describe('AccountRepositoryImpl', () => {
       expect(found?.fields).toEqual({ email: 'nuevo@correo.com', tier: 'pro' })
     })
 
+    it('update merges one custom field without clobbering the others', async () => {
+      await repo.create(makeAccount({ id: 'u3b', fields: { email: 'viejo@correo.com', tier: 'pro' } }))
+      const current = await repo.getById('u3b')
+      await repo.update('u3b', { fields: { ...current!.fields, email: 'bulk@correo.com' } })
+
+      const found = await repo.getById('u3b')
+      expect(found?.fields).toEqual({ email: 'bulk@correo.com', tier: 'pro' })
+    })
+
     it('update stores cookieExpiresAt null when the Date is cleared', async () => {
       await repo.create(makeAccount({ id: 'u4', cookieExpiresAt: new Date('2026-12-31T00:00:00.000Z') }))
       await repo.update('u4', { cookieExpiresAt: null })

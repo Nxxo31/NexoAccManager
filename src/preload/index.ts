@@ -21,6 +21,7 @@ const api = {
     setFavorite: (id: string, favorite: boolean) => ipcRenderer.invoke('account:setFavorite', { id, favorite }),
     check: (cookie: string) => ipcRenderer.invoke('account:check', { cookie }),
     bulkImport: (accounts: { username: string; password: string }[]) => ipcRenderer.invoke('account:bulk-import', { accounts }),
+    bulkSetEmail: (ids: string[], email: string) => ipcRenderer.invoke('account:bulk:setEmail', { ids, email }),
     // Legacy IPC handlers that expose cookies to renderer — REMOVED for security
     // Use byAccount.* instead, which resolves cookie internally in main process
     // friends.list, friends.requests, friends.respond, blocked.list, block, unblock, follow, unfollow → use byAccount
