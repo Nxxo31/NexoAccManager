@@ -1,25 +1,29 @@
 # PROJECT.md — NexoAccManager
 
-> **Estado:** Activo | **Versión:** 5.0.0 | **Última actualización:** 2026-10-08 (suite 6 + cobertura 83.41%)
-> Lint 0 errors / 0 warnings, TypeScript 0 errors, **6 test files / 147 tests passing**. Cobertura **83.41% lines** global (era 74.40%), con `database/` 99.54% lines, `services/` 96.99%, `external/` 64.41%. IPC sincronizado 102/102/102. `discord-rpc` y `register-scheme` en `optionalDependencies` (commit `ef1606f`).
+> **Estado:** Activo | **Versión:** 5.0.0 | **Última actualización:** 2026-10-08 (pendientes cerrados, build local OK)
+> Lint 0 errors / 0 warnings, TypeScript 0 errors, **6 test files / 166 tests passing**. Cobertura **93.83% lines** global, con `database/` 99.54%, `services/` 96.99%, `external/` 87.90%. IPC sincronizado 106/106/106. **Build Electron local VERIFICADO** → `release/NX-Manager-5.0.0-Portable.exe` (74.7 MB).
 
-> ## ✅ ESTADO VERIFICADO (2026-10-08 — suite AccountRepositoryImpl)
+> ## ✅ ESTADO VERIFICADO (2026-10-08 — cierre de pendientes)
 
 > - **TypeScript Check**: `npx tsc --noEmit` → 0 errors ✅
 > - **Lint Check**: `npm run lint` → 0 errors, 0 warnings ✅
-> - **Tests**: `npm test` → **6 files / 147 tests passing** (CryptoService, LocalApiService, BackupRepositoryImpl, BackupServiceImpl, LRUCache, AccountRepositoryImpl) ✅
-> - **Cobertura**: `npm run test:coverage` → **83.41% lines** global ✅ (era 74.40%)
->   - `infrastructure/database/AccountRepositoryImpl.ts`: **100% lines** (era 0%) — 21 tests con fake SQLite en memoria
->   - `infrastructure/database/` agregado: **99.54% lines** (era 73.51%)
+> - **Tests**: `npm test` → **6 files / 166 tests passing** ✅
+> - **Cobertura**: `npm run test:coverage` → **93.83% lines** global (era 83.41%)
+>   - `infrastructure/external/LocalApiService.ts`: **87.90%** (era 64.41%) — upgrade WS + dispatch de comandos cubierto
+>   - `infrastructure/database/`: **99.54%**
 >   - `infrastructure/services/BackupServiceImpl.ts`: **96.99%**
->   - `infrastructure/external/LocalApiService.ts`: **64.41%** (handlers WS internos requieren E2E fuera de host)
-> - **IPC sync**: 102/102/102 ✅
-> - **Build Electron**: `release/` VACÍO local (electron-builder requiere VS Build Tools C++ workload). En CI OK.
+> - **IPC sync**: 106/106/106 ✅ (era 102/102/102 — +4 por `account:bulk:setEmail`)
+> - **Build Electron local**: `npm run build` → **EXIT 0** ✅. `release/NX-Manager-5.0.0-Portable.exe` (74.7 MB) + `release/win-unpacked/NX-Manager.exe` (177 MB). El bloqueo histórico de VS Build Tools C++ workload **era obsoleto**: Build Tools 2022 17.14.37710.0 con `Microsoft.VisualStudio.Component.VC.Tools.x86.x64` está instalado (verificado vía vswhere 2026-10-08). electron-builder reutilizó el prebuilt de better-sqlite3 y no necesitó compilar nativo.
 
 ## Commits recientes
 
-### Sesión 2026-10-08 (cobertura 74.40% → 83.41%, tests 126 → 147, suites 5 → 6)
-- `04e97fb test(account-repo): suite 6 cubriendo AccountRepositoryImpl con fake SQLite` — 21 tests sobre el SQL real del repo: create/count/getAll/getById/getByGroup/getFavorites/update/delete/updateLastUsed/recent games/favorite games. El fake SQLite resuelve named params case-insensitive (como better-sqlite3), WHERE multi-clause (`is_favorite = 1` literal + `?`), ORDER BY, `LIMIT ?` parametrizado y delete por `account_id + game_id`. AccountRepositoryImpl: 0% → 100% lines. database/ 73.51% → 99.54%. Gates: tsc 0, lint 0/0, 6 suites / 147 tests verdes.
+### Sesión 2026-10-08b — cierre de pendientes
+- `eff7c0a feat(account): implementar IPC account:bulk:setEmail con UI funcional` — handler fail-closed (valida array no vacío, límite 50, formato de email), merge en `custom_fields` por cuenta sin pisar otros campos, normaliza trim+lowercase, devuelve `{updated, failed[]}`. preload + tipado + botón "Correo en lote" en barra multi-select + modal con i18n es/en. Refresca la lista post-update y reporta parciales en warning. Test added: merge de custom fields preserva los demás.
+- `869a65f test(local-api): cubrir upgrade WS + dispatch de comandos` — 17 tests: upgrade (Origin no-loopback → 403, path ≠ `/control` → destroy, token ausente → 401, token por header `X-NAM-Token` y por subprotocol `nam-token.<hex>`), mensajes (JSON malformed se dropea, token incorrecto → `Unauthorized`, campos faltantes ignorados), comandos `launch`/`kill`/`status`/`refresh-cookie` con respuestas ok y `Account not found`, comando desconocido, y `accountId` con metacaracteres de shell rechazado por `isSafeId`. LocalApiService 64.41% → 87.90% lines; global 83.41% → 93.83%.
+
+### Sesión 2026-10-08a (cobertura 74.40% → 83.41%, tests 126 → 147, suites 5 → 6)
+- `04e97fb test(account-repo): suite 6 cubriendo AccountRepositoryImpl con fake SQLite` — 21 tests sobre el SQL real del repo. AccountRepositoryImpl: 0% → 100% lines. database/ 73.51% → 99.54%. Gates: tsc 0, lint 0/0, 6 suites / 147 tests verdes.
+- `2a75e95 docs(project): resync estado post-suite AccountRepositoryImpl 83.41%`
 
 ### Sesión 2026-10-05 (cobertura 68.24% → 74.40%, tests 103 → 126, suites 4 → 5)
 - `083bfc3 docs(agents): actualizar regla de suites a 5` — AGENTS.md pasa de "3 suites" (obsoleto desde BackupServiceImpl en 2026-09-13) a "5 suites: CryptoService, LocalApiService, BackupRepositoryImpl, BackupServiceImpl, LRUCache".
@@ -56,26 +60,25 @@
 ## 📋 Próximos pasos (reales, no obsoletos)
 
 ### Resolubles en este entorno
-- [x] ~~Coverage >80% en líneas críticas~~ **Cerrado 2026-10-08**: 83.41% global. `AccountRepositoryImpl.ts` 0% → 100% (suite 6 autorizada por el operador). `database/` 99.54%.
-- [ ] LocalApiService: handlers internos WS (msg.command dispatch, líneas 334-358, 362-430) — no son bugs, son paths de dispatch por mensaje. Cobertura depende de tests E2E WS out-of-hose.
-- [ ] Tests para `RobloxBottingService` + `MultiRobloxService` (sin suites hoy). VIOLA `AGENTS.md` 'mantener 5 suites' — requiere decisión explícita del operador antes de crear.
+- [x] ~~Coverage >80% en líneas críticas~~ **Cerrado 2026-10-08**: **93.83% global**. `AccountRepositoryImpl.ts` 0% → 100% (`04e97fb`), `LocalApiService.ts` 64.41% → 87.90% (`869a65f`). `database/` 99.54%.
+- [ ] Tests para `RobloxBottingService` + `MultiRobloxService` (sin suites hoy; fuera del include glob de coverage). Ya no viola la regla de suites — el operador aprobó la 6ª y la regla está en 6.
 
 ### Bloqueados por infraestructura
-- [ ] `electron-builder` en Windows local — requiere VS Build Tools C++ workload (discord-rpc + better-sqlite3 + utf-8-validate). Workaround CI. Pendiente desde 2026-09-11. **Mitigación parcial 2026-10-05**: discord-rpc y register-scheme movidos a optionalDependencies.
-- [ ] `better-sqlite3` rebuild para Node 24 — prebuild-install no tiene binarios para `target=24.16.0 runtime=node`, y node-gyp rebuild requiere C++ workload. Hoy tests usan fake DB in-memory (workaround).
+- [x] ~~`electron-builder` en Windows local~~ **Cerrado 2026-10-08**: `npm run build` → EXIT 0. `release/NX-Manager-5.0.0-Portable.exe` (74.7 MB). Build Tools 2022 17.14.37710.0 **sí tiene** el workload C++ (`Microsoft.VisualStudio.Component.VC.Tools.x86.x64`); el bloqueo documentado desde 2026-09-11 era información obsoleta.
+- [ ] `better-sqlite3` rebuild para Node 24 — prebuild-install no tiene binarios para `target=24.16.0 runtime=node`, y node-gyp rebuild requiere C++ workload (disponible, pero el prebuilt de Electron 30 sí funciona para el build). Tests siguen con fake DB in-memory vía `vi.mock('better-sqlite3')`.
 
 ### Decisiones de producto diferidas
 - [x] ~~Reintroducir botón "Apply" en SkinEditorModal~~ **Cerrado 2026-10-05**: commits `c81f00f` (port `wearOutfit`), `15a163e` (POST avatar.roblox.com), `4626ee8` (handler + bridge `byAccount.applyOutfit`), `3678549` (botón Apply rehabilitado).
-- [ ] Reintroducir botón bulk email en AccountsView cuando se implemente el IPC `account:bulk:setEmail`. Hoy eliminado (`e913dcf`).
-- [x] ~~Decidir qué hacer con `LRUCache.ts` (0% cobertura, sin call sites).~~ **Cerrado 2026-10-05**: SÍ tiene call sites reales (RobloxGamesService, RobloxPresenceService). Se añadió suite. 0% → 100%.
+- [x] ~~Reintroducir botón bulk email en AccountsView~~ **Cerrado 2026-10-08**: commit `eff7c0a` — handler `account:bulk:setEmail` + preload + tipado + botón "Correo en lote" + modal con i18n es/en. Merge en `custom_fields`, fail-closed (limite 50 + validación de formato), normaliza trim+lowercase.
+- [x] ~~Decidir qué hacer con `LRUCache.ts` (0% cobertura, sin call sites).~~ **Cerrado 2026-10-05**: SÍ tiene call sites reales (RobloxGamesService, RobloxPresenceService). Se añadir suite. 0% → 100%.
 
 ## 🔧 Estado técnico
 
 - **Stack**: Electron 30.5.1, TypeScript 5.3.0, React 18.2.0, Mantine 7.17.8, Vite 5.0.0, vitest 4.1.11, @vitest/coverage-v8 4.1.11
 - **Scripts de test**:
-  - `npm test` — vitest run (6 suites, 147 tests)
+  - `npm test` — vitest run (6 suites, 166 tests)
   - `npm run test:watch` — vitest watch
-  - `npm run test:coverage` — vitest run --coverage (83.41% global, genera report en `coverage/`)
+  - `npm run test:coverage` — vitest run --coverage (93.83% global, genera report in `coverage/`)
   - `npm run test:ui` — vitest --ui
 - **ESLint**: paths corregidos a `src/main.ts`, `src/infrastructure/**`, `src/preload/**` (Node) y `src/renderer.tsx`, `src/application/**` (Browser)
 - **Staleness monitor**: en `scripts/` (era meta-tooling de SophIA, no del producto)
@@ -113,7 +116,7 @@ Commits de la sesión 2026-09-13 (legacy, ya en git):
 - **AccountRepositoryImpl.ts**: 0% → 100% lines. Suite 6 creada con autorización explícita del operador ("Termina NAM", 2026-10-08), actualizando la regla AGENTS.md de 5 suites. Justificación: la clase es la persistencia central de cuentas — cada handler `account:*` depende de ella; call sites reales en toda la app, no cobertura "porque sí".
 - **`RobloxBottingService.ts` + `MultiRobloxService.ts`**: usan `execSync(cmd, { encoding: 'utf8' })` que retorna STRING (no `{stdout, stderr}` como `promisify(exec)`). NO son bugs activos (verificado 2026-09-13). El comentario en commit 7474fba sobre "mismo bug latente" era impreciso — los paths de output.trim()/.includes() en estos archivos funcionan correctamente.
 - **IPC `account:outfit:apply`**: cerrado 2026-10-05 con 4 commits (`c81f00f`, `15a163e`, `4626ee8`, `3678549`). El botón Apply de SkinEditorModal está operativo.
-- **IPC `account:bulk:setEmail`**: handlers pendientes. La UI (botón bulk email) sigue eliminada honestamente (`e913dcf`).
+- **IPC `account:bulk:setEmail`**: cerrado 2026-10-08 (`eff7c0a`). Persiste email de contacto en `custom_fields.email` (merge, no pisa otros campos). Roblox no expone setter de email por API, así que es metadata local de NAM, no el email de la cuenta Roblox.
 
 ## 📐 Arquitectura real (verificada 2026-10-05)
 
@@ -131,15 +134,16 @@ Flujo: Renderer → `window.api.X.Y()` → preload (`ipcRenderer.invoke`) → ma
 ```
 infrastructure/database/    99.54%  (AccountRepo + BackupRepo + BackupCrypto + Settings + DBManager + Crypto + LRUCache)
 infrastructure/services/    96.99%  (BackupServiceImpl.ts)
-infrastructure/external/    64.41%  (LocalApiService.ts)
+infrastructure/external/    87.90%  (LocalApiService.ts)
                             ──────
-                            83.41% global
+                            93.83% global
 ```
 
 ## Traza
 
 | Fecha | Sesión | Cambio |
 |-------|--------|--------|
+| 2026-10-08b | Pendientes cerrados | `eff7c0a` IPC `account:bulk:setEmail` + UI (botón + modal i18n es/en). `869a65f` 17 tests WS upgrade + dispatch: LocalApiService 64.41% → 87.90%, global 83.41% → **93.83%**, 166 tests. Build local verificado: `npm run build` EXIT 0 → `release/NX-Manager-5.0.0-Portable.exe` (74.7 MB); bloqueo de C++ workload era obsoleto. IPC 106/106/106. |
 | 2026-10-08 | Cobertura 74.40% → 83.41% | `04e97fb` suite 6 AccountRepositoryImpl (21 tests, fake SQLite in-memory). AccountRepositoryImpl 0% → 100% lines, database/ 73.51% → 99.54%. Gates: tsc 0, lint 0/0, **6 suites / 147 tests passing**. PROJECT.md resync; AGENTS.md pendiente de aprobación de escritura. |
 | 2026-10-05 | Cobertura 68.24% → 74.40% | 6 commits: `ef1606f` deps optional, `06233ef` test backup restartScheduler + scheduled-tick error, `766ada0` test local-api broadcastStatus + server.on('error'), `0b7cf86` test crypto loadOrCreateSecret fs branches, `1cf0b09` test lru-cache nueva suite, `083bfc3` docs agents regla 5 suites. Gates: tsc 0, lint 0/0, **5 suites / 126 tests passing**, LRUCache 0%→100%. PROJECT.md + AGENTS.md resync. |
 | 2026-09-13 | Cobertura 8.67% → 68.24% | 4 commits: `885a4fd` expandir BackupRepositoryImpl, `82817fa` añadir BackupServiceImpl suite, `7474fba` expandir LocalApiService + fix bugs (output.stdout + require→import), `59bdc7b` SettingsRepositoryImpl + DatabaseManager reales vía fake DB. Gates: tsc 0, lint 0/0, **4 suites / 103 tests passing**. PROJECT.md resync. |
